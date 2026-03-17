@@ -1,90 +1,185 @@
 {% extends "base.html" %}
 
-{% block title %}首页 - 历史英雄对决{% endblock %}
+{% block title %}首页 - 巅峰对决{% endblock %}
 
 {% block content %}
 <div class="space-y-4">
-    <!-- 欢迎横幅 -->
-    <div class="card" style="background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%); border-color: #a855f7;">
-        <div class="card-body" style="text-align: center; padding: 2rem;">
-            <h1 style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">
-                欢迎，{{ player.name }}！
-            </h1>
-            <p style="color: #e2e8f0;">今天也要继续变强哦~</p>
-            <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;">
-                <span class="badge bg-rarity-legendary" style="padding: 0.5rem 1rem;">
-                    等级: {{ player.level }}
-                </span>
-                <span class="badge" style="background: #475569; padding: 0.5rem 1rem;">
-                    角色: {{ characters|length }}
-                </span>
-                <span class="badge" style="background: #475569; padding: 0.5rem 1rem;">
-                    游戏天数: {{ player.total_play_days }}
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- 快捷入口 -->
-    <div class="grid grid-2">
-        <a href="{{ url_for('summon') }}" class="card" style="text-decoration: none; cursor: pointer;">
-            <div class="card-body" style="text-align: center; padding: 1.5rem;">
-                <div style="font-size: 3rem; margin-bottom: 0.5rem;">✨</div>
-                <h3 style="font-weight: bold; color: white;">召唤英雄</h3>
-                <p style="font-size: 0.875rem; color: #94a3b8;">获取新角色</p>
-            </div>
-        </a>
-        <a href="{{ url_for('stages') }}" class="card" style="text-decoration: none; cursor: pointer;">
-            <div class="card-body" style="text-align: center; padding: 1.5rem;">
-                <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚔️</div>
-                <h3 style="font-weight: bold; color: white;">副本挑战</h3>
-                <p style="font-size: 0.875rem; color: #94a3b8;">获取资源奖励</p>
-            </div>
-        </a>
-    </div>
-
-    <!-- 当前队伍 -->
-    <div class="card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 class="card-title">当前队伍</h3>
-            <a href="{{ url_for('characters') }}" class="btn" style="padding: 0.5rem 1rem; background: #475569;">
-                编辑
-            </a>
-        </div>
-        <div class="card-body">
-            {% if team %}
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                {% for char in team %}
-                <div style="width: 80px; text-align: center;">
-                    <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px solid {{ element_colors[char.element] if element_colors else '#475569' }};">
-                        <img src="{{ char.avatar }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">
-                    </div>
-                    <div style="font-size: 0.75rem; color: white; margin-top: 0.25rem;">{{ char.name }}</div>
-                    <div style="font-size: 0.625rem; color: #94a3b8;">Lv.{{ char.level }}</div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p style="text-align: center; color: #94a3b8; padding: 2rem;">
-                还没有设置队伍，去角色页面选择出战角色
-            </p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- 每日任务 -->
+    <!-- 城镇：建筑入口 -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">📋 每日任务</h3>
+            <h3 class="card-title">🏙️ 城镇</h3>
         </div>
         <div class="card-body">
+            <div style="display:flex; align-items:center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                <div style="font-weight: 900; color: #f8fafc; font-size: 1.05rem;">
+                    欢迎，{{ player.name }}！
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
+                    <span class="badge bg-rarity-legendary" style="padding: 0.4rem 0.75rem;">等级: {{ player.level }}</span>
+                    <span class="badge" style="background: #475569; padding: 0.4rem 0.75rem;">角色: {{ characters|length }}</span>
+                    <span class="badge" style="background: #475569; padding: 0.4rem 0.75rem;">游戏天数: {{ player.total_play_days }}</span>
+                    <span class="badge" style="background: #334155; padding: 0.4rem 0.75rem;">通关: {{ player.completed_stages.count() }}</span>
+                </div>
+            </div>
+            <div class="grid grid-4" style="gap: 1rem;">
+                <a href="{{ url_for('summon') }}" class="card" style="text-decoration: none; cursor: pointer;">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🏛️</div>
+                        <div style="font-weight: 900; color: white;">群英馆</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">抽卡召唤英雄</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('characters') }}" class="card" style="text-decoration: none; cursor: pointer;">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🏕️</div>
+                        <div style="font-weight: 900; color: white;">军营</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">查看/养成角色</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('stages') }}" class="card" style="text-decoration: none; cursor: pointer;">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">⚔️</div>
+                        <div style="font-weight: 900; color: white;">演武场</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">副本挑战拿资源</div>
+                    </div>
+                </a>
+                <button type="button" class="card" style="text-decoration: none; cursor: pointer; border: none; background: none; padding: 0;" onclick="openTownModal('tasks')">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">📜</div>
+                        <div style="font-weight: 900; color: white;">任务榜</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">每日任务与奖励</div>
+                    </div>
+                </button>
+                <button type="button" class="card" style="text-decoration: none; cursor: pointer; border: none; background: none; padding: 0;" onclick="openTownModal('team')">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🛡️</div>
+                        <div style="font-weight: 900; color: white;">队伍府</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">查看当前出战队伍</div>
+                    </div>
+                </button>
+                <button type="button" class="card" style="text-decoration: none; cursor: pointer; border: none; background: none; padding: 0;" onclick="openTownModal('book')">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">📖</div>
+                        <div style="font-weight: 900; color: white;">图鉴</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">角色图鉴与筛选</div>
+                    </div>
+                </button>
+                <div class="card" style="opacity: 0.6;">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🧪</div>
+                        <div style="font-weight: 900; color: white;">研究所</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">天赋/符文（开发中）</div>
+                    </div>
+                </div>
+                <div class="card" style="opacity: 0.6;">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🛒</div>
+                        <div style="font-weight: 900; color: white;">商会</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">商店/兑换（开发中）</div>
+                    </div>
+                </div>
+                <div class="card" style="opacity: 0.6;">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">📦</div>
+                        <div style="font-weight: 900; color: white;">仓库</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">装备/道具（开发中）</div>
+                    </div>
+                </div>
+                <div class="card" style="opacity: 0.6;">
+                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
+                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🏆</div>
+                        <div style="font-weight: 900; color: white;">竞技场</div>
+                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">PVP 排位（开发中）</div>
+                    </div>
+                </div>
+            </div>
+            <div style="font-size: 0.8rem; color: #94a3b8; text-align: center; margin-top: 0.75rem;">
+                提示：后续可以给建筑加特效/动画/音乐，并逐步开放“开发中”的建筑功能。
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function openTownModal(which) {
+    var map = { team: 'townTeamModal', tasks: 'townTasksModal', book: 'townBookModal' };
+    var id = map[which];
+    if (!id) return;
+    var modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.add('active');
+    if (window.AudioManager) window.AudioManager.playSfx('click');
+}
+
+function closeTownModal(id) {
+    var modal = document.getElementById(id);
+    if (!modal) return;
+    modal.classList.remove('active');
+    if (window.AudioManager) window.AudioManager.playSfx('click');
+}
+
+async function claimTask(taskId) {
+    const result = await apiCall('/api/daily/claim', { task_id: taskId });
+    if (result.success) {
+        alert('领取成功！获得: 金币 +' + result.rewards.gold + ', 钻石 +' + result.rewards.gems);
+        location.reload();
+    } else {
+        alert(result.error || '领取失败');
+    }
+}
+</script>
+
+<!-- 城镇弹窗：队伍府 -->
+<div id="townTeamModal" class="modal">
+    <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-header">
+            <h3 class="card-title">🛡️ 队伍府</h3>
+            <button class="modal-close" type="button" onclick="closeTownModal('townTeamModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex; justify-content: space-between; align-items:center; gap: 0.75rem; flex-wrap: wrap;">
+                <div style="color:#94a3b8;">当前出战队伍（最多 4 人）</div>
+                <a href="{{ url_for('characters') }}" class="btn" style="padding: 0.5rem 1rem; background: #475569; text-decoration:none;">去军营编辑</a>
+            </div>
+            <div style="margin-top: 1rem;">
+                {% if team %}
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;">
+                    {% for char in team %}
+                    <div class="card" style="width: 140px; background: rgba(51, 65, 85, 0.55);">
+                        <div class="card-body" style="text-align:center; padding: 0.75rem;">
+                            <div style="width: 70px; height: 70px; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px solid {{ element_colors[char.element] if element_colors else '#475569' }};">
+                                <img src="{{ char.avatar }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">
+                            </div>
+                            <div style="font-weight: 900; color: white; margin-top: 0.5rem;">{{ char.name }}</div>
+                            <div style="font-size: 0.8rem; color: #94a3b8;">Lv.{{ char.level }}</div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div style="text-align: center; color: #94a3b8; padding: 2rem;">还没有设置队伍，去军营选择出战角色。</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 城镇弹窗：任务榜 -->
+<div id="townTasksModal" class="modal">
+    <div class="modal-content" style="max-width: 780px;">
+        <div class="modal-header">
+            <h3 class="card-title">📜 任务榜</h3>
+            <button class="modal-close" type="button" onclick="closeTownModal('townTasksModal')">&times;</button>
+        </div>
+        <div class="modal-body">
             {% for task in daily_tasks %}
             <div class="task-card" style="{% if task.claimed %}opacity: 0.5;{% elif task.completed %}border: 2px solid #22c55e;{% endif %}">
                 <div class="task-info">
                     <h4>{{ task.name }}</h4>
                     <p>{{ task.description }}</p>
                     <div style="margin-top: 0.5rem;">
-                        <div class="progress" style="width: 100px;">
+                        <div class="progress" style="width: 160px;">
                             <div class="progress-bar" style="width: {{ (task.progress / task.target * 100) if task.target > 0 else 100 }}%;"></div>
                         </div>
                         <span style="font-size: 0.75rem; color: #94a3b8;">{{ task.progress }}/{{ task.target }}</span>
@@ -105,36 +200,104 @@
             {% endfor %}
         </div>
     </div>
+</div>
 
-    <!-- 游戏进度 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">📊 游戏进度</h3>
+<!-- 城镇弹窗：图鉴（筛选：拥有状态 / 属性 / 稀有度 / 定位） -->
+<div id="townBookModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+            <h3 class="card-title">📖 图鉴</h3>
+            <button class="modal-close" type="button" onclick="closeTownModal('townBookModal')">&times;</button>
         </div>
-        <div class="card-body">
-            <div class="grid grid-2">
-                <div style="background: #334155; padding: 1rem; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #fbbf24;">{{ characters|length }}</div>
-                    <div style="font-size: 0.875rem; color: #94a3b8;">拥有角色</div>
+        <div class="modal-body">
+            <div class="book-filters">
+                <div class="book-filter-row">
+                    <span class="book-filter-label">拥有状态</span>
+                    <select id="book-filter-owned" class="book-select">
+                        <option value="">全部</option>
+                        <option value="1">已拥有</option>
+                        <option value="0">未拥有</option>
+                    </select>
                 </div>
-                <div style="background: #334155; padding: 1rem; border-radius: 8px; text-align: center;">
-                    <div style="font-size: 2rem; font-weight: bold; color: #22c55e;">{{ player.completed_stages.count() }}</div>
-                    <div style="font-size: 0.875rem; color: #94a3b8;">通关关卡</div>
+                <div class="book-filter-row">
+                    <span class="book-filter-label">属性</span>
+                    <select id="book-filter-element" class="book-select">
+                        <option value="">全部</option>
+                        {% for key, name in element_names.items() %}
+                        <option value="{{ key }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
+                <div class="book-filter-row">
+                    <span class="book-filter-label">稀有度</span>
+                    <select id="book-filter-rarity" class="book-select">
+                        <option value="">全部</option>
+                        {% for key, name in rarity_names.items() %}
+                        <option value="{{ key }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="book-filter-row">
+                    <span class="book-filter-label">定位</span>
+                    <select id="book-filter-role" class="book-select">
+                        <option value="">全部</option>
+                        {% for key, name in role_names.items() %}
+                        <option value="{{ key }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="book-stats" style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.75rem;">
+                已收集 {{ owned_character_ids|length }} / {{ all_character_templates|length }}
+            </div>
+            <div id="book-grid" class="book-grid">
+                {% for c in all_character_templates %}
+                <div class="book-card" data-owned="{{ '1' if c.id in owned_character_ids else '0' }}" data-element="{{ c.element }}" data-rarity="{{ c.rarity }}" data-role="{{ c.role_type }}">
+                    <div class="book-card-avatar" style="border-color: {{ element_colors[c.element] }};">
+                        <img src="{{ c.avatar }}" alt="{{ c.name }}">
+                        {% if c.id not in owned_character_ids %}
+                        <div class="book-card-lock">未获得</div>
+                        {% endif %}
+                    </div>
+                    <div class="book-card-name">{{ c.name }}</div>
+                    <div class="book-card-badges">
+                        <span class="badge bg-rarity-{{ c.rarity }}" style="font-size: 0.65rem;">{{ rarity_names[c.rarity] }}</span>
+                        <span class="badge" style="background: {{ element_colors[c.element] }}; font-size: 0.65rem;">{{ element_names[c.element] }}</span>
+                        <span class="badge" style="background: #475569; font-size: 0.65rem;">{{ role_names[c.role_type] }}</span>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
 <script>
-async function claimTask(taskId) {
-    const result = await apiCall('/api/daily/claim', { task_id: taskId });
-    if (result.success) {
-        alert('领取成功！获得: 金币 +' + result.rewards.gold + ', 钻石 +' + result.rewards.gems);
-        location.reload();
-    } else {
-        alert(result.error || '领取失败');
+(function() {
+    var grid = document.getElementById('book-grid');
+    var filterOwned = document.getElementById('book-filter-owned');
+    var filterElement = document.getElementById('book-filter-element');
+    var filterRarity = document.getElementById('book-filter-rarity');
+    var filterRole = document.getElementById('book-filter-role');
+    if (!grid) return;
+    var cards = grid.querySelectorAll('.book-card');
+    function applyBookFilters() {
+        var owned = (filterOwned && filterOwned.value) || '';
+        var el = (filterElement && filterElement.value) || '';
+        var r = (filterRarity && filterRarity.value) || '';
+        var role = (filterRole && filterRole.value) || '';
+        cards.forEach(function(card) {
+            var show = true;
+            if (owned && card.getAttribute('data-owned') !== owned) show = false;
+            if (el && card.getAttribute('data-element') !== el) show = false;
+            if (r && card.getAttribute('data-rarity') !== r) show = false;
+            if (role && card.getAttribute('data-role') !== role) show = false;
+            card.style.display = show ? '' : 'none';
+        });
     }
-}
+    [filterOwned, filterElement, filterRarity, filterRole].forEach(function(el) {
+        if (el) el.addEventListener('change', applyBookFilters);
+    });
+})();
 </script>
 {% endblock %}

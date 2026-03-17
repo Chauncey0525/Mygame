@@ -1,5 +1,5 @@
 /**
- * 历史英雄对决 - 音频管理
+ * 巅峰对决 - 音频管理
  * BGM 使用 static/audio/bgm/ 下文件（可选）；SFX 使用内置占位音效（Web Audio）或 static/audio/sfx/
  */
 (function () {

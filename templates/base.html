@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}历史英雄对决{% endblock %}</title>
+    <title>{% block title %}巅峰对决{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script>window.__STATIC_URL__ = "{{ url_for('static', filename='') }}";</script>
     <script src="{{ url_for('static', filename='js/audio.js') }}"></script>
@@ -27,7 +27,7 @@
     <nav class="navbar">
         <div class="navbar-content">
             <a href="{{ url_for('index') }}" class="navbar-brand">
-                ⚔️ 历史英雄对决
+                ⚔️ 巅峰对决
             </a>
             <div class="navbar-resources">
                 <div class="resource-item">
@@ -47,12 +47,10 @@
                     <span class="resource-value">{{ player.energy }}/{{ player.max_energy }}</span>
                 </div>
                 <div class="resource-item audio-ctrl">
-                    <button type="button" class="audio-btn" id="audio-mute-btn" title="静音" aria-label="静音">🔊</button>
-                    <input type="range" id="audio-sfx-range" min="0" max="100" value="70" title="音效音量">
+                    <button type="button" class="audio-btn" id="settings-open-btn" title="设置 (Esc)" aria-label="打开设置">⚙️</button>
                 </div>
                 <div class="resource-item user-info">
                     <span class="user-name">{{ player.name }}</span>
-                    <a href="{{ url_for('logout') }}" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
                 </div>
             </div>
         </div>
@@ -71,30 +69,107 @@
             {% endif %}
         {% endwith %}
         
+        {% block back_link %}{% endblock %}
         {% block content %}{% endblock %}
     </main>
 
-    <!-- 底部导航 -->
-    {% if player %}
-    <nav class="bottom-nav">
-        <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
-            <span class="nav-icon">🏠</span>
-            <span class="nav-label">首页</span>
-        </a>
-        <a href="{{ url_for('characters') }}" class="nav-item {% if request.endpoint == 'characters' %}active{% endif %}">
-            <span class="nav-icon">👥</span>
-            <span class="nav-label">角色</span>
-        </a>
-        <a href="{{ url_for('summon') }}" class="nav-item {% if request.endpoint == 'summon' %}active{% endif %}">
-            <span class="nav-icon">✨</span>
-            <span class="nav-label">召唤</span>
-        </a>
-        <a href="{{ url_for('stages') }}" class="nav-item {% if request.endpoint == 'stages' %}active{% endif %}">
-            <span class="nav-icon">⚔️</span>
-            <span class="nav-label">副本</span>
-        </a>
-    </nav>
-    {% endif %}
+    <!-- 设置弹窗 -->
+    <div id="settingsModal" class="modal" aria-hidden="true">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h3 class="card-title">⚙️ 设置</h3>
+                <button class="modal-close" type="button" id="settings-close-btn" aria-label="关闭设置">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs" style="margin-bottom: 0.75rem;">
+                    <button type="button" class="tab active" data-settings-tab="graphics">画面</button>
+                    <button type="button" class="tab" data-settings-tab="audio">声音</button>
+                    <button type="button" class="tab" data-settings-tab="gameplay">游戏</button>
+                </div>
+
+                <div class="settings-panel" data-settings-panel="graphics">
+                    <div class="settings-group">
+                        <div class="settings-row">
+                            <div class="settings-label">
+                                <div class="settings-title">动画效果</div>
+                                <div class="settings-desc">关闭后将减少页面动画与特效，提升性能。</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="opt-animations" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-panel" data-settings-panel="audio" style="display:none;">
+                    <div class="settings-group">
+                        <div class="settings-row">
+                            <div class="settings-label">
+                                <div class="settings-title">静音</div>
+                                <div class="settings-desc">关闭/开启所有声音（BGM + 音效）。</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="opt-muted">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">
+                                <div class="settings-title">BGM 音量</div>
+                                <div class="settings-desc">背景音乐音量（需要放置 `static/audio/bgm/main.ogg` 才会有音乐）。</div>
+                            </div>
+                            <input type="range" id="opt-bgm" min="0" max="100" value="50">
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">
+                                <div class="settings-title">音效音量</div>
+                                <div class="settings-desc">点击、受击、召唤等音效音量。</div>
+                            </div>
+                            <input type="range" id="opt-sfx" min="0" max="100" value="70">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-panel" data-settings-panel="gameplay" style="display:none;">
+                    <div class="settings-group">
+                        <div class="settings-row">
+                            <div class="settings-label">
+                                <div class="settings-title">确认弹窗</div>
+                                <div class="settings-desc">启用后，重要操作会提示确认（例如退出登录）。</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="opt-confirms" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-label">
+                                <div class="settings-title">自动播放 BGM</div>
+                                <div class="settings-desc">进入页面后尝试自动播放 BGM（浏览器可能会阻止，需要你先交互一次）。</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="opt-autobgm" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-row" style="border-bottom: none;">
+                            <div class="settings-label">
+                                <div class="settings-title">退出登录</div>
+                                <div class="settings-desc">退出当前账号，返回登录页面。</div>
+                            </div>
+                            <a href="{{ url_for('logout') }}" class="btn btn-danger" id="logout-btn">退出</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem; display:flex; justify-content: flex-end; gap: 0.5rem;">
+                    <button type="button" class="btn btn-danger" id="settings-reset-btn">恢复默认</button>
+                    <button type="button" class="btn btn-primary" id="settings-done-btn">完成</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {% block extra_js %}{% endblock %}
     
@@ -144,28 +219,169 @@
             alert(message);
         }
 
-        // 音频控件
+        // 设置：持久化 + ESC 关闭
         (function() {
-            var muteBtn = document.getElementById('audio-mute-btn');
-            var sfxRange = document.getElementById('audio-sfx-range');
-            if (!window.AudioManager) return;
-            function updateMuteBtn() {
-                if (!muteBtn) return;
-                muteBtn.textContent = window.AudioManager.isMuted() ? '🔇' : '🔊';
-                muteBtn.classList.toggle('muted', window.AudioManager.isMuted());
+            var STORAGE_KEY = 'history_heroes_settings';
+            var defaults = {
+                animations: true,
+                confirms: true,
+                autoBgm: true
+            };
+            function load() {
+                try {
+                    var raw = localStorage.getItem(STORAGE_KEY);
+                    return raw ? Object.assign({}, defaults, JSON.parse(raw)) : Object.assign({}, defaults);
+                } catch (e) {
+                    return Object.assign({}, defaults);
+                }
             }
-            if (muteBtn) {
-                muteBtn.addEventListener('click', function() {
-                    window.AudioManager.setMuted(!window.AudioManager.isMuted());
-                    updateMuteBtn();
-                });
-                updateMuteBtn();
+            function save(s) {
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) {}
             }
-            if (sfxRange) {
-                sfxRange.value = Math.round(window.AudioManager.getSfxVolume() * 100);
-                sfxRange.addEventListener('input', function() {
-                    window.AudioManager.setSfxVolume(parseInt(sfxRange.value, 10) / 100);
+            var settings = load();
+
+            var modal = document.getElementById('settingsModal');
+            var openBtn = document.getElementById('settings-open-btn');
+            var closeBtn = document.getElementById('settings-close-btn');
+            var doneBtn = document.getElementById('settings-done-btn');
+            var resetBtn = document.getElementById('settings-reset-btn');
+
+            var optAnimations = document.getElementById('opt-animations');
+            var optMuted = document.getElementById('opt-muted');
+            var optBgm = document.getElementById('opt-bgm');
+            var optSfx = document.getElementById('opt-sfx');
+            var optConfirms = document.getElementById('opt-confirms');
+            var optAutoBgm = document.getElementById('opt-autobgm');
+
+            function setAnimationsEnabled(enabled) {
+                document.documentElement.classList.toggle('reduce-motion', !enabled);
+            }
+
+            function openSettings() {
+                if (!modal) return;
+                modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
+                if (window.AudioManager) window.AudioManager.playSfx('click');
+            }
+            function closeSettings() {
+                if (!modal) return;
+                modal.classList.remove('active');
+                modal.setAttribute('aria-hidden', 'true');
+                if (window.AudioManager) window.AudioManager.playSfx('click');
+            }
+
+            function applyToUI() {
+                if (optAnimations) optAnimations.checked = !!settings.animations;
+                if (optConfirms) optConfirms.checked = !!settings.confirms;
+                if (optAutoBgm) optAutoBgm.checked = !!settings.autoBgm;
+                setAnimationsEnabled(!!settings.animations);
+
+                if (window.AudioManager) {
+                    if (optMuted) optMuted.checked = window.AudioManager.isMuted();
+                    if (optBgm) optBgm.value = Math.round(window.AudioManager.getBgmVolume() * 100);
+                    if (optSfx) optSfx.value = Math.round(window.AudioManager.getSfxVolume() * 100);
+                }
+            }
+
+            function bindTabs() {
+                var tabs = modal ? modal.querySelectorAll('[data-settings-tab]') : [];
+                var panels = modal ? modal.querySelectorAll('[data-settings-panel]') : [];
+                tabs.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        var key = btn.getAttribute('data-settings-tab');
+                        tabs.forEach(function(t) { t.classList.toggle('active', t === btn); });
+                        panels.forEach(function(p) {
+                            p.style.display = (p.getAttribute('data-settings-panel') === key) ? '' : 'none';
+                        });
+                        if (window.AudioManager) window.AudioManager.playSfx('click');
+                    });
                 });
+            }
+
+            function bindOptions() {
+                if (optAnimations) optAnimations.addEventListener('change', function() {
+                    settings.animations = !!optAnimations.checked;
+                    save(settings);
+                    setAnimationsEnabled(settings.animations);
+                });
+                if (optConfirms) optConfirms.addEventListener('change', function() {
+                    settings.confirms = !!optConfirms.checked;
+                    save(settings);
+                });
+                if (optAutoBgm) optAutoBgm.addEventListener('change', function() {
+                    settings.autoBgm = !!optAutoBgm.checked;
+                    save(settings);
+                    if (settings.autoBgm && window.AudioManager && !window.AudioManager.isMuted()) {
+                        window.AudioManager.playBgm();
+                    } else if (window.AudioManager) {
+                        window.AudioManager.stopBgm();
+                    }
+                });
+
+                if (optMuted && window.AudioManager) optMuted.addEventListener('change', function() {
+                    window.AudioManager.setMuted(!!optMuted.checked);
+                });
+                if (optBgm && window.AudioManager) optBgm.addEventListener('input', function() {
+                    window.AudioManager.setBgmVolume(parseInt(optBgm.value, 10) / 100);
+                });
+                if (optSfx && window.AudioManager) optSfx.addEventListener('input', function() {
+                    window.AudioManager.setSfxVolume(parseInt(optSfx.value, 10) / 100);
+                });
+            }
+
+            function bindModalButtons() {
+                if (openBtn) openBtn.addEventListener('click', openSettings);
+                if (closeBtn) closeBtn.addEventListener('click', closeSettings);
+                if (doneBtn) doneBtn.addEventListener('click', closeSettings);
+                if (resetBtn) resetBtn.addEventListener('click', function() {
+                    settings = Object.assign({}, defaults);
+                    save(settings);
+                    if (window.AudioManager) {
+                        window.AudioManager.setMuted(false);
+                        window.AudioManager.setBgmVolume(0.5);
+                        window.AudioManager.setSfxVolume(0.7);
+                    }
+                    applyToUI();
+                    if (window.AudioManager) window.AudioManager.playSfx('success');
+                });
+
+                // 点击遮罩关闭
+                if (modal) modal.addEventListener('click', function(e) {
+                    if (e.target === modal) closeSettings();
+                });
+            }
+
+            // ESC：关闭设置 + 关闭其它 modal（若有）
+            document.addEventListener('keydown', function(e) {
+                if (e.key !== 'Escape') return;
+                var activeModal = document.querySelector('.modal.active');
+                if (!activeModal) return;
+                // 避免在组合输入时误触
+                if (e.isComposing) return;
+                if (activeModal.id === 'settingsModal') {
+                    closeSettings();
+                } else {
+                    activeModal.classList.remove('active');
+                }
+            });
+
+            // 将“确认弹窗”应用到退出登录（不改后端，仅控制前端 confirm）
+            var logoutLink = document.getElementById('logout-btn');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', function(e) {
+                    if (!settings.confirms) return;
+                    if (!confirm('确定要退出登录吗？')) e.preventDefault();
+                });
+            }
+
+            bindTabs();
+            bindOptions();
+            bindModalButtons();
+            applyToUI();
+
+            // 自动尝试播放 BGM（需要用户交互才可能成功）
+            if (window.AudioManager && settings.autoBgm && !window.AudioManager.isMuted()) {
+                window.AudioManager.playBgm();
             }
         })();
     </script>

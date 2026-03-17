@@ -1,4 +1,4 @@
-/* 历史英雄对决 - 主样式 */
+/* 巅峰对决 - 主样式 */
 
 * {
     margin: 0;
@@ -141,7 +141,104 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 1rem;
-    padding-bottom: 100px;
+    padding-bottom: 1rem;
+}
+
+/* 返回上一级 */
+.back-bar {
+    margin-bottom: 1rem;
+}
+.back-bar .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    background: #334155;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    color: #e2e8f0;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background 0.2s, border-color 0.2s;
+}
+.back-bar .back-btn:hover {
+    background: #475569;
+    border-color: #64748b;
+    color: white;
+}
+
+/* 图鉴弹窗 */
+.book-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+}
+.book-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.book-filter-label {
+    color: #94a3b8;
+    font-size: 0.875rem;
+}
+.book-select {
+    background: #334155;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    color: #e2e8f0;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.875rem;
+}
+.book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.75rem;
+}
+.book-card {
+    background: rgba(51, 65, 85, 0.5);
+    border-radius: 10px;
+    padding: 0.5rem;
+    text-align: center;
+    border: 1px solid #475569;
+}
+.book-card-avatar {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 0.35rem;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid #475569;
+}
+.book-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+.book-card-avatar .book-card-lock {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    color: #94a3b8;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.book-card-name {
+    font-weight: 700;
+    color: #f8fafc;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+.book-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    justify-content: center;
 }
 
 /* 卡片 */
@@ -790,4 +887,114 @@ body {
 .audio-ctrl input[type="range"] {
     width: 60px;
     accent-color: #fbbf24;
+}
+
+/* ========== 设置面板（Settings） ========== */
+.settings-group {
+    background: rgba(0,0,0,0.18);
+    border: 1px solid #475569;
+    border-radius: 12px;
+    padding: 0.75rem;
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0.25rem;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.6);
+}
+.settings-row:last-child {
+    border-bottom: none;
+}
+
+.settings-label {
+    flex: 1;
+    min-width: 0;
+}
+
+.settings-title {
+    font-weight: 800;
+    color: #f8fafc;
+}
+
+.settings-desc {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-top: 0.25rem;
+    line-height: 1.35;
+}
+
+.settings-panel input[type="range"] {
+    width: 220px;
+    max-width: 45vw;
+    accent-color: #fbbf24;
+}
+
+/* 开关 Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 30px;
+    flex-shrink: 0;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #334155;
+    border: 1px solid #475569;
+    transition: 0.2s;
+    border-radius: 9999px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.2s;
+    border-radius: 9999px;
+}
+.switch input:checked + .slider {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    border-color: rgba(34, 197, 94, 0.9);
+}
+.switch input:focus-visible + .slider {
+    outline: 2px solid rgba(251, 191, 36, 0.9);
+    outline-offset: 2px;
+}
+.switch input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+/* 画面设置：减少动画 */
+.reduce-motion * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+}
+
+@media (max-width: 520px) {
+    .settings-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .settings-panel input[type="range"] {
+        width: 100%;
+        max-width: 100%;
+    }
 }

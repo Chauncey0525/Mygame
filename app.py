@@ -1,5 +1,5 @@
 """
-历史英雄对决 - Flask 主应用
+巅峰对决 - Flask 主应用
 """
 import os
 import re
@@ -462,15 +462,22 @@ def index():
     # 获取每日任务
     daily_tasks = [task.to_dict() for task in player.daily_tasks.filter_by(task_date=date.today())]
     
+    # 图鉴：全角色模板 + 已拥有 id 列表
+    all_character_templates = get_all_characters()
+    owned_character_ids = [c.character_id for c in player.characters]
+    
     return render_template('index.html',
         player=player,
         characters=characters,
         team=team,
         daily_tasks=daily_tasks,
+        all_character_templates=all_character_templates,
+        owned_character_ids=owned_character_ids,
         rarity_names=RARITY_NAMES,
         rarity_colors=RARITY_COLORS,
         element_names=ELEMENT_NAMES,
-        element_colors=ELEMENT_COLORS
+        element_colors=ELEMENT_COLORS,
+        role_names=ROLE_NAMES
     )
 
 

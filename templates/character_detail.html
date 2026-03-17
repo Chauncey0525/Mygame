@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}{{ character.name }} - 历史英雄对决{% endblock %}
+{% block title %}{{ character.name }} - 巅峰对决{% endblock %}
+
+{% block back_link %}
+<div class="back-bar"><a href="{{ url_for('characters') }}" class="back-btn">← 返回军营</a></div>
+{% endblock %}
 
 {% block content %}
 <div class="space-y-4">
-    <!-- 返回按钮 -->
-    <a href="{{ url_for('characters') }}" class="btn" style="background: #475569;">
-        ← 返回角色列表
-    </a>
-
     <!-- 角色信息卡 -->
     <div class="card">
         <div class="card-body" style="padding: 1.5rem;">
