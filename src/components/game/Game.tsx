@@ -48,16 +48,20 @@ export function Game() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       {/* 顶部导航 */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+      <header className="border-b-2 border-slate-700 bg-slate-900 shadow-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">⚔️</span>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+            <span className="text-3xl">⚔️</span>
+            <h1 className="text-2xl font-black bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
               历史英雄对决
             </h1>
           </div>
           {phase === 'battle' && (
-            <Button variant="ghost" onClick={handleBackToSelect} className="text-slate-400 hover:text-white">
+            <Button 
+              variant="outline" 
+              onClick={handleBackToSelect} 
+              className="text-slate-200 border-slate-600 hover:border-yellow-400 hover:text-yellow-400 bg-slate-800"
+            >
               ← 返回选择
             </Button>
           )}
@@ -88,10 +92,12 @@ export function Game() {
       </main>
 
       {/* 底部信息 */}
-      <footer className="border-t border-slate-800 bg-slate-900/50 py-4">
-        <div className="mx-auto max-w-5xl px-4 text-center text-xs text-slate-500">
-          <p>历史英雄对决 - 以古今中外历史人物为背景的回合制战斗游戏</p>
-          <p className="mt-1">所有角色数据由AI生成，仅供娱乐</p>
+      <footer className="border-t-2 border-slate-700 bg-slate-900 py-4">
+        <div className="mx-auto max-w-5xl px-4 text-center">
+          <p className="text-sm text-slate-300 font-medium">
+            历史英雄对决 - 以古今中外历史人物为背景的回合制战斗游戏
+          </p>
+          <p className="mt-1 text-xs text-slate-400">所有角色数据由AI生成，仅供娱乐</p>
         </div>
       </footer>
     </div>

@@ -19,7 +19,7 @@ const SKILL_TYPE_ICONS: Record<string, string> = {
   buff: '⬆️',
   debuff: '⬇️',
   heal: '💚',
-  special: '✨',
+  special: '⭐',
 };
 
 const SKILL_TYPE_NAMES: Record<string, string> = {
@@ -44,27 +44,23 @@ export function SkillButton({ skill, disabled = false, onClick, isActive = false
             disabled={!isAvailable}
             onClick={onClick}
             className={cn(
-              'relative h-auto w-full flex-col items-start gap-1 p-3 transition-all',
-              isActive && 'ring-2 ring-yellow-400',
+              'relative h-auto w-full flex-col items-start gap-1 p-3 transition-all border-2',
+              isActive && 'ring-2 ring-yellow-400 ring-offset-2 ring-offset-slate-800',
               !isAvailable && 'opacity-50',
-              skill.type === 'special' && 'border-yellow-500 bg-yellow-900/20 hover:bg-yellow-900/40'
+              skill.type === 'special' && 'border-yellow-500 bg-gradient-to-b from-yellow-900/30 to-slate-800 hover:from-yellow-800/40 hover:to-slate-700',
+              skill.type !== 'special' && 'border-slate-500 bg-slate-700 hover:bg-slate-600'
             )}
-            style={{
-              borderColor: isAvailable ? ELEMENT_COLORS[skill.element] : undefined,
-            }}
           >
             {/* 技能名称行 */}
             <div className="flex w-full items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-lg">{SKILL_TYPE_ICONS[skill.type]}</span>
-                <span className="font-bold">{skill.name}</span>
+                <span className="font-bold text-white text-sm">{skill.name}</span>
               </div>
               <Badge
-                variant="outline"
-                className="text-xs"
+                className="text-xs font-bold border-0 text-white"
                 style={{
-                  borderColor: ELEMENT_COLORS[skill.element],
-                  color: ELEMENT_COLORS[skill.element],
+                  backgroundColor: ELEMENT_COLORS[skill.element],
                 }}
               >
                 {ELEMENT_NAMES[skill.element]}
@@ -72,20 +68,23 @@ export function SkillButton({ skill, disabled = false, onClick, isActive = false
             </div>
 
             {/* 技能信息行 */}
-            <div className="flex w-full items-center justify-between text-xs text-slate-400">
+            <div className="flex w-full items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                {skill.power > 0 && <span className="text-orange-400">威力: {skill.power}</span>}
-                <span>命中: {skill.accuracy}%</span>
+                {skill.power > 0 && <span className="text-orange-400 font-bold">威力: {skill.power}</span>}
+                <span className="text-slate-300">命中: {skill.accuracy}%</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className={cn(skill.pp <= 0 ? 'text-red-400' : skill.pp <= 2 ? 'text-yellow-400' : 'text-blue-400')}>
+                <span className={cn(
+                  'font-bold',
+                  skill.pp <= 0 ? 'text-red-400' : skill.pp <= 2 ? 'text-yellow-400' : 'text-blue-400'
+                )}>
                   PP: {skill.pp}/{skill.maxPp}
                 </span>
               </div>
             </div>
 
             {/* PP条 */}
-            <div className="h-1 w-full overflow-hidden rounded-full bg-slate-700">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-600">
               <div
                 className={cn(
                   'h-full transition-all',
@@ -96,21 +95,21 @@ export function SkillButton({ skill, disabled = false, onClick, isActive = false
             </div>
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
+        <TooltipContent side="top" className="max-w-xs bg-slate-700 border-2 border-slate-500 text-white">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-lg">{SKILL_TYPE_ICONS[skill.type]}</span>
               <span className="font-bold">{skill.name}</span>
-              <span className="text-xs text-slate-400">({skill.nameEn})</span>
+              <span className="text-xs text-slate-300">({skill.nameEn})</span>
             </div>
-            <p className="text-sm text-slate-300">{skill.description}</p>
+            <p className="text-sm text-slate-200">{skill.description}</p>
             <div className="flex gap-3 text-xs">
-              <span className="text-orange-400">威力: {skill.power}</span>
-              <span>命中: {skill.accuracy}%</span>
-              <span className="text-blue-400">PP: {skill.pp}/{skill.maxPp}</span>
+              <span className="text-orange-400 font-bold">威力: {skill.power}</span>
+              <span className="text-slate-300">命中: {skill.accuracy}%</span>
+              <span className="text-blue-400 font-bold">PP: {skill.pp}/{skill.maxPp}</span>
             </div>
             {skill.effect && (
-              <div className="text-xs text-purple-400">
+              <div className="text-xs text-purple-300">
                 附加效果: {skill.effect.type} ({skill.effect.chance}%概率)
               </div>
             )}
