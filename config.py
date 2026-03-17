@@ -25,8 +25,9 @@ class Config:
     elif MYSQL_PASSWORD:
         SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}?charset=utf8mb4"
     else:
-        # 回退到 SQLite（用于开发/测试）
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///history_heroes.db'
+        # 回退到 SQLite（用于开发/测试）- 使用 instance 目录
+        basedir = os.path.abspath(os.path.dirname(__file__))
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'instance', 'history_heroes.db')
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
