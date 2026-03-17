@@ -27,6 +27,14 @@ export const RARITY_STARS: Record<Rarity, number> = {
   legendary: 4,
 };
 
+/** 稀有度权重 (百分比) */
+export const RARITY_WEIGHTS: Record<Rarity, number> = {
+  common: 60,
+  rare: 30,
+  epic: 8,
+  legendary: 2,
+};
+
 /** 玩家资源 */
 export interface PlayerResources {
   gold: number; // 金币
@@ -57,13 +65,19 @@ export interface CharacterGrowth {
 export interface OwnedCharacter {
   id: string;
   characterId: string; // 对应模板角色ID
-  growth: CharacterGrowth;
-  isFavorite: boolean; // 是否收藏
-  isInTeam: boolean; // 是否在队伍中
+  rarity: Rarity;
+  level: number;
+  exp: number;
+  stars: number;
+  breakthrough: number;
+  bondLevel: number;
+  bondExp: number;
+  obtainedAt: Date;
 }
 
 /** 玩家数据 */
 export interface PlayerData {
+  id?: string;
   name: string;
   level: number;
   exp: number;
@@ -75,6 +89,8 @@ export interface PlayerData {
   dailyTasks: DailyTask[];
   lastLoginDate: string;
   totalPlayDays: number;
+  pityCount?: number; // 史诗保底计数
+  legendaryPityCount?: number; // 传说保底计数
 }
 
 /** 每日任务 */
@@ -152,7 +168,17 @@ export interface LevelUpResult {
 
 /** 计算角色属性（基于等级和突破） */
 export function calculateStats(
-  baseStats: { hp: number; attack: number; defense: number; speed: number },
+  baseStats: { 
+    hp: number; 
+    maxHp?: number;
+    attack: number; 
+    defense: number; 
+    specialAttack?: number;
+    specialDefense?: number;
+    speed: number;
+    critRate?: number;
+    critDamage?: number;
+  },
   level: number,
   stars: number,
   breakthrough: number
@@ -164,11 +190,18 @@ export function calculateStats(
   // 突破加成
   const breakthroughMultiplier = 1 + breakthrough * 0.15;
 
+  const multiplier = levelMultiplier * starMultiplier * breakthroughMultiplier;
+
   return {
-    hp: Math.floor(baseStats.hp * levelMultiplier * starMultiplier * breakthroughMultiplier),
-    attack: Math.floor(baseStats.attack * levelMultiplier * starMultiplier * breakthroughMultiplier),
-    defense: Math.floor(baseStats.defense * levelMultiplier * starMultiplier * breakthroughMultiplier),
-    speed: Math.floor(baseStats.speed * levelMultiplier * starMultiplier * breakthroughMultiplier),
+    hp: Math.floor(baseStats.hp * multiplier),
+    maxHp: Math.floor((baseStats.maxHp || baseStats.hp) * multiplier),
+    attack: Math.floor(baseStats.attack * multiplier),
+    defense: Math.floor(baseStats.defense * multiplier),
+    specialAttack: Math.floor((baseStats.specialAttack || baseStats.attack) * multiplier),
+    specialDefense: Math.floor((baseStats.specialDefense || baseStats.defense) * multiplier),
+    speed: Math.floor(baseStats.speed * multiplier),
+    critRate: baseStats.critRate || 0.05,
+    critDamage: baseStats.critDamage || 1.5,
   };
 }
 

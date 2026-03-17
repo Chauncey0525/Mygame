@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePlayerData } from '@/hooks/usePlayerData';
+import { usePlayerData } from '@/hooks/usePlayerDataDB';
 import { useBattle } from '@/hooks/useBattle';
 import { useSummon } from '@/hooks/useSummon';
 import { Stage, OwnedCharacter, DailyTask } from '@/types/growth';

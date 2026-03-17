@@ -16,9 +16,9 @@ interface SummonPanelProps {
   pity: number;
   legendaryPity: number;
   isSummoning: boolean;
-  onSummonOnce: () => SummonResult | null;
-  onSummonTen: () => SummonResult[];
-  onSummonWithTicket: () => SummonResult | null;
+  onSummonOnce: () => Promise<any>;
+  onSummonTen: () => Promise<any[]>;
+  onSummonWithTicket: () => Promise<any>;
 }
 
 export function SummonPanel({
@@ -35,8 +35,8 @@ export function SummonPanel({
   const [showResult, setShowResult] = useState(false);
   const [animatingIndex, setAnimatingIndex] = useState(0);
 
-  const handleSummonOnce = () => {
-    const result = onSummonOnce();
+  const handleSummonOnce = async () => {
+    const result = await onSummonOnce();
     if (result) {
       setResults([result]);
       setShowResult(true);
@@ -44,17 +44,17 @@ export function SummonPanel({
     }
   };
 
-  const handleSummonTen = () => {
-    const results = onSummonTen();
-    if (results.length > 0) {
+  const handleSummonTen = async () => {
+    const results = await onSummonTen();
+    if (results && results.length > 0) {
       setResults(results);
       setShowResult(true);
       setAnimatingIndex(0);
     }
   };
 
-  const handleSummonWithTicket = () => {
-    const result = onSummonWithTicket();
+  const handleSummonWithTicket = async () => {
+    const result = await onSummonWithTicket();
     if (result) {
       setResults([result]);
       setShowResult(true);

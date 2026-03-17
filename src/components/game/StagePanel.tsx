@@ -19,7 +19,7 @@ interface StagePanelProps {
   team: string[];
   getBattleCharacter: (instanceId: string) => BattleCharacter | null;
   onStartBattle: (stage: Stage, enemies: BattleCharacter[]) => void;
-  onSpendEnergy: (amount: number) => boolean;
+  onSpendEnergy: (amount: number) => boolean | Promise<boolean>;
 }
 
 export function StagePanel({

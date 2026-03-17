@@ -1,214 +1,206 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Rarity, SummonResult, RARITY_NAMES, RARITY_COLORS } from '@/types/growth';
+import { Rarity, RARITY_WEIGHTS, RARITY_NAMES, RARITY_COLORS, RARITY_STARS } from '@/types/growth';
 import { ALL_CHARACTERS } from '@/data/characters';
 
-/** 角色稀有度映射 */
-const CHARACTER_RARITY: Record<string, Rarity> = {
-  'zhuge-liang': 'legendary',
-  'napoleon': 'legendary',
-  'arthur': 'epic',
-  'wu-zetian': 'epic',
-  'hua-mulan': 'rare',
-  'caesar': 'rare',
-};
-
-/** 抽卡概率 */
-const SUMMON_RATES: Record<Rarity, number> = {
-  common: 0,
-  rare: 0.60,
-  epic: 0.30,
-  legendary: 0.10,
-};
-
-/** 保底机制 */
-const PITY_THRESHOLD = 50; // 50抽必出史诗
-const LEGENDARY_PITY = 100; // 100抽必出传说
-
-interface UseSummonOptions {
-  onObtainCharacter: (characterId: string) => { instanceId: string; isNew: boolean };
-  spendResources: (resources: { gems?: number; summonTickets?: number }) => boolean;
-  updateDailyTask: (taskId: string, progress: number) => void;
+interface UseSummonProps {
+  onObtainCharacter: (characterId: string) => Promise<any>;
+  spendResources: (resources: { gems?: number; summonTickets?: number }) => Promise<boolean>;
+  updateDailyTask: (taskId: string, progress?: number) => Promise<void>;
   hasCharacter: (characterId: string) => boolean;
 }
 
-interface SummonState {
-  pity: number; // 当前抽卡次数（用于保底）
-  legendaryPity: number; // 传说保底计数
-  lastRarity: Rarity | null;
-  history: SummonResult[];
+interface SummonResult {
+  characterId: string;
+  name: string;
+  rarity: Rarity;
+  avatar: string;
+  isNew: boolean;
+  stars: number;
 }
 
-export function useSummon(options: UseSummonOptions) {
-  const { onObtainCharacter, spendResources, updateDailyTask, hasCharacter } = options;
-
-  const [state, setState] = useState<SummonState>({
-    pity: 0,
-    legendaryPity: 0,
-    lastRarity: null,
-    history: [],
-  });
-
+export function useSummon({
+  onObtainCharacter,
+  spendResources,
+  updateDailyTask,
+  hasCharacter,
+}: UseSummonProps) {
   const [isSummoning, setIsSummoning] = useState(false);
+  const [results, setResults] = useState<SummonResult[]>([]);
+  const [pity, setPity] = useState(0);
+  const [legendaryPity, setLegendaryPity] = useState(0);
+  const [history, setHistory] = useState<SummonResult[]>([]);
+
+  /** 获取随机稀有度 */
+  const getRandomRarity = useCallback((currentPity: number, currentLegendaryPity: number): Rarity => {
+    // 保底检查
+    if (currentLegendaryPity >= 99) return 'legendary';
+    if (currentPity >= 49) return 'epic';
+
+    const roll = Math.random() * 100;
+    
+    if (roll < RARITY_WEIGHTS.legendary) return 'legendary';
+    if (roll < RARITY_WEIGHTS.legendary + RARITY_WEIGHTS.epic) return 'epic';
+    if (roll < RARITY_WEIGHTS.legendary + RARITY_WEIGHTS.epic + RARITY_WEIGHTS.rare) return 'rare';
+    return 'common';
+  }, []);
+
+  /** 获取随机角色 */
+  const getRandomCharacter = useCallback((rarity: Rarity) => {
+    const charactersOfRarity = ALL_CHARACTERS.filter((c) => {
+      const charRarity = getCharacterRarity(c.id);
+      return charRarity === rarity;
+    });
+    
+    if (charactersOfRarity.length === 0) {
+      // 如果该稀有度没有角色，返回一个随机角色
+      return ALL_CHARACTERS[Math.floor(Math.random() * ALL_CHARACTERS.length)];
+    }
+    
+    return charactersOfRarity[Math.floor(Math.random() * charactersOfRarity.length)];
+  }, []);
+
+  /** 执行单次召唤 */
+  const performSummon = useCallback(async (
+    currentPity: number,
+    currentLegendaryPity: number
+  ): Promise<{ result: SummonResult; newPity: number; newLegendaryPity: number }> => {
+    const rarity = getRandomRarity(currentPity, currentLegendaryPity);
+    const character = getRandomCharacter(rarity);
+    const isNew = !hasCharacter(character.id);
+    
+    // 调用数据库添加角色
+    const dbResult = await onObtainCharacter(character.id);
+    
+    const stars = dbResult?.stars || (rarity === 'legendary' ? 2 : rarity === 'epic' ? 1 : 1);
+    
+    const result: SummonResult = {
+      characterId: character.id,
+      name: character.name,
+      rarity,
+      avatar: character.avatar,
+      isNew,
+      stars,
+    };
+
+    // 更新保底计数
+    let newPity = currentPity + 1;
+    let newLegendaryPity = currentLegendaryPity + 1;
+    
+    if (rarity === 'legendary') {
+      newLegendaryPity = 0;
+      newPity = 0;
+    } else if (rarity === 'epic') {
+      newPity = 0;
+    }
+
+    return { result, newPity, newLegendaryPity };
+  }, [getRandomRarity, getRandomCharacter, hasCharacter, onObtainCharacter]);
 
   /** 单抽 */
-  const summonOnce = useCallback((): SummonResult | null => {
-    if (!spendResources({ gems: 150 })) {
-      return null;
-    }
+  const summonOnce = useCallback(async () => {
+    if (isSummoning) return null;
+    
+    const success = await spendResources({ gems: 100 });
+    if (!success) return null;
 
     setIsSummoning(true);
-
-    // 更新每日任务
-    updateDailyTask('daily-summon', 1);
-
-    const result = performSummon(state.pity, state.legendaryPity, hasCharacter);
-
-    setState((prev) => ({
-      ...prev,
-      pity: result.rarity === 'epic' ? 0 : prev.pity + 1,
-      legendaryPity: result.rarity === 'legendary' ? 0 : prev.legendaryPity + 1,
-      lastRarity: result.rarity,
-      history: [result, ...prev.history].slice(0, 50),
-    }));
-
-    // 获得角色
-    const obtainResult = onObtainCharacter(result.characterId);
-    result.isNew = obtainResult.isNew;
-
-    setTimeout(() => setIsSummoning(false), 500);
-
-    return result;
-  }, [state.pity, state.legendaryPity, spendResources, updateDailyTask, hasCharacter, onObtainCharacter]);
-
-  /** 十连抽 */
-  const summonTen = useCallback((): SummonResult[] => {
-    if (!spendResources({ gems: 1350 })) { // 10连9折
-      return [];
+    try {
+      const { result, newPity, newLegendaryPity } = await performSummon(pity, legendaryPity);
+      
+      setResults([result]);
+      setPity(newPity);
+      setLegendaryPity(newLegendaryPity);
+      setHistory((prev) => [result, ...prev.slice(0, 19)]);
+      
+      await updateDailyTask('daily-summon', 1);
+      
+      return result;
+    } finally {
+      setIsSummoning(false);
     }
+  }, [isSummoning, pity, legendaryPity, performSummon, spendResources, updateDailyTask]);
+
+  /** 十连 */
+  const summonTen = useCallback(async () => {
+    if (isSummoning) return [];
+    
+    const success = await spendResources({ gems: 900 });
+    if (!success) return [];
 
     setIsSummoning(true);
+    try {
+      const newResults: SummonResult[] = [];
+      let currentPity = pity;
+      let currentLegendaryPity = legendaryPity;
 
-    // 更新每日任务
-    updateDailyTask('daily-summon', 10);
-
-    const results: SummonResult[] = [];
-    let currentPity = state.pity;
-    let currentLegendaryPity = state.legendaryPity;
-
-    for (let i = 0; i < 10; i++) {
-      const result = performSummon(currentPity, currentLegendaryPity, hasCharacter);
-      results.push(result);
-
-      if (result.rarity === 'epic') {
-        currentPity = 0;
-      } else {
-        currentPity++;
+      for (let i = 0; i < 10; i++) {
+        const { result, newPity, newLegendaryPity } = await performSummon(currentPity, currentLegendaryPity);
+        newResults.push(result);
+        currentPity = newPity;
+        currentLegendaryPity = newLegendaryPity;
       }
 
-      if (result.rarity === 'legendary') {
-        currentLegendaryPity = 0;
-      } else {
-        currentLegendaryPity++;
-      }
-
-      // 获得角色
-      const obtainResult = onObtainCharacter(result.characterId);
-      result.isNew = obtainResult.isNew;
+      setResults(newResults);
+      setPity(currentPity);
+      setLegendaryPity(currentLegendaryPity);
+      setHistory((prev) => [...newResults.reverse(), ...prev.slice(0, 10)]);
+      
+      await updateDailyTask('daily-summon', 1);
+      
+      return newResults;
+    } finally {
+      setIsSummoning(false);
     }
-
-    setState((prev) => ({
-      ...prev,
-      pity: currentPity,
-      legendaryPity: currentLegendaryPity,
-      lastRarity: results[results.length - 1].rarity,
-      history: [...results.reverse(), ...prev.history].slice(0, 50),
-    }));
-
-    setTimeout(() => setIsSummoning(false), 1500);
-
-    return results;
-  }, [state.pity, state.legendaryPity, spendResources, updateDailyTask, hasCharacter, onObtainCharacter]);
+  }, [isSummoning, pity, legendaryPity, performSummon, spendResources, updateDailyTask]);
 
   /** 使用召唤券 */
-  const summonWithTicket = useCallback((): SummonResult | null => {
-    if (!spendResources({ summonTickets: 1 })) {
-      return null;
-    }
+  const summonWithTicket = useCallback(async () => {
+    if (isSummoning) return null;
+    
+    const success = await spendResources({ summonTickets: 1 });
+    if (!success) return null;
 
     setIsSummoning(true);
-
-    const result = performSummon(state.pity, state.legendaryPity, hasCharacter);
-
-    setState((prev) => ({
-      ...prev,
-      pity: result.rarity === 'epic' ? 0 : prev.pity + 1,
-      legendaryPity: result.rarity === 'legendary' ? 0 : prev.legendaryPity + 1,
-      lastRarity: result.rarity,
-      history: [result, ...prev.history].slice(0, 50),
-    }));
-
-    const obtainResult = onObtainCharacter(result.characterId);
-    result.isNew = obtainResult.isNew;
-
-    setTimeout(() => setIsSummoning(false), 500);
-
-    return result;
-  }, [state.pity, state.legendaryPity, spendResources, hasCharacter, onObtainCharacter]);
+    try {
+      const { result, newPity, newLegendaryPity } = await performSummon(pity, legendaryPity);
+      
+      setResults([result]);
+      setPity(newPity);
+      setLegendaryPity(newLegendaryPity);
+      setHistory((prev) => [result, ...prev.slice(0, 19)]);
+      
+      await updateDailyTask('daily-summon', 1);
+      
+      return result;
+    } finally {
+      setIsSummoning(false);
+    }
+  }, [isSummoning, pity, legendaryPity, performSummon, spendResources, updateDailyTask]);
 
   return {
     summonOnce,
     summonTen,
     summonWithTicket,
     isSummoning,
-    pity: state.pity,
-    legendaryPity: state.legendaryPity,
-    history: state.history,
-  };
-}
-
-/** 执行抽卡 */
-function performSummon(
-  currentPity: number,
-  legendaryPity: number,
-  hasCharacter: (id: string) => boolean
-): SummonResult {
-  let rarity: Rarity;
-
-  // 检查传说保底
-  if (legendaryPity >= LEGENDARY_PITY - 1) {
-    rarity = 'legendary';
-  }
-  // 检查史诗保底
-  else if (currentPity >= PITY_THRESHOLD - 1) {
-    rarity = 'epic';
-  }
-  // 正常概率
-  else {
-    const roll = Math.random();
-    if (roll < SUMMON_RATES.legendary) {
-      rarity = 'legendary';
-    } else if (roll < SUMMON_RATES.legendary + SUMMON_RATES.epic) {
-      rarity = 'epic';
-    } else {
-      rarity = 'rare';
-    }
-  }
-
-  // 根据稀有度选择角色
-  const candidates = ALL_CHARACTERS.filter((c) => CHARACTER_RARITY[c.id] === rarity);
-  const selected = candidates[Math.floor(Math.random() * candidates.length)];
-
-  return {
-    characterId: selected.id,
-    rarity,
-    isNew: !hasCharacter(selected.id),
-    shards: hasCharacter(selected.id) ? 30 : 0,
+    results,
+    pity,
+    legendaryPity,
+    history,
+    setResults,
   };
 }
 
 /** 获取角色稀有度 */
-export function getCharacterRarity(characterId: string): Rarity {
-  return CHARACTER_RARITY[characterId] || 'rare';
+function getCharacterRarity(characterId: string): Rarity {
+  const CHARACTER_RARITY: Record<string, Rarity> = {
+    'zhuge-liang': 'legendary',
+    'napoleon': 'legendary',
+    'arthur': 'epic',
+    'wu-zetian': 'epic',
+    'hua-mulan': 'rare',
+    'caesar': 'rare',
+  };
+  return CHARACTER_RARITY[characterId] || 'common';
 }
