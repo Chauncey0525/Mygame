@@ -50,33 +50,35 @@
         </button>
     </div>
 
-    <!-- 概率说明 -->
+    <!-- 概率说明（隐藏在问号里） -->
     <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">📝 概率说明</h3>
-        </div>
-        <div class="card-body">
-            <div style="display: flex; justify-content: space-around; text-align: center;">
-                <div>
-                    <span class="badge bg-rarity-common">普通</span>
-                    <div style="font-size: 1.25rem; font-weight: bold; margin-top: 0.25rem;">60%</div>
-                </div>
-                <div>
-                    <span class="badge bg-rarity-rare">稀有</span>
-                    <div style="font-size: 1.25rem; font-weight: bold; margin-top: 0.25rem;">30%</div>
-                </div>
-                <div>
-                    <span class="badge bg-rarity-epic">史诗</span>
-                    <div style="font-size: 1.25rem; font-weight: bold; margin-top: 0.25rem;">8%</div>
-                </div>
-                <div>
-                    <span class="badge bg-rarity-legendary">传说</span>
-                    <div style="font-size: 1.25rem; font-weight: bold; margin-top: 0.25rem;">2%</div>
-                </div>
-            </div>
-            <p style="font-size: 0.75rem; color: #94a3b8; text-align: center; margin-top: 1rem;">
-                50抽必出史诗，100抽必出传说
-            </p>
+        <div class="card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+            <h3 class="card-title" style="margin: 0;">📝 概率说明</h3>
+            <span class="help">
+                <button type="button" class="help-btn" aria-label="查看概率说明" title="查看概率说明">?</button>
+                <span class="help-tooltip" role="tooltip">
+                    <div class="help-tooltip-title">召唤概率</div>
+                    <div class="help-tooltip-grid">
+                        <div>
+                            <span class="badge bg-rarity-common">普通</span>
+                            <div class="help-tooltip-rate">60%</div>
+                        </div>
+                        <div>
+                            <span class="badge bg-rarity-rare">稀有</span>
+                            <div class="help-tooltip-rate">30%</div>
+                        </div>
+                        <div>
+                            <span class="badge bg-rarity-epic">史诗</span>
+                            <div class="help-tooltip-rate">8%</div>
+                        </div>
+                        <div>
+                            <span class="badge bg-rarity-legendary">传说</span>
+                            <div class="help-tooltip-rate">2%</div>
+                        </div>
+                    </div>
+                    <div class="help-tooltip-note">50抽必出史诗，100抽必出传说</div>
+                </span>
+            </span>
         </div>
     </div>
 
@@ -96,12 +98,14 @@
 
 <script>
 async function doSummon(type) {
+    if (window.AudioManager) window.AudioManager.playSfx('click');
     const result = await apiCall('/api/summon', { type: type });
     if (result.success) {
         showSummonResults(result.results);
         // 更新保底显示
         setTimeout(() => location.reload(), 2000);
     } else {
+        if (window.AudioManager) window.AudioManager.playSfx('defeat');
         alert(result.error || '召唤失败');
     }
 }
@@ -111,9 +115,21 @@ function showSummonResults(results) {
     container.innerHTML = '';
     
     results.forEach((char, index) => {
+        var delay = index * 0.12;
+        if (window.AudioManager) {
+            setTimeout(function() {
+                var name = 'summon_common';
+                if (char.rarity === 'legendary') name = 'summon_legendary';
+                else if (char.rarity === 'epic') name = 'summon_epic';
+                else if (char.rarity === 'rare') name = 'summon_rare';
+                window.AudioManager.playSfx(name);
+            }, delay * 1000);
+        }
         const div = document.createElement('div');
         div.className = 'summon-card';
-        div.style.animationDelay = (index * 0.1) + 's';
+        if (char.rarity === 'legendary') div.classList.add('glow-legendary');
+        else if (char.rarity === 'epic') div.classList.add('glow-epic');
+        div.style.animationDelay = delay + 's';
         div.style.background = 'rgba(51, 65, 85, 0.8)';
         div.style.margin = '0.5rem';
         div.style.display = 'inline-block';
@@ -137,6 +153,7 @@ function showSummonResults(results) {
 }
 
 function closeSummonModal() {
+    if (window.AudioManager) window.AudioManager.playSfx('click');
     document.getElementById('summonModal').classList.remove('active');
 }
 

@@ -18,6 +18,27 @@
 
 ---
 
+## 📰 最近更新（自动生成）
+
+<!-- AUTO-UPDATE-START -->
+_最后生成时间：2026-03-17 18:15_
+
+- `9e7d6c5` (2026-03-17) feat: 属性系统重构与角色头像图片
+- `4067d3a` (2026-03-17) feat: 属性系统重构与角色头像图片
+- `dc6ba84` (2026-03-17) chore: 提交本地 sqlite 数据库
+- `1f268b2` (2026-03-17) feat: 手机号验证码注册与密码规则校验
+- `be073e5` (2026-03-17) fix: 统一所有用户密码为123456，便于登录测试
+- `a53c3a7` (2026-03-17) chore: 提供浏览器缓存清除说明
+- `5b2a375` (2026-03-17) fix: 修复登录问题并添加记住我功能
+- `1d0117f` (2026-03-17) fix: 修复登录状态无法保持的问题
+- `ca8a125` (2026-03-17) fix: 修复数据库路径配置，确保使用 instance 目录
+- `61233ca` (2026-03-17) fix: 修复数据库路径配置，确保使用 instance 目录
+- `901e188` (2026-03-17) feat: 添加用户账号注册登录系统
+- `4478a35` (2026-03-17) feat: 添加用户账号注册登录系统
+<!-- AUTO-UPDATE-END -->
+
+---
+
 ## 🛠️ 技术栈
 
 | 类别 | 技术 |
@@ -27,7 +48,7 @@
 | **数据库** | MySQL / SQLite |
 | **前端模板** | Jinja2 |
 | **样式** | CSS3 |
-| **Python** | 3.11+ |
+| **Python** | 3.8+（建议 3.11+） |
 
 ---
 
@@ -35,7 +56,7 @@
 
 ### 环境要求
 
-- Python 3.11+
+- Python 3.8+（建议 3.11+）
 - MySQL 8.0+ (可选，默认使用SQLite)
 
 ### 快速开始
@@ -47,17 +68,97 @@ cd Mygame
 
 # 2. 创建虚拟环境
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或 venv\Scripts\activate  # Windows
+# Linux/Mac
+source venv/bin/activate
+# Windows（PowerShell）
+# .\venv\Scripts\Activate.ps1
+# Windows（CMD）
+# venv\Scripts\activate.bat
 
 # 3. 安装依赖
 pip install -r requirements.txt
 
-# 4. 启动服务
+# 4. 启动服务（推荐入口：run.py，默认端口 5000）
 python run.py
 
 # 5. 访问游戏
 # 打开浏览器访问 http://localhost:5000
+```
+
+### 启动方式与端口说明
+
+- **推荐**：`python run.py`（默认 `http://localhost:5000`）
+- **也可以**：`python app.py`
+  - 默认端口是 **5000**（可用环境变量覆盖：`PORT=xxxx python app.py`）
+
+---
+
+## 🧩 常见问题（FAQ）
+
+### Windows 安装依赖时 `cryptography` 失败 / 提示需要 Rust
+
+通常是 `pip` 过旧导致没装到预编译 wheel。按下面顺序执行即可：
+
+```bash
+python -m pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+```
+
+---
+
+## 🐳 Docker 打包与运行
+
+### 方式 A：Docker 直接运行
+
+```bash
+# 构建镜像
+docker build -t mygame:latest .
+
+# 运行（默认使用 SQLite，数据库文件在容器内 /app/instance/history_heroes.db）
+docker run --rm -p 5000:5000 mygame:latest
+
+# 访问
+# http://localhost:5000
+```
+
+### 方式 B：docker compose（推荐）
+
+```bash
+# 启动（默认 SQLite，并把 ./instance 挂载到容器，保证数据持久化）
+docker compose up --build
+
+# 后台运行
+docker compose up -d --build
+
+# 停止
+docker compose down
+```
+
+> 如果你要切到 MySQL：取消 `docker-compose.yml` 里 `db` 的注释，并在 `web.environment` 补齐 `MYSQL_HOST/MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE`，或直接设置 `DATABASE_URL`。
+
+---
+
+## 🤖 README 自动更新（提交前自动生成）
+
+本仓库支持在 **每次提交前** 自动更新 README 的“最近更新（自动生成）”区块。
+
+### 本地启用（推荐）
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+之后每次 `git commit` 前会自动运行：
+
+```bash
+python scripts/update_readme.py
+```
+
+### 手动更新
+
+```bash
+python scripts/update_readme.py
 ```
 
 ### MySQL 配置（可选）
@@ -381,6 +482,9 @@ CHAPTERS = [
 
 ## 📝 更新日志
 
+### v2.0.1（未发布）
+- ❔ 召唤页“概率说明”收起到问号提示中，页面更清爽
+
 ### v2.0.0 (当前版本)
 - 🔄 重构为 Flask + MySQL 架构
 - 🎨 使用 Jinja2 模板渲染
@@ -391,6 +495,40 @@ CHAPTERS = [
 - ✨ Next.js + React 初始版本
 - 🎭 角色养成系统
 - ⚔️ 回合制战斗系统
+
+---
+
+## 🧠 后续更新 Brainstorm（可选 Roadmap）
+
+下面是一些“按收益优先”的可迭代方向，后续可以逐步挑选落地（不要求一次做完）。
+
+### 玩法与数值
+- **更完整的抽卡机制**：UP卡池/限定池、概率展示与历史统计、保底继承规则与可视化
+- **战斗策略深化**：速度轴/行动条、属性克制更明确、技能冷却/能量系统、异常状态（中毒/眩晕/护盾等）
+- **养成深度**：装备/符文、天赋树、羁绊加成、同名升星材料与分解回收
+- **平衡与可调参**：把关键倍率/掉落/关卡难度集中配置，支持热更新或管理后台调参
+
+### 内容扩展
+- **更多章节/关卡**：分支路线、精英/首领关、事件关、每周轮换挑战
+- **角色内容**：新角色、新技能组合、角色语音/立绘、角色背景故事页面完善
+- **日常与活动**：周常任务、签到/月卡、活动副本与兑换商店
+
+### UI/UX
+- **移动端体验**：tooltip 改为“点击展开/再次点击收起”、按钮更大、底部导航更顺手
+- **统一组件风格**：卡片/弹窗/提示（toast）/表单校验统一；加载态/空状态更友好
+- **可访问性**：键盘可操作、focus 样式、对比度优化、ARIA 标注
+
+### 工程化与质量
+- **测试体系**：核心逻辑单元测试（数值/掉落/战斗结算）、接口测试（Flask test client）
+- **日志与监控**：关键行为埋点（召唤/战斗/资源变动）、错误日志与慢请求定位
+- **CI/CD**：GitHub Actions 跑 lint/test；打包发布（Docker）与一键部署
+- **代码结构演进**：按模块拆分 `app.py`（blueprints/services/repositories），减少单文件复杂度
+
+### 安全与账号体系
+- **鉴权与安全加固**：CSRF、防暴力登录、密码策略、敏感配置与密钥管理
+- **数据一致性**：关键写操作事务化、并发安全（资源扣减/抽卡写入）
+
+> 如果你想把它变成真正的 Roadmap，我也可以把上面内容拆成里程碑（M1/M2/M3）并附上更具体的交付清单与验收标准。
 
 ---
 

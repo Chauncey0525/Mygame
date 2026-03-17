@@ -1,0 +1,36 @@
+name: Auto update README
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *" # 每天 03:00 UTC
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Update README auto block
+        run: python scripts/update_readme.py
+
+      - name: Create pull request if changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(readme): auto update recent changes"
+          title: "chore(readme): auto update recent changes"
+          body: |
+            由 GitHub Actions 自动生成的 README 更新（最近提交区块）。
+
+            - 如无变更，此 PR 不会创建
+          branch: "chore/readme-auto-update"
+          delete-branch: true

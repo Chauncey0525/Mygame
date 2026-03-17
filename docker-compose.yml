@@ -1,0 +1,30 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      # 默认走 SQLite（不设置 MYSQL_PASSWORD 即回退 SQLite）
+      # 也可以改为 production，并配合 DATABASE_URL/MySQL 环境变量
+      FLASK_ENV: development
+      SECRET_KEY: "change-me"
+    volumes:
+      # 持久化 SQLite 数据库文件（instance/history_heroes.db）
+      - ./instance:/app/instance
+    restart: unless-stopped
+
+  # 可选：启用 MySQL（如果你想用 MySQL，把 web 的环境变量按注释补齐即可）
+  # db:
+  #   image: mysql:8.0
+  #   command: --default-authentication-plugin=mysql_native_password
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: root
+  #     MYSQL_DATABASE: history_heroes
+  #   ports:
+  #     - "3306:3306"
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   restart: unless-stopped
+
+# volumes:
+#   mysql_data:

@@ -203,6 +203,16 @@ async function useSkill(skillIndex) {
     addLog(`⚔️ ${attacker.name} 使用 ${skillName} 对 ${target.name} 造成 ${damage} 点伤害！`);
     
     updateHpDisplay('enemy', gameState.currentEnemyIndex);
+    var enemyEl = document.getElementById('enemy-' + gameState.currentEnemyIndex);
+    if (enemyEl) {
+        enemyEl.classList.add('hit-flash', 'shake');
+        var dmgSpan = document.createElement('span');
+        dmgSpan.className = 'float-damage';
+        dmgSpan.textContent = '-' + damage;
+        enemyEl.appendChild(dmgSpan);
+        setTimeout(function() { enemyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
+    }
+    if (window.AudioManager) window.AudioManager.playSfx('hit');
     
     // 检查敌人是否死亡
     if (target.currentHp <= 0) {
@@ -248,6 +258,16 @@ function enemyTurn() {
         
         addLog(`👿 ${enemy.name} 对 ${target.name} 造成 ${damage} 点伤害！`);
         updateHpDisplay('ally', targetIndex);
+        var allyEl = document.getElementById('ally-' + targetIndex);
+        if (allyEl) {
+            allyEl.classList.add('hit-flash', 'shake');
+            var dmgSpan = document.createElement('span');
+            dmgSpan.className = 'float-damage';
+            dmgSpan.textContent = '-' + damage;
+            allyEl.appendChild(dmgSpan);
+            setTimeout(function() { allyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
+        }
+        if (window.AudioManager) window.AudioManager.playSfx('hit');
         
         if (target.currentHp <= 0) {
             addLog(`💔 ${target.name} 被击败！`);
@@ -263,6 +283,7 @@ function enemyTurn() {
 
 async function endBattle(victory) {
     gameState.battleEnded = true;
+    if (window.AudioManager) window.AudioManager.playSfx(victory ? 'victory' : 'defeat');
     
     // 禁用技能按钮
     document.querySelectorAll('.skill-btn').forEach(btn => btn.disabled = true);

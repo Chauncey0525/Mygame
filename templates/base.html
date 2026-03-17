@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}历史英雄对决{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>window.__STATIC_URL__ = "{{ url_for('static', filename='') }}";</script>
+    <script src="{{ url_for('static', filename='js/audio.js') }}"></script>
     <style>
         /* 内联样式 - 稀有度颜色 */
         .rarity-common { color: {{ rarity_colors.common if rarity_colors else '#9ca3af' }}; }
@@ -43,6 +45,10 @@
                 <div class="resource-item">
                     <span class="resource-icon">⚡</span>
                     <span class="resource-value">{{ player.energy }}/{{ player.max_energy }}</span>
+                </div>
+                <div class="resource-item audio-ctrl">
+                    <button type="button" class="audio-btn" id="audio-mute-btn" title="静音" aria-label="静音">🔊</button>
+                    <input type="range" id="audio-sfx-range" min="0" max="100" value="70" title="音效音量">
                 </div>
                 <div class="resource-item user-info">
                     <span class="user-name">{{ player.name }}</span>
@@ -137,6 +143,31 @@
         function showMessage(message, type = 'info') {
             alert(message);
         }
+
+        // 音频控件
+        (function() {
+            var muteBtn = document.getElementById('audio-mute-btn');
+            var sfxRange = document.getElementById('audio-sfx-range');
+            if (!window.AudioManager) return;
+            function updateMuteBtn() {
+                if (!muteBtn) return;
+                muteBtn.textContent = window.AudioManager.isMuted() ? '🔇' : '🔊';
+                muteBtn.classList.toggle('muted', window.AudioManager.isMuted());
+            }
+            if (muteBtn) {
+                muteBtn.addEventListener('click', function() {
+                    window.AudioManager.setMuted(!window.AudioManager.isMuted());
+                    updateMuteBtn();
+                });
+                updateMuteBtn();
+            }
+            if (sfxRange) {
+                sfxRange.value = Math.round(window.AudioManager.getSfxVolume() * 100);
+                sfxRange.addEventListener('input', function() {
+                    window.AudioManager.setSfxVolume(parseInt(sfxRange.value, 10) / 100);
+                });
+            }
+        })();
     </script>
 </body>
 </html>

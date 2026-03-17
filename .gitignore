@@ -58,3 +58,4 @@ logs/
 .cache/
 *.pyc
 instance/*.db
+.coze
