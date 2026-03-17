@@ -1,5 +1,5 @@
-import { Game } from '@/components/game/Game';
+import { MainGame } from '@/components/game/MainGame';
 
 export default function Home() {
-  return <Game />;
+  return <MainGame />;
 }
