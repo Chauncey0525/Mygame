@@ -53,6 +53,25 @@ ROLE_NAMES = {
     'support': '辅助'
 }
 
+# 属性名称配置
+STAT_NAMES = {
+    'hp': '生命',
+    'attack': '物攻',
+    'defense': '物防',
+    'magic_attack': '魔攻',
+    'magic_defense': '魔防',
+    'speed': '速度'
+}
+
+STAT_COLORS = {
+    'hp': '#22c55e',
+    'attack': '#ef4444',
+    'defense': '#3b82f6',
+    'magic_attack': '#a855f7',
+    'magic_defense': '#06b6d4',
+    'speed': '#fbbf24'
+}
+
 # 所有角色模板数据
 ALL_CHARACTERS = [
     {
@@ -65,26 +84,24 @@ ALL_CHARACTERS = [
         'element': 'water',
         'role_type': 'mage',
         'description': '智计无双，运筹帷幄。三国时期蜀汉丞相，以智谋著称于世。',
-        'avatar': '/static/images/characters/zhuge-liang.png',
+        'avatar': '/static/images/characters/zhuge-liang.jpg',
         'illustration': '/static/images/characters/zhuge-liang-full.png',
         'rarity': 'legendary',
         'stats': {
             'hp': 800,
-            'attack': 120,
-            'defense': 60,
-            'special_attack': 180,
-            'special_defense': 100,
-            'speed': 90,
-            'crit_rate': 0.1,
-            'crit_damage': 1.8
+            'attack': 60,
+            'defense': 50,
+            'magic_attack': 180,
+            'magic_defense': 100,
+            'speed': 90
         },
         'skills': [
-            {'id': 'skill-1', 'name': '八阵图', 'type': 'special', 'power': 120, 'element': 'water',
-             'description': '布下八卦阵，对敌方造成水属性伤害并有概率冰冻'},
-            {'id': 'skill-2', 'name': '火烧连营', 'type': 'special', 'power': 100, 'element': 'fire',
-             'description': '施展火攻计策，对敌方全体造成火焰伤害'},
+            {'id': 'skill-1', 'name': '八阵图', 'type': 'magic', 'power': 120, 'element': 'water',
+             'description': '布下八卦阵，对敌方造成水属性魔法伤害'},
+            {'id': 'skill-2', 'name': '火烧连营', 'type': 'magic', 'power': 100, 'element': 'fire',
+             'description': '施展火攻计策，对敌方全体造成火焰魔法伤害'},
             {'id': 'skill-3', 'name': '空城计', 'type': 'buff', 'power': 0, 'element': 'wind',
-             'description': '虚张声势，提升自身防御和特防'},
+             'description': '虚张声势，提升自身物防和魔防'},
         ]
     },
     {
@@ -97,26 +114,24 @@ ALL_CHARACTERS = [
         'element': 'fire',
         'role_type': 'warrior',
         'description': '义薄云天，武艺超群。蜀汉五虎上将之首，忠义无双。',
-        'avatar': '/static/images/characters/guan-yu.png',
+        'avatar': '/static/images/characters/guan-yu.jpg',
         'illustration': '/static/images/characters/guan-yu-full.png',
         'rarity': 'epic',
         'stats': {
             'hp': 1200,
             'attack': 160,
             'defense': 80,
-            'special_attack': 100,
-            'special_defense': 70,
-            'speed': 85,
-            'crit_rate': 0.15,
-            'crit_damage': 2.0
+            'magic_attack': 50,
+            'magic_defense': 60,
+            'speed': 85
         },
         'skills': [
             {'id': 'skill-1', 'name': '青龙偃月', 'type': 'physical', 'power': 140, 'element': 'fire',
              'description': '挥舞青龙偃月刀，对敌方造成大量物理伤害'},
             {'id': 'skill-2', 'name': '过五关斩六将', 'type': 'physical', 'power': 100, 'element': 'fire',
-             'description': '连续攻击，有概率造成暴击'},
+             'description': '连续攻击，对敌方造成物理伤害'},
             {'id': 'skill-3', 'name': '武圣之威', 'type': 'buff', 'power': 0, 'element': 'fire',
-             'description': '提升自身攻击力和暴击率'},
+             'description': '提升自身物攻和物防'},
         ]
     },
     {
@@ -129,26 +144,24 @@ ALL_CHARACTERS = [
         'element': 'wind',
         'role_type': 'warrior',
         'description': '替父从军，英勇善战。中国古代女英雄，忠孝两全。',
-        'avatar': '/static/images/characters/hua-mulan.png',
+        'avatar': '/static/images/characters/hua-mulan.jpg',
         'illustration': '/static/images/characters/hua-mulan-full.png',
         'rarity': 'epic',
         'stats': {
             'hp': 1000,
             'attack': 140,
             'defense': 70,
-            'special_attack': 90,
-            'special_defense': 80,
-            'speed': 110,
-            'crit_rate': 0.12,
-            'crit_damage': 1.7
+            'magic_attack': 60,
+            'magic_defense': 70,
+            'speed': 110
         },
         'skills': [
             {'id': 'skill-1', 'name': '破阵斩将', 'type': 'physical', 'power': 120, 'element': 'wind',
              'description': '冲锋陷阵，对敌方造成风属性物理伤害'},
             {'id': 'skill-2', 'name': '木兰从军', 'type': 'physical', 'power': 90, 'element': 'wind',
-             'description': '快速连击，降低敌方防御'},
+             'description': '快速连击，降低敌方物防'},
             {'id': 'skill-3', 'name': '代父从军', 'type': 'buff', 'power': 0, 'element': 'wind',
-             'description': '提升自身速度和闪避'},
+             'description': '提升自身速度和物防'},
         ]
     },
     {
@@ -161,26 +174,24 @@ ALL_CHARACTERS = [
         'element': 'light',
         'role_type': 'warrior',
         'description': '不列颠传说之王，圣剑持有者，骑士精神的象征。',
-        'avatar': '/static/images/characters/arthur.png',
+        'avatar': '/static/images/characters/arthur.jpg',
         'illustration': '/static/images/characters/arthur-full.png',
         'rarity': 'epic',
         'stats': {
             'hp': 1100,
             'attack': 150,
             'defense': 90,
-            'special_attack': 110,
-            'special_defense': 90,
-            'speed': 80,
-            'crit_rate': 0.1,
-            'crit_damage': 1.8
+            'magic_attack': 80,
+            'magic_defense': 80,
+            'speed': 80
         },
         'skills': [
             {'id': 'skill-1', 'name': '圣剑斩击', 'type': 'physical', 'power': 130, 'element': 'light',
-             'description': '挥舞圣剑，对敌方造成光属性神圣伤害'},
-            {'id': 'skill-2', 'name': '王者之剑', 'type': 'special', 'power': 110, 'element': 'light',
-             'description': '释放圣剑之力，有概率灼烧暗属性敌人'},
+             'description': '挥舞圣剑，对敌方造成光属性物理伤害'},
+            {'id': 'skill-2', 'name': '王者之剑', 'type': 'magic', 'power': 110, 'element': 'light',
+             'description': '释放圣剑之力，对敌方造成光属性魔法伤害'},
             {'id': 'skill-3', 'name': '骑士荣耀', 'type': 'buff', 'power': 0, 'element': 'light',
-             'description': '提升全队攻击力和防御力'},
+             'description': '提升全队物攻和物防'},
         ]
     },
     {
@@ -193,24 +204,22 @@ ALL_CHARACTERS = [
         'element': 'dark',
         'role_type': 'warrior',
         'description': '治世之能臣，乱世之枭雄。曹魏奠基者，雄才大略。',
-        'avatar': '/static/images/characters/cao-cao.png',
+        'avatar': '/static/images/characters/cao-cao.jpg',
         'illustration': '/static/images/characters/cao-cao-full.png',
         'rarity': 'epic',
         'stats': {
             'hp': 1000,
             'attack': 130,
             'defense': 75,
-            'special_attack': 120,
-            'special_defense': 85,
-            'speed': 95,
-            'crit_rate': 0.12,
-            'crit_damage': 1.6
+            'magic_attack': 100,
+            'magic_defense': 80,
+            'speed': 95
         },
         'skills': [
             {'id': 'skill-1', 'name': '霸业之剑', 'type': 'physical', 'power': 110, 'element': 'dark',
-             'description': '霸王之剑，对敌方造成暗属性伤害'},
-            {'id': 'skill-2', 'name': '奸雄之计', 'type': 'special', 'power': 90, 'element': 'dark',
-             'description': '阴险计谋，降低敌方攻击和防御'},
+             'description': '霸王之剑，对敌方造成暗属性物理伤害'},
+            {'id': 'skill-2', 'name': '奸雄之计', 'type': 'magic', 'power': 90, 'element': 'dark',
+             'description': '阴险计谋，降低敌方物攻和物防'},
             {'id': 'skill-3', 'name': '唯才是举', 'type': 'buff', 'power': 0, 'element': 'dark',
              'description': '提升自身所有属性'},
         ]
@@ -225,26 +234,24 @@ ALL_CHARACTERS = [
         'element': 'wind',
         'role_type': 'assassin',
         'description': '日本历史上最伟大的剑豪，二天一流的创始人。',
-        'avatar': '/static/images/characters/miyamoto.png',
+        'avatar': '/static/images/characters/miyamoto.jpg',
         'illustration': '/static/images/characters/miyamoto-full.png',
         'rarity': 'rare',
         'stats': {
             'hp': 850,
             'attack': 170,
             'defense': 50,
-            'special_attack': 80,
-            'special_defense': 60,
-            'speed': 130,
-            'crit_rate': 0.2,
-            'crit_damage': 2.2
+            'magic_attack': 40,
+            'magic_defense': 50,
+            'speed': 130
         },
         'skills': [
             {'id': 'skill-1', 'name': '二天一流', 'type': 'physical', 'power': 150, 'element': 'wind',
-             'description': '双刀流必杀技，高暴击率攻击'},
+             'description': '双刀流必杀技，对敌方造成大量物理伤害'},
             {'id': 'skill-2', 'name': '燕返', 'type': 'physical', 'power': 80, 'element': 'wind',
              'description': '快速三连斩，必定先手'},
             {'id': 'skill-3', 'name': '剑道极意', 'type': 'buff', 'power': 0, 'element': 'wind',
-             'description': '大幅提升暴击率和暴击伤害'},
+             'description': '大幅提升物攻和速度'},
         ]
     },
 ]
@@ -435,7 +442,17 @@ DEFAULT_DAILY_TASKS = [
 
 
 def get_character_by_id(character_id):
-    """根据ID获取角色模板"""
+    """根据ID获取角色模板 - 优先从数据库读取"""
+    from models import CharacterTemplate
+    
+    # 尝试从数据库获取
+    from flask import has_app_context
+    if has_app_context():
+        char = CharacterTemplate.query.filter_by(character_id=character_id).first()
+        if char:
+            return char.to_dict()
+    
+    # 降级到静态数据
     for char in ALL_CHARACTERS:
         if char['id'] == character_id:
             return char
@@ -443,8 +460,33 @@ def get_character_by_id(character_id):
 
 
 def get_characters_by_rarity(rarity):
-    """根据稀有度获取角色列表"""
+    """根据稀有度获取角色列表 - 优先从数据库读取"""
+    from models import CharacterTemplate
+    
+    # 尝试从数据库获取
+    from flask import has_app_context
+    if has_app_context():
+        chars = CharacterTemplate.query.filter_by(rarity=rarity).all()
+        if chars:
+            return [c.to_dict() for c in chars]
+    
+    # 降级到静态数据
     return [char for char in ALL_CHARACTERS if char['rarity'] == rarity]
+
+
+def get_all_characters():
+    """获取所有角色 - 优先从数据库读取"""
+    from models import CharacterTemplate
+    
+    # 尝试从数据库获取
+    from flask import has_app_context
+    if has_app_context():
+        chars = CharacterTemplate.query.all()
+        if chars:
+            return [c.to_dict() for c in chars]
+    
+    # 降级到静态数据
+    return ALL_CHARACTERS
 
 
 def get_stage_by_id(stage_id):
@@ -457,7 +499,20 @@ def get_stage_by_id(stage_id):
 
 
 def calculate_stats(base_stats, level, stars, breakthrough):
-    """计算角色属性"""
+    """计算角色属性
+    
+    Args:
+        base_stats: 基础属性字典，支持两种格式：
+            - 直接属性字典: {'hp': 800, 'attack': 60, ...}
+            - 角色数据字典: {'stats': {'hp': 800, ...}}
+        level: 等级
+        stars: 星级
+        breakthrough: 突破等级
+    """
+    # 兼容传入完整角色数据的情况
+    if 'stats' in base_stats:
+        base_stats = base_stats['stats']
+    
     level_multiplier = 1 + (level - 1) * 0.05
     star_multiplier = 1 + stars * 0.1
     breakthrough_multiplier = 1 + breakthrough * 0.15
@@ -465,13 +520,11 @@ def calculate_stats(base_stats, level, stars, breakthrough):
     multiplier = level_multiplier * star_multiplier * breakthrough_multiplier
     
     return {
-        'hp': int(base_stats['hp'] * multiplier),
-        'max_hp': int(base_stats['hp'] * multiplier),
-        'attack': int(base_stats['attack'] * multiplier),
-        'defense': int(base_stats['defense'] * multiplier),
-        'special_attack': int(base_stats.get('special_attack', base_stats['attack']) * multiplier),
-        'special_defense': int(base_stats.get('special_defense', base_stats['defense']) * multiplier),
-        'speed': int(base_stats['speed'] * multiplier),
-        'crit_rate': base_stats.get('crit_rate', 0.05),
-        'crit_damage': base_stats.get('crit_damage', 1.5)
+        'hp': int(base_stats.get('hp', 1000) * multiplier),
+        'max_hp': int(base_stats.get('hp', 1000) * multiplier),
+        'attack': int(base_stats.get('attack', 100) * multiplier),
+        'defense': int(base_stats.get('defense', 50) * multiplier),
+        'magic_attack': int(base_stats.get('magic_attack', base_stats.get('attack', 100)) * multiplier),
+        'magic_defense': int(base_stats.get('magic_defense', base_stats.get('defense', 50)) * multiplier),
+        'speed': int(base_stats.get('speed', 100) * multiplier),
     }

@@ -30,7 +30,7 @@ class Player(db.Model, UserMixin):
     # 资源
     gold = db.Column(db.Integer, nullable=False, default=10000)
     gems = db.Column(db.Integer, nullable=False, default=1000)
-    exp_books = db.Column(db.Integer, nullable=False, default=0)
+    exp_books = db.Column(db.Integer, nullable=False, default=100)
     summon_tickets = db.Column(db.Integer, nullable=False, default=10)
     energy = db.Column(db.Integer, nullable=False, default=100)
     max_energy = db.Column(db.Integer, nullable=False, default=100)
@@ -238,3 +238,94 @@ class SummonHistory(db.Model):
     __table_args__ = (
         db.Index('idx_summon_history', 'player_id'),
     )
+
+
+class CharacterTemplate(db.Model):
+    """角色模板表 - 存储所有英雄的基础数据"""
+    __tablename__ = 'character_templates'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    character_id = db.Column(db.String(64), unique=True, nullable=False, index=True)  # 唯一标识
+    
+    # 基本信息
+    name = db.Column(db.String(64), nullable=False)
+    name_en = db.Column(db.String(64), nullable=True)
+    title = db.Column(db.String(64), nullable=True)
+    era = db.Column(db.String(32), nullable=True)
+    origin = db.Column(db.String(64), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    
+    # 属性配置
+    element = db.Column(db.String(16), nullable=False, default='fire')
+    role_type = db.Column(db.String(16), nullable=False, default='warrior')
+    rarity = db.Column(db.String(16), nullable=False, default='common')
+    
+    # 资源路径
+    avatar = db.Column(db.String(256), nullable=True)
+    illustration = db.Column(db.String(256), nullable=True)
+    
+    # 基础属性
+    base_hp = db.Column(db.Integer, nullable=False, default=1000)
+    base_attack = db.Column(db.Integer, nullable=False, default=100)
+    base_defense = db.Column(db.Integer, nullable=False, default=50)
+    base_magic_attack = db.Column(db.Integer, nullable=False, default=100)
+    base_magic_defense = db.Column(db.Integer, nullable=False, default=50)
+    base_speed = db.Column(db.Integer, nullable=False, default=100)
+    
+    # 技能数据 (JSON格式存储)
+    skills = db.Column(db.Text, nullable=True)  # JSON字符串
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def to_dict(self):
+        import json
+        return {
+            'id': self.character_id,
+            'name': self.name,
+            'name_en': self.name_en,
+            'title': self.title,
+            'era': self.era,
+            'origin': self.origin,
+            'description': self.description,
+            'element': self.element,
+            'role_type': self.role_type,
+            'rarity': self.rarity,
+            'avatar': self.avatar,
+            'illustration': self.illustration,
+            'stats': {
+                'hp': self.base_hp,
+                'attack': self.base_attack,
+                'defense': self.base_defense,
+                'magic_attack': self.base_magic_attack,
+                'magic_defense': self.base_magic_defense,
+                'speed': self.base_speed,
+            },
+            'skills': json.loads(self.skills) if self.skills else [],
+        }
+    
+    @staticmethod
+    def from_dict(data):
+        """从字典创建角色模板"""
+        import json
+        return CharacterTemplate(
+            character_id=data['id'],
+            name=data['name'],
+            name_en=data.get('name_en'),
+            title=data.get('title'),
+            era=data.get('era'),
+            origin=data.get('origin'),
+            description=data.get('description'),
+            element=data.get('element', 'fire'),
+            role_type=data.get('role_type', 'warrior'),
+            rarity=data.get('rarity', 'common'),
+            avatar=data.get('avatar'),
+            illustration=data.get('illustration'),
+            base_hp=data['stats'].get('hp', 1000),
+            base_attack=data['stats'].get('attack', 100),
+            base_defense=data['stats'].get('defense', 50),
+            base_magic_attack=data['stats'].get('magic_attack', 100),
+            base_magic_defense=data['stats'].get('magic_defense', 50),
+            base_speed=data['stats'].get('speed', 100),
+            skills=json.dumps(data.get('skills', []), ensure_ascii=False),
+        )

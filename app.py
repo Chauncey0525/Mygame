@@ -11,12 +11,12 @@ import random
 from sqlalchemy import text
 
 from config import config
-from models import db, Player, PlayerCharacter, PlayerTeam, PlayerCompletedStage, PlayerDailyTask, SummonHistory, SmsVerification
+from models import db, Player, PlayerCharacter, PlayerTeam, PlayerCompletedStage, PlayerDailyTask, SummonHistory, SmsVerification, CharacterTemplate
 from game_data import (
-    ALL_CHARACTERS, CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
+    CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
     ELEMENT_NAMES, ELEMENT_COLORS, ROLE_NAMES, DIFFICULTY_NAMES, DIFFICULTY_COLORS,
     DEFAULT_DAILY_TASKS, get_character_by_id, get_characters_by_rarity,
-    get_stage_by_id, calculate_stats
+    get_all_characters, get_stage_by_id, calculate_stats
 )
 
 # ==================== 账号工具 ====================
@@ -524,11 +524,13 @@ def character_detail(instance_id):
     battle_char['instance_id'] = instance_id
     battle_char['breakthrough'] = char_instance.breakthrough
     is_in_team = any(t.character_instance_id == instance_id for t in player.team)
+    team_ids = [t.character_instance_id for t in player.team]
     
     return render_template('character_detail.html',
         player=player,
         character=battle_char,
         is_in_team=is_in_team,
+        team_ids=team_ids,
         rarity_names=RARITY_NAMES,
         rarity_colors=RARITY_COLORS,
         element_names=ELEMENT_NAMES,
@@ -693,7 +695,7 @@ def api_summon():
         # 随机选择角色
         characters = get_characters_by_rarity(rarity)
         if not characters:
-            characters = ALL_CHARACTERS
+            characters = get_all_characters()
         char_template = random.choice(characters)
         
         # 检查是否已有该角色

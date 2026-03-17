@@ -150,19 +150,31 @@ function updateHpDisplay(type, index) {
 }
 
 function calculateDamage(attacker, defender, skill) {
-    let baseDamage = attacker.stats.attack;
+    // 根据技能类型选择攻击属性
+    let attackStat, defenseStat;
+    
+    if (skill && skill.type === 'magic') {
+        // 魔法技能：使用魔攻和魔防
+        attackStat = attacker.stats.magic_attack || attacker.stats.attack;
+        defenseStat = defender.stats.magic_defense || defender.stats.defense;
+    } else {
+        // 物理技能或普通攻击：使用物攻和物防
+        attackStat = attacker.stats.attack;
+        defenseStat = defender.stats.defense;
+    }
+    
+    let baseDamage = attackStat;
     if (skill && skill.power > 0) {
         baseDamage = baseDamage * (skill.power / 100);
     }
     
-    const defense = defender.stats.defense;
-    let damage = Math.max(1, Math.floor(baseDamage - defense * 0.5));
+    // 计算伤害：攻击力 - 防御力 * 0.5，最小为1
+    let damage = Math.max(1, Math.floor(baseDamage - defenseStat * 0.5));
     
-    // 暴击判定
-    if (Math.random() < attacker.stats.crit_rate) {
-        damage = Math.floor(damage * attacker.stats.crit_damage);
-        addLog('💥 暴击！');
-    }
+    // 添加少量随机波动 (±10%)
+    const variance = damage * 0.1;
+    damage = Math.floor(damage + (Math.random() * variance * 2 - variance));
+    damage = Math.max(1, damage);
     
     return damage;
 }

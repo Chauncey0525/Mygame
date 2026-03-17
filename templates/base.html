@@ -37,6 +37,10 @@
                     <span class="resource-value">{{ player.gems }}</span>
                 </div>
                 <div class="resource-item">
+                    <span class="resource-icon">📖</span>
+                    <span class="resource-value">{{ player.exp_books }}</span>
+                </div>
+                <div class="resource-item">
                     <span class="resource-icon">⚡</span>
                     <span class="resource-value">{{ player.energy }}/{{ player.max_energy }}</span>
                 </div>
@@ -107,7 +111,23 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                return await response.json();
+                
+                if (!response.ok) {
+                    // 处理HTTP错误
+                    if (response.status === 401 || response.status === 302) {
+                        alert('登录已过期，请重新登录');
+                        window.location.href = '/login';
+                        return {success: false, error: '未登录'};
+                    }
+                    throw new Error('HTTP error: ' + response.status);
+                }
+                
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('API调用失败:', error);
+                alert('请求失败: ' + error.message);
+                return {success: false, error: error.message};
             } finally {
                 hideLoading();
             }

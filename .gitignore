@@ -56,3 +56,5 @@ logs/
 *.tmp
 *.temp
 .cache/
+*.pyc
+instance/*.db

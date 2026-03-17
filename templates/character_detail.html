@@ -56,28 +56,28 @@
         <div class="card-body">
             <div class="grid grid-2">
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #475569;">
-                    <span style="color: #94a3b8;">生命</span>
+                    <span style="color: #94a3b8;">❤️ 生命</span>
                     <span style="color: #22c55e; font-weight: bold;">{{ character.stats.max_hp }}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #475569;">
-                    <span style="color: #94a3b8;">攻击</span>
+                    <span style="color: #94a3b8;">⚔️ 物攻</span>
                     <span style="color: #ef4444; font-weight: bold;">{{ character.stats.attack }}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #475569;">
-                    <span style="color: #94a3b8;">防御</span>
+                    <span style="color: #94a3b8;">🛡️ 物防</span>
                     <span style="color: #3b82f6; font-weight: bold;">{{ character.stats.defense }}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #475569;">
-                    <span style="color: #94a3b8;">速度</span>
+                    <span style="color: #94a3b8;">✨ 魔攻</span>
+                    <span style="color: #a855f7; font-weight: bold;">{{ character.stats.magic_attack }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #475569;">
+                    <span style="color: #94a3b8;">🔮 魔防</span>
+                    <span style="color: #06b6d4; font-weight: bold;">{{ character.stats.magic_defense }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #475569;">
+                    <span style="color: #94a3b8;">💨 速度</span>
                     <span style="color: #fbbf24; font-weight: bold;">{{ character.stats.speed }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #475569;">
-                    <span style="color: #94a3b8;">暴击率</span>
-                    <span style="color: #f59e0b; font-weight: bold;">{{ (character.stats.crit_rate * 100)|round(1) }}%</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #475569;">
-                    <span style="color: #94a3b8;">暴击伤害</span>
-                    <span style="color: #f59e0b; font-weight: bold;">{{ character.stats.crit_damage }}x</span>
                 </div>
             </div>
         </div>
@@ -108,14 +108,16 @@
     <div class="grid grid-2" style="gap: 1rem;">
         <button onclick="levelUp()" class="btn btn-primary btn-block">
             升级 (消耗 100 经验书)
+            <br><small style="opacity: 0.8;">当前: {{ player.exp_books }} 本</small>
         </button>
         <button onclick="breakthrough()" class="btn btn-purple btn-block"
                 {% if character.breakthrough >= 5 %}disabled{% endif %}>
             突破 ({{ (character.breakthrough + 1) * 1000 }} 金币)
+            <br><small style="opacity: 0.8;">当前: {{ player.gold }} 金币</small>
         </button>
     </div>
     
-    <button onclick="toggleTeam()" class="btn btn-block {% if is_in_team %}btn-danger{% else %}btn-success{% endif %}">
+    <button onclick="toggleTeam()" class="btn btn-block {% if is_in_team %}btn-danger{% else %}btn-success{% endif %}" style="margin-top: 1rem;">
         {% if is_in_team %}移出队伍{% else %}加入队伍{% endif %}
     </button>
 </div>
@@ -123,6 +125,8 @@
 <script>
 const instanceId = {{ character.instance_id }};
 let isInTeam = {{ 'true' if is_in_team else 'false' }};
+// 当前队伍成员ID列表
+let currentTeamIds = {{ team_ids | tojson if team_ids else '[]' }};
 
 async function levelUp() {
     const result = await apiCall('/api/levelup', { instance_id: instanceId, exp: 100 });
@@ -145,19 +149,31 @@ async function breakthrough() {
 }
 
 async function toggleTeam() {
-    // 简化版本：直接切换
-    // 实际应该获取当前队伍再修改
+    let newTeam;
+    
     if (isInTeam) {
-        const result = await apiCall('/api/team', { team: [] });
+        // 从队伍中移除当前角色
+        newTeam = currentTeamIds.filter(id => id !== instanceId);
+        const result = await apiCall('/api/team', { team: newTeam });
         if (result.success) {
             alert('已移出队伍');
             location.reload();
+        } else {
+            alert(result.error || '操作失败');
         }
     } else {
-        const result = await apiCall('/api/team', { team: [instanceId] });
+        // 添加到队伍
+        if (currentTeamIds.length >= 4) {
+            alert('队伍已满（最多4人），请先移除其他角色');
+            return;
+        }
+        newTeam = [...currentTeamIds, instanceId];
+        const result = await apiCall('/api/team', { team: newTeam });
         if (result.success) {
             alert('已加入队伍');
             location.reload();
+        } else {
+            alert(result.error || '操作失败');
         }
     }
 }
