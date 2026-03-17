@@ -59,8 +59,9 @@ def login():
         ).first()
         
         if player and player.check_password(password):
-            login_user(player)
-            db.session.commit()  # 确保登录状态被保存
+            # 登录用户，设置记住我
+            login_user(player, remember=True)
+            db.session.commit()
             flash(f'欢迎回来，{player.name}！', 'success')
             
             # 更新登录信息

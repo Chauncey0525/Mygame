@@ -2,13 +2,20 @@
 Flask 应用配置
 """
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
 
 class Config:
     """基础配置"""
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'history-heroes-secret-key-2024')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'history-heroes-secret-key-2024-very-long-and-secure')
+    
+    # Session 配置
+    SESSION_COOKIE_SECURE = False  # 开发环境设为 False
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
     
     # MySQL 数据库配置
     MYSQL_HOST = os.environ.get('MYSQL_HOST', 'localhost')
