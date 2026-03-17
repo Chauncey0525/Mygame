@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 历史英雄对决{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <!-- 欢迎横幅 -->
+    <div class="card" style="background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%); border-color: #a855f7;">
+        <div class="card-body" style="text-align: center; padding: 2rem;">
+            <h1 style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">
+                欢迎，{{ player.name }}！
+            </h1>
+            <p style="color: #e2e8f0;">今天也要继续变强哦~</p>
+            <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;">
+                <span class="badge bg-rarity-legendary" style="padding: 0.5rem 1rem;">
+                    等级: {{ player.level }}
+                </span>
+                <span class="badge" style="background: #475569; padding: 0.5rem 1rem;">
+                    角色: {{ characters|length }}
+                </span>
+                <span class="badge" style="background: #475569; padding: 0.5rem 1rem;">
+                    游戏天数: {{ player.total_play_days }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快捷入口 -->
+    <div class="grid grid-2">
+        <a href="{{ url_for('summon') }}" class="card" style="text-decoration: none; cursor: pointer;">
+            <div class="card-body" style="text-align: center; padding: 1.5rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">✨</div>
+                <h3 style="font-weight: bold; color: white;">召唤英雄</h3>
+                <p style="font-size: 0.875rem; color: #94a3b8;">获取新角色</p>
+            </div>
+        </a>
+        <a href="{{ url_for('stages') }}" class="card" style="text-decoration: none; cursor: pointer;">
+            <div class="card-body" style="text-align: center; padding: 1.5rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">⚔️</div>
+                <h3 style="font-weight: bold; color: white;">副本挑战</h3>
+                <p style="font-size: 0.875rem; color: #94a3b8;">获取资源奖励</p>
+            </div>
+        </a>
+    </div>
+
+    <!-- 当前队伍 -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 class="card-title">当前队伍</h3>
+            <a href="{{ url_for('characters') }}" class="btn" style="padding: 0.5rem 1rem; background: #475569;">
+                编辑
+            </a>
+        </div>
+        <div class="card-body">
+            {% if team %}
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                {% for char in team %}
+                <div style="width: 80px; text-align: center;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px solid {{ element_colors[char.element] if element_colors else '#475569' }};">
+                        <img src="{{ char.avatar }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">
+                    </div>
+                    <div style="font-size: 0.75rem; color: white; margin-top: 0.25rem;">{{ char.name }}</div>
+                    <div style="font-size: 0.625rem; color: #94a3b8;">Lv.{{ char.level }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #94a3b8; padding: 2rem;">
+                还没有设置队伍，去角色页面选择出战角色
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 每日任务 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📋 每日任务</h3>
+        </div>
+        <div class="card-body">
+            {% for task in daily_tasks %}
+            <div class="task-card" style="{% if task.claimed %}opacity: 0.5;{% elif task.completed %}border: 2px solid #22c55e;{% endif %}">
+                <div class="task-info">
+                    <h4>{{ task.name }}</h4>
+                    <p>{{ task.description }}</p>
+                    <div style="margin-top: 0.5rem;">
+                        <div class="progress" style="width: 100px;">
+                            <div class="progress-bar" style="width: {{ (task.progress / task.target * 100) if task.target > 0 else 100 }}%;"></div>
+                        </div>
+                        <span style="font-size: 0.75rem; color: #94a3b8;">{{ task.progress }}/{{ task.target }}</span>
+                    </div>
+                </div>
+                <div>
+                    {% if task.claimed %}
+                        <span class="badge" style="background: #475569;">已领取</span>
+                    {% elif task.completed %}
+                        <button onclick="claimTask('{{ task.id }}')" class="btn btn-success" style="padding: 0.5rem 1rem;">
+                            领取
+                        </button>
+                    {% else %}
+                        <span style="font-size: 0.75rem; color: #94a3b8;">进行中</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 游戏进度 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📊 游戏进度</h3>
+        </div>
+        <div class="card-body">
+            <div class="grid grid-2">
+                <div style="background: #334155; padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #fbbf24;">{{ characters|length }}</div>
+                    <div style="font-size: 0.875rem; color: #94a3b8;">拥有角色</div>
+                </div>
+                <div style="background: #334155; padding: 1rem; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #22c55e;">{{ player.completed_stages.count() }}</div>
+                    <div style="font-size: 0.875rem; color: #94a3b8;">通关关卡</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function claimTask(taskId) {
+    const result = await apiCall('/api/daily/claim', { task_id: taskId });
+    if (result.success) {
+        alert('领取成功！获得: 金币 +' + result.rewards.gold + ', 钻石 +' + result.rewards.gems);
+        location.reload();
+    } else {
+        alert(result.error || '领取失败');
+    }
+}
+</script>
+{% endblock %}

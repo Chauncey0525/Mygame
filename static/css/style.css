@@ -1,0 +1,545 @@
+/* 历史英雄对决 - 主样式 */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0f172a;
+    color: #e2e8f0;
+    min-height: 100vh;
+}
+
+/* 导航栏 */
+.navbar {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 2px solid #475569;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.navbar-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #fbbf24;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.navbar-resources {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.resource-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #334155;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+}
+
+.resource-icon {
+    font-size: 1.2rem;
+}
+
+.resource-value {
+    font-weight: bold;
+    color: #fbbf24;
+}
+
+/* 底部导航 */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-top: 2px solid #475569;
+    display: flex;
+    justify-content: space-around;
+    padding: 0.5rem 0;
+    z-index: 100;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: #94a3b8;
+    transition: all 0.3s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.1);
+    border-radius: 8px;
+}
+
+.nav-icon {
+    font-size: 1.5rem;
+}
+
+.nav-label {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+/* 主内容区 */
+.main-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+    padding-bottom: 100px;
+}
+
+/* 卡片 */
+.card {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border: 2px solid #475569;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.card-header {
+    padding: 1rem;
+    border-bottom: 1px solid #475569;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #f8fafc;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+/* 按钮 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #1e293b;
+}
+
+.btn-purple {
+    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+    color: white;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+/* 徽章 */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+}
+
+/* 进度条 */
+.progress {
+    height: 8px;
+    background: #334155;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6 0%, #22c55e 100%);
+    transition: width 0.3s;
+}
+
+/* 网格布局 */
+.grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+/* 角色卡片 */
+.character-card {
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.character-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.character-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 0.75rem;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+}
+
+.character-name {
+    font-weight: bold;
+    font-size: 1rem;
+    color: white;
+}
+
+.character-level {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.character-stars {
+    color: #fbbf24;
+    font-size: 0.875rem;
+}
+
+/* 抽卡动画 */
+.summon-result {
+    text-align: center;
+    padding: 2rem;
+}
+
+.summon-card {
+    display: inline-block;
+    padding: 2rem;
+    border-radius: 12px;
+    animation: summon-appear 0.5s ease-out;
+}
+
+@keyframes summon-appear {
+    from {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 战斗界面 */
+.battle-container {
+    display: flex;
+    justify-content: space-between;
+    padding: 2rem;
+    min-height: 400px;
+}
+
+.battle-team {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.battle-character {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+}
+
+.battle-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.hp-bar {
+    width: 150px;
+    height: 12px;
+    background: #334155;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #f87171);
+    transition: width 0.3s;
+}
+
+/* 技能按钮 */
+.skill-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.skill-btn {
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.skill-btn:hover {
+    transform: scale(1.05);
+}
+
+.skill-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 战斗日志 */
+.battle-log {
+    background: rgba(0,0,0,0.5);
+    border-radius: 8px;
+    padding: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 1rem;
+}
+
+.log-entry {
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.875rem;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .navbar-resources {
+        gap: 0.5rem;
+    }
+    
+    .resource-item {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* 模态框 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: #1e293b;
+    border: 2px solid #475569;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 1rem;
+    border-bottom: 1px solid #475569;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 1rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* 闪烁动画 */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+/* 任务卡片 */
+.task-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #334155;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.task-info h4 {
+    color: white;
+    margin-bottom: 0.25rem;
+}
+
+.task-info p {
+    color: #94a3b8;
+    font-size: 0.875rem;
+}
+
+.task-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* 关卡卡片 */
+.stage-card {
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.stage-card.completed {
+    border-color: #22c55e;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, #1e293b 100%);
+}
+
+.stage-enemies {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.enemy-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid;
+}
+
+/* 标签页 */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #475569;
+    margin-bottom: 1rem;
+}
+
+.tab {
+    padding: 1rem 2rem;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.tab:hover,
+.tab.active {
+    color: #fbbf24;
+    border-bottom: 2px solid #fbbf24;
+    margin-bottom: -2px;
+}

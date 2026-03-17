@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}副本 - 历史英雄对决{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <!-- 章节列表 -->
+    {% for chapter in chapters %}
+    <div class="card">
+        <div class="card-header" style="cursor: pointer;" onclick="toggleChapter('{{ chapter.id }}')">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 class="card-title">{{ chapter.name }}</h3>
+                    <p style="font-size: 0.875rem; color: #94a3b8;">{{ chapter.description }}</p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.875rem; color: #94a3b8;">进度</div>
+                    <div style="font-size: 1.25rem; font-weight: bold; color: #fbbf24;">
+                        {{ chapter.stages|selectattr('id', 'in', completed_stages)|list|length }}/{{ chapter.stages|length }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body" id="chapter-{{ chapter.id }}" style="display: none;">
+            {% for stage in chapter.stages %}
+            <div class="card stage-card {% if stage.id in completed_stages %}completed{% endif %}" 
+                 style="margin-bottom: 1rem; cursor: pointer;"
+                 onclick="startBattle('{{ stage.id }}')">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <!-- 状态图标 -->
+                            <div style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+                                        background: {% if stage.id in completed_stages %}#22c55e{% else %}#334155{% endif %}; font-size: 1.25rem;">
+                                {% if stage.id in completed_stages %}✓{% else %}⚡{{ stage.energy_cost }}{% endif %}
+                            </div>
+                            <div>
+                                <h4 style="font-weight: bold; color: white;">{{ stage.name }}</h4>
+                                <p style="font-size: 0.75rem; color: #94a3b8;">{{ stage.description }}</p>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="badge" style="background: {{ difficulty_colors[stage.difficulty] }};">
+                                {{ difficulty_names[stage.difficulty] }}
+                            </span>
+                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
+                                推荐 Lv.{{ stage.recommended_level }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 敌人预览 -->
+                    <div class="stage-enemies">
+                        {% for enemy_id in stage.enemy_ids %}
+                        {% set enemy = get_character_by_id(enemy_id) %}
+                        {% if enemy %}
+                        <img src="{{ enemy.avatar }}" alt="{{ enemy.name }}" class="enemy-avatar"
+                             style="border-color: {{ element_colors[enemy.element] }};">
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- 奖励 -->
+                    <div style="display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.875rem;">
+                        <span style="color: #fbbf24;">💰 {{ stage.rewards.gold }}</span>
+                        <span style="color: #22c55e;">📖 {{ stage.rewards.exp }}</span>
+                        {% if stage.rewards.gems %}
+                        <span style="color: #06b6d4;">💎 {{ stage.rewards.gems }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- 队伍提示 -->
+    {% if not team %}
+    <div class="card" style="background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%); border-color: #ef4444;">
+        <div class="card-body" style="text-align: center;">
+            <p style="color: white;">⚠️ 请先设置队伍再挑战副本</p>
+            <a href="{{ url_for('characters') }}" class="btn btn-warning" style="margin-top: 0.5rem;">去设置队伍</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 当前队伍显示 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">当前队伍</h3>
+        </div>
+        <div class="card-body">
+            {% if team %}
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                {% for char in team %}
+                <div style="text-align: center;">
+                    <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; border: 3px solid {{ element_colors[char.element] }};">
+                        <img src="{{ char.avatar }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    <div style="font-size: 0.75rem; color: white;">{{ char.name }}</div>
+                    <div style="font-size: 0.625rem; color: #94a3b8;">Lv.{{ char.level }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #94a3b8;">还没有设置队伍</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleChapter(chapterId) {
+    const content = document.getElementById('chapter-' + chapterId);
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+    } else {
+        content.style.display = 'none';
+    }
+}
+
+function startBattle(stageId) {
+    {% if not team %}
+    alert('请先设置队伍');
+    return;
+    {% endif %}
+    
+    if (confirm('确定要开始战斗吗？')) {
+        window.location.href = '/battle/' + stageId;
+    }
+}
+
+// 默认展开第一章
+document.addEventListener('DOMContentLoaded', function() {
+    const firstChapter = document.querySelector('[id^="chapter-"]');
+    if (firstChapter) {
+        firstChapter.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

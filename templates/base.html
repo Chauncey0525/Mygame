@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}历史英雄对决{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* 内联样式 - 稀有度颜色 */
+        .rarity-common { color: {{ rarity_colors.common if rarity_colors else '#9ca3af' }}; }
+        .rarity-rare { color: {{ rarity_colors.rare if rarity_colors else '#3b82f6' }}; }
+        .rarity-epic { color: {{ rarity_colors.epic if rarity_colors else '#a855f7' }}; }
+        .rarity-legendary { color: {{ rarity_colors.legendary if rarity_colors else '#f59e0b' }}; }
+        
+        .bg-rarity-common { background-color: {{ rarity_colors.common if rarity_colors else '#9ca3af' }}; }
+        .bg-rarity-rare { background-color: {{ rarity_colors.rare if rarity_colors else '#3b82f6' }}; }
+        .bg-rarity-epic { background-color: {{ rarity_colors.epic if rarity_colors else '#a855f7' }}; }
+        .bg-rarity-legendary { background-color: {{ rarity_colors.legendary if rarity_colors else '#f59e0b' }}; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    {% if player %}
+    <nav class="navbar">
+        <div class="navbar-content">
+            <a href="{{ url_for('index') }}" class="navbar-brand">
+                ⚔️ 历史英雄对决
+            </a>
+            <div class="navbar-resources">
+                <div class="resource-item">
+                    <span class="resource-icon">💰</span>
+                    <span class="resource-value">{{ player.gold }}</span>
+                </div>
+                <div class="resource-item">
+                    <span class="resource-icon">💎</span>
+                    <span class="resource-value">{{ player.gems }}</span>
+                </div>
+                <div class="resource-item">
+                    <span class="resource-icon">⚡</span>
+                    <span class="resource-value">{{ player.energy }}/{{ player.max_energy }}</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ef4444{% else %}#22c55e{% endif %};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 底部导航 -->
+    {% if player %}
+    <nav class="bottom-nav">
+        <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">首页</span>
+        </a>
+        <a href="{{ url_for('characters') }}" class="nav-item {% if request.endpoint == 'characters' %}active{% endif %}">
+            <span class="nav-icon">👥</span>
+            <span class="nav-label">角色</span>
+        </a>
+        <a href="{{ url_for('summon') }}" class="nav-item {% if request.endpoint == 'summon' %}active{% endif %}">
+            <span class="nav-icon">✨</span>
+            <span class="nav-label">召唤</span>
+        </a>
+        <a href="{{ url_for('stages') }}" class="nav-item {% if request.endpoint == 'stages' %}active{% endif %}">
+            <span class="nav-icon">⚔️</span>
+            <span class="nav-label">副本</span>
+        </a>
+    </nav>
+    {% endif %}
+
+    {% block extra_js %}{% endblock %}
+    
+    <script>
+        // 通用JS函数
+        function showLoading() {
+            document.body.style.cursor = 'wait';
+        }
+        
+        function hideLoading() {
+            document.body.style.cursor = 'default';
+        }
+        
+        // API请求封装
+        async function apiCall(url, data = {}) {
+            showLoading();
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                return await response.json();
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // 显示消息
+        function showMessage(message, type = 'info') {
+            alert(message);
+        }
+    </script>
+</body>
+</html>

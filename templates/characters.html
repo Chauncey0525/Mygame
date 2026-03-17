@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}角色 - 历史英雄对决{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <h2 style="font-size: 1.5rem; font-weight: bold; color: white;">我的角色 ({{ characters|length }})</h2>
+    
+    {% if characters %}
+    <div class="grid grid-4" style="gap: 1rem;">
+        {% for char in characters %}
+        <div class="card character-card" onclick="location.href='{{ url_for('character_detail', instance_id=char.instance_id) }}'"
+             style="{% if char.instance_id in team_ids %}border-color: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);{% endif %}">
+            <img src="{{ char.avatar }}" alt="{{ char.name }}">
+            
+            <!-- 稀有度标签 -->
+            <div style="position: absolute; top: 0.5rem; left: 0.5rem;">
+                <span class="badge bg-rarity-{{ char.rarity }}">{{ rarity_names[char.rarity] }}</span>
+            </div>
+            
+            <!-- 等级标签 -->
+            <div style="position: absolute; top: 0.5rem; right: 0.5rem;">
+                <span class="badge" style="background: rgba(0,0,0,0.7);">Lv.{{ char.level }}</span>
+            </div>
+            
+            <!-- 出战标签 -->
+            {% if char.instance_id in team_ids %}
+            <div style="position: absolute; bottom: 0.5rem; right: 0.5rem;">
+                <span class="badge" style="background: #fbbf24; color: #1e293b;">出战</span>
+            </div>
+            {% endif %}
+            
+            <!-- 角色信息 -->
+            <div class="character-info">
+                <div class="character-name">{{ char.name }}</div>
+                <div class="character-stars">
+                    {% for i in range(char.stars) %}★{% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body" style="text-align: center; padding: 3rem;">
+            <p style="color: #94a3b8; margin-bottom: 1rem;">还没有获得任何角色</p>
+            <a href="{{ url_for('summon') }}" class="btn btn-primary">去召唤</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

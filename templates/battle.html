@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}战斗 - {{ stage.name }} - 历史英雄对决{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <!-- 战斗信息 -->
+    <div class="card">
+        <div class="card-body" style="text-align: center;">
+            <h2 style="font-size: 1.5rem; font-weight: bold; color: white;">⚔️ {{ stage.name }}</h2>
+            <p style="color: #94a3b8;">{{ stage.description }}</p>
+        </div>
+    </div>
+
+    <!-- 战斗区域 -->
+    <div class="card">
+        <div class="card-body" style="padding: 2rem;">
+            <!-- 敌方 -->
+            <div style="margin-bottom: 2rem;">
+                <h4 style="color: #ef4444; margin-bottom: 1rem; text-align: center;">敌方</h4>
+                <div id="enemies-container" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                    {% for enemy in enemies %}
+                    <div class="battle-character" id="enemy-{{ loop.index0 }}" style="flex-direction: column; align-items: center; background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444;">
+                        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 3px solid {{ element_colors[enemy.element] }};">
+                            <img src="{{ enemy.avatar }}" alt="{{ enemy.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-weight: bold; color: white;">{{ enemy.name }}</div>
+                            <div style="font-size: 0.75rem; color: #94a3b8;">Lv.{{ enemy.level }}</div>
+                            <div class="hp-bar" style="margin-top: 0.25rem;">
+                                <div class="hp-fill" id="enemy-hp-{{ loop.index0 }}" style="width: 100%;"></div>
+                            </div>
+                            <div id="enemy-hp-text-{{ loop.index0 }}" style="font-size: 0.75rem; color: #ef4444;">
+                                {{ enemy.current_stats.hp }}/{{ enemy.stats.max_hp }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- VS -->
+            <div style="text-align: center; font-size: 2rem; font-weight: bold; color: #fbbf24; margin: 1rem 0;">
+                VS
+            </div>
+
+            <!-- 我方 -->
+            <div>
+                <h4 style="color: #22c55e; margin-bottom: 1rem; text-align: center;">我方</h4>
+                <div id="team-container" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                    {% for char in team %}
+                    <div class="battle-character" id="ally-{{ loop.index0 }}" style="flex-direction: column; align-items: center; background: rgba(34, 197, 94, 0.1); border: 2px solid #22c55e;">
+                        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 3px solid {{ element_colors[char.element] }};">
+                            <img src="{{ char.avatar }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-weight: bold; color: white;">{{ char.name }}</div>
+                            <div style="font-size: 0.75rem; color: #94a3b8;">Lv.{{ char.level }}</div>
+                            <div class="hp-bar" style="margin-top: 0.25rem;">
+                                <div class="hp-fill" id="ally-hp-{{ loop.index0 }}" style="width: 100%; background: linear-gradient(90deg, #22c55e, #4ade80);"></div>
+                            </div>
+                            <div id="ally-hp-text-{{ loop.index0 }}" style="font-size: 0.75rem; color: #22c55e;">
+                                {{ char.current_stats.hp }}/{{ char.stats.max_hp }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 战斗日志 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📜 战斗日志</h3>
+        </div>
+        <div class="card-body">
+            <div class="battle-log" id="battle-log">
+                <div class="log-entry">战斗开始！</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 技能按钮 -->
+    <div id="skill-buttons" class="skill-buttons">
+        {% for skill in team[0].skills %}
+        <button class="skill-btn" onclick="useSkill({{ loop.index0 }})" data-skill-index="{{ loop.index0 }}">
+            {{ skill.name }}
+            {% if skill.power > 0 %}(威力: {{ skill.power }}){% endif %}
+        </button>
+        {% endfor %}
+        <button class="skill-btn" style="background: #6b7280;" onclick="useSkill(-1)">普通攻击</button>
+    </div>
+
+    <!-- 战斗结果弹窗 -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <div class="modal-header">
+                <h3 class="card-title" id="result-title">战斗结果</h3>
+            </div>
+            <div class="modal-body">
+                <div id="result-content"></div>
+                <div style="margin-top: 1rem;">
+                    <a href="{{ url_for('stages') }}" class="btn btn-primary">返回副本</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 游戏状态
+let gameState = {
+    allies: {{ team | tojson }},
+    enemies: {{ enemies | tojson }},
+    currentTurn: 0,  // 0 = ally, 1 = enemy
+    currentAllyIndex: 0,
+    currentEnemyIndex: 0,
+    battleEnded: false
+};
+
+// 初始化血量
+gameState.allies.forEach((ally, i) => {
+    ally.currentHp = ally.stats.max_hp;
+    ally.maxHp = ally.stats.max_hp;
+});
+
+gameState.enemies.forEach((enemy, i) => {
+    enemy.currentHp = enemy.stats.max_hp;
+    enemy.maxHp = enemy.stats.max_hp;
+});
+
+function addLog(message) {
+    const log = document.getElementById('battle-log');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.textContent = message;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+}
+
+function updateHpDisplay(type, index) {
+    const entity = type === 'ally' ? gameState.allies[index] : gameState.enemies[index];
+    const hpPercent = (entity.currentHp / entity.maxHp) * 100;
+    
+    document.getElementById(type + '-hp-' + index).style.width = Math.max(0, hpPercent) + '%';
+    document.getElementById(type + '-hp-text-' + index).textContent = 
+        Math.max(0, entity.currentHp) + '/' + entity.maxHp;
+}
+
+function calculateDamage(attacker, defender, skill) {
+    let baseDamage = attacker.stats.attack;
+    if (skill && skill.power > 0) {
+        baseDamage = baseDamage * (skill.power / 100);
+    }
+    
+    const defense = defender.stats.defense;
+    let damage = Math.max(1, Math.floor(baseDamage - defense * 0.5));
+    
+    // 暴击判定
+    if (Math.random() < attacker.stats.crit_rate) {
+        damage = Math.floor(damage * attacker.stats.crit_damage);
+        addLog('💥 暴击！');
+    }
+    
+    return damage;
+}
+
+async function useSkill(skillIndex) {
+    if (gameState.battleEnded) return;
+    
+    const attacker = gameState.allies[gameState.currentAllyIndex];
+    const skill = skillIndex >= 0 ? attacker.skills[skillIndex] : null;
+    const target = gameState.enemies[gameState.currentEnemyIndex];
+    
+    if (!target || target.currentHp <= 0) {
+        // 找下一个存活敌人
+        gameState.currentEnemyIndex = gameState.enemies.findIndex(e => e.currentHp > 0);
+        if (gameState.currentEnemyIndex === -1) {
+            endBattle(true);
+            return;
+        }
+    }
+    
+    // 玩家攻击
+    const damage = calculateDamage(attacker, target, skill);
+    target.currentHp -= damage;
+    
+    const skillName = skill ? skill.name : '普通攻击';
+    addLog(`⚔️ ${attacker.name} 使用 ${skillName} 对 ${target.name} 造成 ${damage} 点伤害！`);
+    
+    updateHpDisplay('enemy', gameState.currentEnemyIndex);
+    
+    // 检查敌人是否死亡
+    if (target.currentHp <= 0) {
+        addLog(`💀 ${target.name} 被击败！`);
+        
+        // 检查是否所有敌人都被击败
+        const aliveEnemies = gameState.enemies.filter(e => e.currentHp > 0);
+        if (aliveEnemies.length === 0) {
+            endBattle(true);
+            return;
+        }
+        
+        // 切换目标
+        gameState.currentEnemyIndex = gameState.enemies.findIndex(e => e.currentHp > 0);
+    }
+    
+    // 敌人回合
+    setTimeout(enemyTurn, 500);
+}
+
+function enemyTurn() {
+    if (gameState.battleEnded) return;
+    
+    // 所有存活敌人攻击
+    const aliveAllies = gameState.allies.filter(a => a.currentHp > 0);
+    if (aliveAllies.length === 0) {
+        endBattle(false);
+        return;
+    }
+    
+    gameState.enemies.forEach((enemy, index) => {
+        if (enemy.currentHp <= 0 || gameState.battleEnded) return;
+        
+        // 随机选择一个存活的盟友
+        const aliveAllies = gameState.allies.filter(a => a.currentHp > 0);
+        if (aliveAllies.length === 0) return;
+        
+        const target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
+        const targetIndex = gameState.allies.indexOf(target);
+        
+        const damage = calculateDamage(enemy, target, null);
+        target.currentHp -= damage;
+        
+        addLog(`👿 ${enemy.name} 对 ${target.name} 造成 ${damage} 点伤害！`);
+        updateHpDisplay('ally', targetIndex);
+        
+        if (target.currentHp <= 0) {
+            addLog(`💔 ${target.name} 被击败！`);
+        }
+    });
+    
+    // 检查是否所有盟友都被击败
+    const aliveAlliesAfter = gameState.allies.filter(a => a.currentHp > 0);
+    if (aliveAlliesAfter.length === 0) {
+        endBattle(false);
+    }
+}
+
+async function endBattle(victory) {
+    gameState.battleEnded = true;
+    
+    // 禁用技能按钮
+    document.querySelectorAll('.skill-btn').forEach(btn => btn.disabled = true);
+    
+    // 发送结果到服务器
+    const result = await apiCall('/api/battle/complete', {
+        stage_id: '{{ stage.id }}',
+        victory: victory
+    });
+    
+    // 显示结果
+    const modal = document.getElementById('resultModal');
+    const title = document.getElementById('result-title');
+    const content = document.getElementById('result-content');
+    
+    if (victory) {
+        title.textContent = '🎉 胜利！';
+        title.style.color = '#22c55e';
+        content.innerHTML = `
+            <p style="font-size: 1.25rem; color: white;">恭喜通关！</p>
+            <div style="margin-top: 1rem;">
+                <p>💰 金币 +${result.rewards.gold}</p>
+                <p>📖 经验 +${result.rewards.exp}</p>
+                ${result.rewards.gems ? '<p>💎 钻石 +' + result.rewards.gems + '</p>' : ''}
+            </div>
+        `;
+    } else {
+        title.textContent = '💔 失败';
+        title.style.color = '#ef4444';
+        content.innerHTML = `
+            <p style="font-size: 1.25rem; color: white;">下次一定可以！</p>
+        `;
+    }
+    
+    modal.classList.add('active');
+}
+</script>
+{% endblock %}
