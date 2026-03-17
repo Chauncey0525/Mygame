@@ -35,26 +35,129 @@ def load_user(player_id):
     return Player.query.get(int(player_id))
 
 
+# ==================== 认证路由 ====================
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """登录页面"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        
+        if not username or not password:
+            flash('请输入用户名和密码', 'error')
+            return render_template('login.html')
+        
+        # 支持用户名或邮箱登录
+        player = Player.query.filter(
+            (Player.username == username) | (Player.email == username)
+        ).first()
+        
+        if player and player.check_password(password):
+            login_user(player)
+            flash(f'欢迎回来，{player.name}！', 'success')
+            
+            # 更新登录信息
+            check_daily_reset(player)
+            
+            # 跳转到之前访问的页面
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('用户名或密码错误', 'error')
+    
+    return render_template('login.html')
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """注册页面"""
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        player_name = request.form.get('player_name', '勇者').strip()
+        
+        # 验证输入
+        if not username or not password:
+            flash('用户名和密码不能为空', 'error')
+            return render_template('register.html')
+        
+        if len(username) < 3 or len(username) > 20:
+            flash('用户名长度应在3-20个字符之间', 'error')
+            return render_template('register.html')
+        
+        if len(password) < 6:
+            flash('密码长度至少6个字符', 'error')
+            return render_template('register.html')
+        
+        if password != confirm_password:
+            flash('两次输入的密码不一致', 'error')
+            return render_template('register.html')
+        
+        # 检查用户名是否已存在
+        if Player.query.filter_by(username=username).first():
+            flash('用户名已被使用', 'error')
+            return render_template('register.html')
+        
+        # 检查邮箱是否已存在
+        if email and Player.query.filter_by(email=email).first():
+            flash('邮箱已被注册', 'error')
+            return render_template('register.html')
+        
+        # 创建新玩家
+        player = Player(
+            username=username,
+            email=email if email else None,
+            name=player_name if player_name else username
+        )
+        player.set_password(password)
+        
+        db.session.add(player)
+        db.session.commit()
+        
+        # 创建每日任务
+        create_daily_tasks(player)
+        
+        # 自动登录
+        login_user(player)
+        flash(f'注册成功！欢迎，{player.name}！', 'success')
+        
+        return redirect(url_for('index'))
+    
+    return render_template('register.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    """登出"""
+    logout_user()
+    flash('已退出登录', 'success')
+    return redirect(url_for('login'))
+
+
 # ==================== 辅助函数 ====================
 
 def get_or_create_player():
-    """获取或创建玩家（简化版，无账号系统）"""
-    player_id = session.get('player_id')
-    if player_id:
-        player = Player.query.get(player_id)
-        if player:
-            return player
-    
-    # 创建新玩家
-    player = Player(name='勇者')
-    db.session.add(player)
-    db.session.commit()
-    session['player_id'] = player.id
-    
-    # 创建每日任务
-    create_daily_tasks(player)
-    
-    return player
+    """获取当前登录玩家"""
+    if current_user.is_authenticated:
+        return current_user
+    return None
+
+
+def require_player():
+    """要求玩家登录"""
+    if not current_user.is_authenticated:
+        return None
+    return current_user
 
 
 def create_daily_tasks(player):
@@ -136,9 +239,10 @@ def get_battle_character(character_instance):
 # ==================== 路由 ====================
 
 @app.route('/')
+@login_required
 def index():
     """首页"""
-    player = get_or_create_player()
+    player = current_user
     update_energy(player)
     check_daily_reset(player)
     
@@ -174,9 +278,10 @@ def index():
 
 
 @app.route('/characters')
+@login_required
 def characters():
     """角色页面"""
-    player = get_or_create_player()
+    player = current_user
     
     # 获取所有角色
     all_chars = []
@@ -204,9 +309,10 @@ def characters():
 
 
 @app.route('/character/<int:instance_id>')
+@login_required
 def character_detail(instance_id):
     """角色详情"""
-    player = get_or_create_player()
+    player = current_user
     char_instance = PlayerCharacter.query.get_or_404(instance_id)
     
     if char_instance.player_id != player.id:
@@ -235,9 +341,10 @@ def character_detail(instance_id):
 
 
 @app.route('/summon')
+@login_required
 def summon():
     """召唤页面"""
-    player = get_or_create_player()
+    player = current_user
     
     return render_template('summon.html',
         player=player,
@@ -247,9 +354,10 @@ def summon():
 
 
 @app.route('/stages')
+@login_required
 def stages():
     """副本页面"""
-    player = get_or_create_player()
+    player = current_user
     
     # 获取已通关关卡
     completed = [s.stage_id for s in player.completed_stages]
@@ -279,9 +387,10 @@ def stages():
 
 
 @app.route('/battle/<stage_id>')
+@login_required
 def battle(stage_id):
     """战斗页面"""
-    player = get_or_create_player()
+    player = current_user
     stage = get_stage_by_id(stage_id)
     
     if not stage:
@@ -340,9 +449,10 @@ def battle(stage_id):
 # ==================== API 路由 ====================
 
 @app.route('/api/summon', methods=['POST'])
+@login_required
 def api_summon():
     """抽卡API"""
-    player = get_or_create_player()
+    player = current_user
     data = request.get_json() or {}
     summon_type = data.get('type', 'once')  # once, ten, ticket
     
@@ -462,9 +572,10 @@ def api_summon():
 
 
 @app.route('/api/levelup', methods=['POST'])
+@login_required
 def api_levelup():
     """升级角色API"""
-    player = get_or_create_player()
+    player = current_user
     data = request.get_json()
     instance_id = data.get('instance_id')
     exp_amount = data.get('exp', 100)
@@ -507,9 +618,10 @@ def api_levelup():
 
 
 @app.route('/api/breakthrough', methods=['POST'])
+@login_required
 def api_breakthrough():
     """突破角色API"""
-    player = get_or_create_player()
+    player = current_user
     data = request.get_json()
     instance_id = data.get('instance_id')
     
@@ -536,9 +648,10 @@ def api_breakthrough():
 
 
 @app.route('/api/team', methods=['POST'])
+@login_required
 def api_team():
     """设置队伍API"""
-    player = get_or_create_player()
+    player = current_user
     data = request.get_json()
     team_ids = data.get('team', [])  # [instance_id, ...]
     
@@ -561,9 +674,10 @@ def api_team():
 
 
 @app.route('/api/battle/complete', methods=['POST'])
+@login_required
 def api_battle_complete():
     """完成战斗API"""
-    player = get_or_create_player()
+    player = current_user
     data = request.get_json()
     stage_id = data.get('stage_id')
     victory = data.get('victory', False)
@@ -626,9 +740,10 @@ def api_battle_complete():
 
 
 @app.route('/api/daily/claim', methods=['POST'])
+@login_required
 def api_daily_claim():
     """领取每日任务奖励API"""
-    player = get_or_create_player()
+    player = current_user
     data = request.get_json()
     task_id = data.get('task_id')
     

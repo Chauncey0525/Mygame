@@ -40,6 +40,10 @@
                     <span class="resource-icon">⚡</span>
                     <span class="resource-value">{{ player.energy }}/{{ player.max_energy }}</span>
                 </div>
+                <div class="resource-item user-info">
+                    <span class="user-name">{{ player.name }}</span>
+                    <a href="{{ url_for('logout') }}" class="logout-btn" onclick="return confirm('确定要退出登录吗？')">退出</a>
+                </div>
             </div>
         </div>
     </nav>

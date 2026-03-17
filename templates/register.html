@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}注册 - 历史英雄对决{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+    
+    .auth-box {
+        width: 100%;
+        max-width: 400px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .auth-logo {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .auth-title {
+        font-size: 1.75rem;
+        font-weight: bold;
+        color: #1a1a2e;
+        margin-bottom: 0.5rem;
+    }
+    
+    .auth-subtitle {
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        background: #fff;
+        color: #1a1a2e;
+        box-sizing: border-box;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-input::placeholder {
+        color: #9ca3af;
+    }
+    
+    .form-hint {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 0.25rem;
+    }
+    
+    .btn-primary {
+        width: 100%;
+        padding: 1rem;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-top: 0.5rem;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .auth-footer a {
+        color: #3b82f6;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+    
+    .alert-error {
+        background: #fef2f2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+    }
+    
+    .alert-success {
+        background: #f0fdf4;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+    }
+    
+    .password-strength {
+        height: 4px;
+        border-radius: 2px;
+        background: #e5e7eb;
+        margin-top: 0.5rem;
+        overflow: hidden;
+    }
+    
+    .password-strength-bar {
+        height: 100%;
+        transition: width 0.3s, background-color 0.3s;
+    }
+    
+    .strength-weak { background: #ef4444; width: 33%; }
+    .strength-medium { background: #f59e0b; width: 66%; }
+    .strength-strong { background: #22c55e; width: 100%; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-box">
+        <div class="auth-header">
+            <div class="auth-logo">⚔️</div>
+            <h1 class="auth-title">创建账号</h1>
+            <p class="auth-subtitle">开始您的历史英雄之旅</p>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" action="{{ url_for('register') }}">
+            <div class="form-group">
+                <label class="form-label" for="username">用户名 *</label>
+                <input type="text" 
+                       class="form-input" 
+                       id="username" 
+                       name="username" 
+                       placeholder="3-20个字符，支持字母数字下划线"
+                       required
+                       pattern="[a-zA-Z0-9_]{3,20}"
+                       autofocus>
+                <div class="form-hint">用户名将用于登录，不可修改</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="email">邮箱（选填）</label>
+                <input type="email" 
+                       class="form-input" 
+                       id="email" 
+                       name="email" 
+                       placeholder="example@email.com">
+                <div class="form-hint">用于找回密码和接收通知</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="player_name">游戏昵称</label>
+                <input type="text" 
+                       class="form-input" 
+                       id="player_name" 
+                       name="player_name" 
+                       placeholder="勇者"
+                       value="勇者">
+                <div class="form-hint">其他玩家看到的名字</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">密码 *</label>
+                <input type="password" 
+                       class="form-input" 
+                       id="password" 
+                       name="password" 
+                       placeholder="至少6个字符"
+                       required
+                       minlength="6">
+                <div class="password-strength">
+                    <div class="password-strength-bar" id="strength-bar"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="confirm_password">确认密码 *</label>
+                <input type="password" 
+                       class="form-input" 
+                       id="confirm_password" 
+                       name="confirm_password" 
+                       placeholder="再次输入密码"
+                       required>
+            </div>
+            
+            <button type="submit" class="btn-primary">立即注册</button>
+        </form>
+        
+        <div class="auth-footer">
+            已有账号？ <a href="{{ url_for('login') }}">立即登录</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 密码强度检测
+    document.getElementById('password').addEventListener('input', function(e) {
+        const password = e.target.value;
+        const bar = document.getElementById('strength-bar');
+        
+        bar.className = 'password-strength-bar';
+        
+        if (password.length === 0) {
+            bar.style.width = '0';
+            return;
+        }
+        
+        let strength = 0;
+        if (password.length >= 6) strength++;
+        if (password.length >= 10) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+        
+        if (strength <= 2) {
+            bar.classList.add('strength-weak');
+        } else if (strength <= 3) {
+            bar.classList.add('strength-medium');
+        } else {
+            bar.classList.add('strength-strong');
+        }
+    });
+    
+    // 密码确认验证
+    document.getElementById('confirm_password').addEventListener('input', function(e) {
+        const password = document.getElementById('password').value;
+        const confirm = e.target.value;
+        
+        if (confirm && password !== confirm) {
+            e.target.style.borderColor = '#ef4444';
+        } else if (confirm) {
+            e.target.style.borderColor = '#22c55e';
+        } else {
+            e.target.style.borderColor = '#e5e7eb';
+        }
+    });
+</script>
+{% endblock %}

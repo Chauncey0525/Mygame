@@ -4,6 +4,7 @@
 from datetime import datetime, date
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
@@ -13,6 +14,13 @@ class Player(db.Model, UserMixin):
     __tablename__ = 'players'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    
+    # 用户认证字段
+    username = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    email = db.Column(db.String(120), unique=True, nullable=True, index=True)
+    password_hash = db.Column(db.String(256), nullable=True)
+    
+    # 玩家信息
     name = db.Column(db.String(128), nullable=False, default='勇者')
     level = db.Column(db.Integer, nullable=False, default=1)
     exp = db.Column(db.Integer, nullable=False, default=0)
@@ -44,6 +52,16 @@ class Player(db.Model, UserMixin):
     completed_stages = db.relationship('PlayerCompletedStage', backref='player', lazy='dynamic')
     daily_tasks = db.relationship('PlayerDailyTask', backref='player', lazy='dynamic')
     summon_history = db.relationship('SummonHistory', backref='player', lazy='dynamic')
+    
+    def set_password(self, password):
+        """设置密码"""
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        """验证密码"""
+        if self.password_hash is None:
+            return False
+        return check_password_hash(self.password_hash, password)
     
     def to_dict(self):
         return {
