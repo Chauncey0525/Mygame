@@ -1,4 +1,5 @@
 import { BattleCharacter, Skill } from '@/types/game';
+import { CHARACTER_ILLUSTRATIONS } from './assets';
 
 /** 诸葛亮 - 蜀汉丞相 */
 export const zhugeLiang: BattleCharacter = {
@@ -11,8 +12,8 @@ export const zhugeLiang: BattleCharacter = {
   element: 'light',
   roleType: 'mage',
   description: '蜀汉丞相，三国时期杰出的政治家、军事家。以智谋著称，被后世尊为"智圣"。精通兵法，善用计策，鞠躬尽瘁，死而后已。',
-  avatar: '/characters/zhuge-liang-avatar.png',
-  illustration: '/characters/zhuge-liang.png',
+  avatar: CHARACTER_ILLUSTRATIONS['zhuge-liang'],
+  illustration: CHARACTER_ILLUSTRATIONS['zhuge-liang'],
   stats: {
     hp: 2800,
     maxHp: 2800,
@@ -113,8 +114,8 @@ export const napoleon: BattleCharacter = {
   element: 'fire',
   roleType: 'warrior',
   description: '法国军事家、政治家，法兰西第一帝国皇帝。被誉为历史上最伟大的军事统帅之一，其军事思想和战略至今仍被研究。',
-  avatar: '/characters/napoleon-avatar.png',
-  illustration: '/characters/napoleon.png',
+  avatar: CHARACTER_ILLUSTRATIONS['napoleon'],
+  illustration: CHARACTER_ILLUSTRATIONS['napoleon'],
   stats: {
     hp: 3200,
     maxHp: 3200,
@@ -209,8 +210,8 @@ export const arthur: BattleCharacter = {
   element: 'light',
   roleType: 'warrior',
   description: '传说中的不列颠国王，圆桌骑士团的领袖。持有圣剑Excalibur，代表着骑士精神与正义。',
-  avatar: '/characters/arthur-avatar.png',
-  illustration: '/characters/arthur.png',
+  avatar: CHARACTER_ILLUSTRATIONS['arthur'],
+  illustration: CHARACTER_ILLUSTRATIONS['arthur'],
   stats: {
     hp: 3500,
     maxHp: 3500,
@@ -305,8 +306,8 @@ export const wuZetian: BattleCharacter = {
   element: 'dark',
   roleType: 'mage',
   description: '中国历史上唯一的正统女皇帝，也是即位年龄最大、寿命最长的皇帝之一。睿智果断，政治手腕高超。',
-  avatar: '/characters/wu-zetian-avatar.png',
-  illustration: '/characters/wu-zetian.png',
+  avatar: CHARACTER_ILLUSTRATIONS['wu-zetian'],
+  illustration: CHARACTER_ILLUSTRATIONS['wu-zetian'],
   stats: {
     hp: 2600,
     maxHp: 2600,
@@ -413,8 +414,8 @@ export const huaMulan: BattleCharacter = {
   element: 'wind',
   roleType: 'assassin',
   description: '代父从军的传奇女英雄，忠孝节义，勇敢善战。其事迹流传千古，激励着无数后人。',
-  avatar: '/characters/hua-mulan-avatar.png',
-  illustration: '/characters/hua-mulan.png',
+  avatar: CHARACTER_ILLUSTRATIONS['hua-mulan'],
+  illustration: CHARACTER_ILLUSTRATIONS['hua-mulan'],
   stats: {
     hp: 2900,
     maxHp: 2900,
@@ -509,8 +510,8 @@ export const caesar: BattleCharacter = {
   element: 'earth',
   roleType: 'warrior',
   description: '罗马共和国末期的杰出军事统帅、政治家。征服高卢，成为终身独裁官，奠定了罗马帝国的基础。',
-  avatar: '/characters/caesar-avatar.png',
-  illustration: '/characters/caesar.png',
+  avatar: CHARACTER_ILLUSTRATIONS['caesar'],
+  illustration: CHARACTER_ILLUSTRATIONS['caesar'],
   stats: {
     hp: 3400,
     maxHp: 3400,
