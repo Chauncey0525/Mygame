@@ -18,6 +18,7 @@ class Player(db.Model, UserMixin):
     # 用户认证字段
     username = db.Column(db.String(64), unique=True, nullable=True, index=True)
     email = db.Column(db.String(120), unique=True, nullable=True, index=True)
+    phone = db.Column(db.String(32), unique=True, nullable=True, index=True)
     password_hash = db.Column(db.String(256), nullable=True)
     
     # 玩家信息
@@ -80,6 +81,30 @@ class Player(db.Model, UserMixin):
             'legendary_pity_count': self.legendary_pity_count,
             'total_play_days': self.total_play_days,
         }
+
+
+class SmsVerification(db.Model):
+    """短信验证码（开发环境可用；生产建议接入短信服务+独立限流）"""
+    __tablename__ = 'sms_verifications'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    phone = db.Column(db.String(32), nullable=False, index=True)
+    code_hash = db.Column(db.String(256), nullable=False)
+
+    purpose = db.Column(db.String(32), nullable=False, default='register', index=True)
+    ip = db.Column(db.String(64), nullable=True)
+
+    sent_at = db.Column(db.DateTime, default=datetime.now, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False, index=True)
+    used_at = db.Column(db.DateTime, nullable=True, index=True)
+
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+
+    def set_code(self, code: str):
+        self.code_hash = generate_password_hash(code)
+
+    def check_code(self, code: str) -> bool:
+        return check_password_hash(self.code_hash, code)
 
 
 class PlayerCharacter(db.Model):

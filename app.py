@@ -2,20 +2,112 @@
 历史英雄对决 - Flask 主应用
 """
 import os
+import re
 from datetime import datetime, date, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import random
+from sqlalchemy import text
 
 from config import config
-from models import db, Player, PlayerCharacter, PlayerTeam, PlayerCompletedStage, PlayerDailyTask, SummonHistory
+from models import db, Player, PlayerCharacter, PlayerTeam, PlayerCompletedStage, PlayerDailyTask, SummonHistory, SmsVerification
 from game_data import (
     ALL_CHARACTERS, CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
     ELEMENT_NAMES, ELEMENT_COLORS, ROLE_NAMES, DIFFICULTY_NAMES, DIFFICULTY_COLORS,
     DEFAULT_DAILY_TASKS, get_character_by_id, get_characters_by_rarity,
     get_stage_by_id, calculate_stats
 )
+
+# ==================== 账号工具 ====================
+
+EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+PHONE_RE = re.compile(r"^\+?\d{7,20}$")
+# 密码规则：至少8位，至少1个字母+1个数字，可包含常见特殊字符
+PASSWORD_RE = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&._-]{8,64}$")
+
+
+def normalize_phone(raw: str) -> str:
+    if raw is None:
+        return ""
+    s = str(raw).strip()
+    if not s:
+        return ""
+    s = re.sub(r"[\s\-()]", "", s)
+    if s.startswith("00"):
+        s = "+" + s[2:]
+    return s
+
+
+def is_valid_email(email: str) -> bool:
+    if not email:
+        return True
+    return EMAIL_RE.match(email) is not None
+
+
+def is_valid_phone(phone: str) -> bool:
+    if not phone:
+        return False
+    # 兼容国内 11 位与 E.164（宽松）
+    if phone.startswith("+"):
+        return PHONE_RE.match(phone) is not None
+    return phone.isdigit() and 7 <= len(phone) <= 20
+
+
+def is_valid_password(pw: str) -> bool:
+    if not pw:
+        return False
+    return PASSWORD_RE.match(pw) is not None
+
+
+def get_client_ip() -> str:
+    # 简单获取；生产环境请在反向代理层正确传递 X-Forwarded-For 并做信任链校验
+    return request.headers.get("X-Forwarded-For", "").split(",")[0].strip() or request.remote_addr or ""
+
+
+def gen_sms_code() -> str:
+    return f"{random.randint(0, 999999):06d}"
+
+
+def send_sms_dev(phone: str, code: str) -> None:
+    # 开发模式：不真正发短信，只在控制台打印验证码
+    print(f"[DEV SMS] phone={phone} code={code}")
+
+
+def ensure_db_migrations():
+    """
+    轻量迁移（避免引入 Alembic）：
+    - 为 players 增加 phone 列（如不存在）
+    - 创建 sms_verifications 表（由 create_all 处理）
+    """
+    try:
+        with app.app_context():
+            db.create_all()
+            engine = db.engine
+            dialect = engine.dialect.name
+
+            if dialect == "sqlite":
+                cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(players)")).fetchall()]
+                if "phone" not in cols:
+                    db.session.execute(text("ALTER TABLE players ADD COLUMN phone VARCHAR(32)"))
+                    db.session.commit()
+                # SQLite 的 ALTER TABLE 不支持直接加 UNIQUE，这里用索引兜底
+                db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uix_players_phone ON players(phone)"))
+                db.session.commit()
+            elif dialect in ("mysql", "mariadb"):
+                # MySQL 简易检查列是否存在
+                row = db.session.execute(text(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='players' AND COLUMN_NAME='phone'"
+                )).scalar()
+                if int(row or 0) == 0:
+                    db.session.execute(text("ALTER TABLE players ADD COLUMN phone VARCHAR(32) NULL"))
+                    db.session.execute(text("CREATE UNIQUE INDEX uix_players_phone ON players(phone)"))
+                    db.session.commit()
+    except Exception as e:
+        # 不阻塞应用启动，但会影响 phone 字段写入；打印出来便于排查
+        print("[WARN] ensure_db_migrations failed:", type(e).__name__, str(e))
+
 
 # 创建应用
 app = Flask(__name__)
@@ -85,6 +177,8 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         email = request.form.get('email', '').strip()
+        phone = normalize_phone(request.form.get('phone', '').strip())
+        sms_code = request.form.get('sms_code', '').strip()
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
         player_name = request.form.get('player_name', '勇者').strip()
@@ -98,13 +192,55 @@ def register():
             flash('用户名长度应在3-20个字符之间', 'error')
             return render_template('register.html')
         
-        if len(password) < 6:
-            flash('密码长度至少6个字符', 'error')
+        if not is_valid_password(password):
+            flash('密码至少8位，且必须包含字母与数字（可含@$!%*?&._-）', 'error')
             return render_template('register.html')
         
         if password != confirm_password:
             flash('两次输入的密码不一致', 'error')
             return render_template('register.html')
+
+        # 邮箱：可选，但必须是合法格式
+        if email and not is_valid_email(email):
+            flash('邮箱格式不正确', 'error')
+            return render_template('register.html')
+
+        # 手机号：必填 + 必须验证码通过
+        if not phone:
+            flash('手机号不能为空', 'error')
+            return render_template('register.html')
+        if not is_valid_phone(phone):
+            flash('手机号格式不正确', 'error')
+            return render_template('register.html')
+        if not sms_code or not sms_code.isdigit() or len(sms_code) != 6:
+            flash('请输入6位短信验证码', 'error')
+            return render_template('register.html')
+
+        # 校验验证码：10 分钟有效，最多 5 次尝试
+        now = datetime.now()
+        v = (
+            SmsVerification.query.filter_by(phone=phone, purpose='register', used_at=None)
+            .order_by(SmsVerification.sent_at.desc())
+            .first()
+        )
+        if not v:
+            flash('请先获取短信验证码', 'error')
+            return render_template('register.html')
+        if v.expires_at < now:
+            flash('短信验证码已过期，请重新获取', 'error')
+            return render_template('register.html')
+        if v.attempts >= 5:
+            flash('验证码尝试次数过多，请重新获取', 'error')
+            return render_template('register.html')
+
+        v.attempts += 1
+        ok = v.check_code(sms_code)
+        if not ok:
+            db.session.commit()
+            flash('短信验证码不正确', 'error')
+            return render_template('register.html')
+        v.used_at = now
+        db.session.commit()
         
         # 检查用户名是否已存在
         if Player.query.filter_by(username=username).first():
@@ -115,11 +251,17 @@ def register():
         if email and Player.query.filter_by(email=email).first():
             flash('邮箱已被注册', 'error')
             return render_template('register.html')
+
+        # 检查手机号是否已存在（手机号唯一，一个手机号一个账号）
+        if Player.query.filter_by(phone=phone).first():
+            flash('手机号已被注册', 'error')
+            return render_template('register.html')
         
         # 创建新玩家
         player = Player(
             username=username,
             email=email if email else None,
+            phone=phone,
             name=player_name if player_name else username
         )
         player.set_password(password)
@@ -137,6 +279,57 @@ def register():
         return redirect(url_for('index'))
     
     return render_template('register.html')
+
+
+@app.route('/api/auth/sms/send', methods=['POST'])
+def api_auth_sms_send():
+    """
+    发送注册短信验证码（开发版：控制台打印验证码）。
+    请求 JSON: { "phone": "..." }
+    """
+    data = request.get_json(silent=True) or {}
+    phone = normalize_phone((data.get('phone') or '').strip())
+    if not phone or not is_valid_phone(phone):
+        return jsonify({'success': False, 'error': '手机号格式不正确'}), 400
+
+    # 已注册的手机号不再发送
+    if Player.query.filter_by(phone=phone).first():
+        return jsonify({'success': False, 'error': '手机号已被注册'}), 400
+
+    ip = get_client_ip()
+    now = datetime.now()
+
+    # 简易限流：同手机号 60 秒内不重复发；同 IP 10 分钟内最多 8 次
+    last = (
+        SmsVerification.query.filter_by(phone=phone, purpose='register')
+        .order_by(SmsVerification.sent_at.desc())
+        .first()
+    )
+    if last and (now - last.sent_at).total_seconds() < 60:
+        return jsonify({'success': False, 'error': '发送过于频繁，请稍后再试'}), 429
+
+    ip_count = SmsVerification.query.filter(
+        SmsVerification.ip == ip,
+        SmsVerification.purpose == 'register',
+        SmsVerification.sent_at >= (now - timedelta(minutes=10)),
+    ).count()
+    if ip_count >= 8:
+        return jsonify({'success': False, 'error': '请求过于频繁，请稍后再试'}), 429
+
+    code = gen_sms_code()
+    v = SmsVerification(
+        phone=phone,
+        purpose='register',
+        ip=ip,
+        sent_at=now,
+        expires_at=now + timedelta(minutes=10),
+    )
+    v.set_code(code)
+    db.session.add(v)
+    db.session.commit()
+
+    send_sms_dev(phone, code)
+    return jsonify({'success': True, 'message': '验证码已发送（开发模式：查看服务端控制台输出）'})
 
 
 @app.route('/logout')
@@ -792,8 +985,10 @@ def init_db():
 
 
 with app.app_context():
-    db.create_all()
+    ensure_db_migrations()
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    host = os.environ.get('HOST', '127.0.0.1')
+    port = int(os.environ.get('PORT', '5001'))
+    app.run(host=host, port=port, debug=True)

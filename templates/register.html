@@ -206,6 +206,36 @@
                        placeholder="example@email.com">
                 <div class="form-hint">用于找回密码和接收通知</div>
             </div>
+
+            <div class="form-group">
+                <label class="form-label" for="phone">手机号 *</label>
+                <input type="tel"
+                       class="form-input"
+                       id="phone"
+                       name="phone"
+                       required
+                       placeholder="例如：13800138000 或 +8613800138000">
+                <div class="form-hint">手机号将作为账号唯一标识（一个手机号一个账号）</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="sms_code">短信验证码</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="text"
+                           class="form-input"
+                           id="sms_code"
+                           name="sms_code"
+                           required
+                           inputmode="numeric"
+                           autocomplete="one-time-code"
+                           placeholder="6位验证码"
+                           style="flex: 1;">
+                    <button type="button" class="btn-primary" id="send-sms-btn" style="width:auto; padding:0.875rem 1rem; white-space:nowrap;">
+                        获取验证码
+                    </button>
+                </div>
+                <div class="form-hint" id="sms-hint">开发模式：验证码会打印在服务端控制台</div>
+            </div>
             
             <div class="form-group">
                 <label class="form-label" for="player_name">游戏昵称</label>
@@ -224,9 +254,11 @@
                        class="form-input" 
                        id="password" 
                        name="password" 
-                       placeholder="至少6个字符"
+                       placeholder="至少8位，包含字母和数字"
                        required
-                       minlength="6">
+                       minlength="8"
+                       maxlength="64"
+                       pattern="(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&._-]{8,64}">
                 <div class="password-strength">
                     <div class="password-strength-bar" id="strength-bar"></div>
                 </div>
@@ -293,6 +325,58 @@
             e.target.style.borderColor = '#22c55e';
         } else {
             e.target.style.borderColor = '#e5e7eb';
+        }
+    });
+
+    // 发送短信验证码
+    const sendBtn = document.getElementById('send-sms-btn');
+    const smsHint = document.getElementById('sms-hint');
+    let cooldown = 0;
+
+    function setCooldown(sec) {
+        cooldown = sec;
+        sendBtn.disabled = sec > 0;
+        const tick = () => {
+            if (cooldown <= 0) {
+                sendBtn.disabled = false;
+                sendBtn.textContent = '获取验证码';
+                return;
+            }
+            sendBtn.textContent = `已发送(${cooldown}s)`;
+            cooldown -= 1;
+            setTimeout(tick, 1000);
+        };
+        tick();
+    }
+
+    sendBtn.addEventListener('click', async () => {
+        const phone = (document.getElementById('phone').value || '').trim();
+        if (!phone) {
+            smsHint.textContent = '请先填写手机号';
+            smsHint.style.color = '#dc2626';
+            return;
+        }
+        smsHint.textContent = '正在发送验证码...';
+        smsHint.style.color = '#666';
+
+        try {
+            const resp = await fetch('/api/auth/sms/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone })
+            });
+            const data = await resp.json().catch(() => ({}));
+            if (!resp.ok || !data.success) {
+                smsHint.textContent = data.error || '发送失败，请稍后重试';
+                smsHint.style.color = '#dc2626';
+                return;
+            }
+            smsHint.textContent = data.message || '验证码已发送';
+            smsHint.style.color = '#16a34a';
+            setCooldown(60);
+        } catch (e) {
+            smsHint.textContent = '网络错误，请稍后重试';
+            smsHint.style.color = '#dc2626';
         }
     });
 </script>
