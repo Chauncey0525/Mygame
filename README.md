@@ -1,363 +1,405 @@
-# projects
+# ⚔️ 历史英雄对决
 
-这是一个基于 [Next.js 16](https://nextjs.org) + [shadcn/ui](https://ui.shadcn.com) 的全栈应用项目，由扣子编程 CLI 创建。
+> 一款以古今中外历史人物为背景的养成型回合制战斗游戏
 
-## 快速开始
+## 📖 项目简介
 
-### 启动开发服务器
+《历史英雄对决》是一款融合了角色收集、养成升级、副本挑战等核心玩法的回合制游戏。玩家可以召唤诸葛亮、关羽、花木兰、亚瑟王等历史名将，组建自己的队伍，挑战各种副本关卡。
 
-```bash
-coze dev
-```
+### ✨ 核心功能
 
-启动后，在浏览器中打开 [http://localhost:5000](http://localhost:5000) 查看应用。
+| 功能模块 | 说明 |
+|---------|------|
+| 🎭 **角色养成** | 升级、突破、星级提升，打造最强角色 |
+| ✨ **召唤系统** | 单抽、十连、保底机制，收集传奇英雄 |
+| ⚔️ **副本挑战** | 多章节关卡，不同难度，丰富奖励 |
+| 📋 **每日任务** | 完成任务获取资源，每日签到奖励 |
+| 🎯 **队伍编辑** | 自由搭配4人队伍，策略战斗 |
 
-开发服务器支持热更新，修改代码后页面会自动刷新。
+---
 
-### 构建生产版本
+## 🛠️ 技术栈
 
-```bash
-coze build
-```
+| 类别 | 技术 |
+|------|------|
+| **后端框架** | Flask 3.0 |
+| **ORM** | SQLAlchemy 3.1 |
+| **数据库** | MySQL / SQLite |
+| **前端模板** | Jinja2 |
+| **样式** | CSS3 |
+| **Python** | 3.11+ |
 
-### 启动生产服务器
+---
 
-```bash
-coze start
-```
+## 📦 安装部署
 
-## 项目结构
+### 环境要求
 
-```
-src/
-├── app/                      # Next.js App Router 目录
-│   ├── layout.tsx           # 根布局组件
-│   ├── page.tsx             # 首页
-│   ├── globals.css          # 全局样式（包含 shadcn 主题变量）
-│   └── [route]/             # 其他路由页面
-├── components/              # React 组件目录
-│   └── ui/                  # shadcn/ui 基础组件（优先使用）
-│       ├── button.tsx
-│       ├── card.tsx
-│       └── ...
-├── lib/                     # 工具函数库
-│   └── utils.ts            # cn() 等工具函数
-└── hooks/                   # 自定义 React Hooks（可选）
+- Python 3.11+
+- MySQL 8.0+ (可选，默认使用SQLite)
 
-server/
-├── index.ts                 # 自定义服务器入口
-├── tsconfig.json           # Server TypeScript 配置
-└── dist/                    # 编译输出目录（自动生成）
-```
-
-## 核心开发规范
-
-### 1. 组件开发
-
-**优先使用 shadcn/ui 基础组件**
-
-本项目已预装完整的 shadcn/ui 组件库，位于 `src/components/ui/` 目录。开发时应优先使用这些组件作为基础：
-
-```tsx
-// ✅ 推荐：使用 shadcn 基础组件
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-
-export default function MyComponent() {
-  return (
-    <Card>
-      <CardHeader>标题</CardHeader>
-      <CardContent>
-        <Input placeholder="输入内容" />
-        <Button>提交</Button>
-      </CardContent>
-    </Card>
-  );
-}
-```
-
-**可用的 shadcn 组件清单**
-
-- 表单：`button`, `input`, `textarea`, `select`, `checkbox`, `radio-group`, `switch`, `slider`
-- 布局：`card`, `separator`, `tabs`, `accordion`, `collapsible`, `scroll-area`
-- 反馈：`alert`, `alert-dialog`, `dialog`, `toast`, `sonner`, `progress`
-- 导航：`dropdown-menu`, `menubar`, `navigation-menu`, `context-menu`
-- 数据展示：`table`, `avatar`, `badge`, `hover-card`, `tooltip`, `popover`
-- 其他：`calendar`, `command`, `carousel`, `resizable`, `sidebar`
-
-详见 `src/components/ui/` 目录下的具体组件实现。
-
-### 2. 路由开发
-
-Next.js 使用文件系统路由，在 `src/app/` 目录下创建文件夹即可添加路由：
+### 快速开始
 
 ```bash
-# 创建新路由 /about
-src/app/about/page.tsx
+# 1. 克隆项目
+git clone https://github.com/Chauncey0525/Mygame.git
+cd Mygame
 
-# 创建动态路由 /posts/[id]
-src/app/posts/[id]/page.tsx
+# 2. 创建虚拟环境
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# 或 venv\Scripts\activate  # Windows
 
-# 创建路由组（不影响 URL）
-src/app/(marketing)/about/page.tsx
+# 3. 安装依赖
+pip install -r requirements.txt
 
-# 创建 API 路由
-src/app/api/users/route.ts
+# 4. 启动服务
+python run.py
+
+# 5. 访问游戏
+# 打开浏览器访问 http://localhost:5000
 ```
 
-**页面组件示例**
+### MySQL 配置（可选）
 
-```tsx
-// src/app/about/page.tsx
-import { Button } from '@/components/ui/button';
+创建 `.env` 文件：
 
-export const metadata = {
-  title: '关于我们',
-  description: '关于页面描述',
-};
+```env
+# MySQL 配置
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DATABASE=history_heroes
 
-export default function AboutPage() {
-  return (
-    <div>
-      <h1>关于我们</h1>
-      <Button>了解更多</Button>
-    </div>
-  );
+# Flask 密钥
+SECRET_KEY=your-secret-key
+```
+
+> 💡 不配置 MySQL 时，项目会自动使用 SQLite 数据库
+
+---
+
+## 📁 项目结构
+
+```
+Mygame/
+├── app.py                 # Flask 主应用
+├── run.py                 # 启动入口
+├── config.py              # 配置文件
+├── models.py              # 数据库模型
+├── game_data.py           # 游戏静态数据
+├── requirements.txt       # Python 依赖
+├── .env.example           # 环境变量示例
+│
+├── templates/             # Jinja2 模板
+│   ├── base.html              # 基础布局
+│   ├── index.html             # 首页
+│   ├── characters.html        # 角色列表
+│   ├── character_detail.html  # 角色详情
+│   ├── summon.html            # 召唤页面
+│   ├── stages.html            # 副本选择
+│   └── battle.html            # 战斗界面
+│
+├── static/                # 静态资源
+│   ├── css/
+│   │   └── style.css          # 样式文件
+│   └── images/
+│       └── characters/        # 角色图片
+│
+└── instance/              # 实例数据
+    └── history_heroes.db       # SQLite 数据库
+```
+
+---
+
+## 🗄️ 数据库设计
+
+### 表结构
+
+| 表名 | 说明 |
+|------|------|
+| `players` | 玩家信息、资源、保底计数 |
+| `player_characters` | 玩家角色、等级、星级、突破 |
+| `player_team` | 队伍配置 |
+| `player_completed_stages` | 通关记录 |
+| `player_daily_tasks` | 每日任务 |
+| `summon_history` | 抽卡历史 |
+
+### ER 图
+
+```
+┌─────────────┐       ┌──────────────────────┐
+│   players   │───1:N─│   player_characters  │
+│             │       │                      │
+│ id          │       │ id                   │
+│ name        │       │ player_id (FK)       │
+│ gold        │       │ character_id         │
+│ gems        │       │ level, stars, break  │
+│ energy      │       └──────────────────────┘
+│ pity_count  │
+└─────────────┘       ┌──────────────────────┐
+        │             │     player_team      │
+        └─────1:N─────│                      │
+                      │ player_id (FK)       │
+                      │ character_inst_id    │
+                      └──────────────────────┘
+```
+
+---
+
+## 🎮 游戏玩法
+
+### 1. 召唤英雄
+
+```
+入口：底部导航 → 召唤
+
+召唤方式：
+├── 单抽：100 钻石
+├── 十连：900 钻石（9折）
+└── 召唤券：免费
+
+保底机制：
+├── 50 抽必出史诗
+└── 100 抽必出传说
+
+概率分布：
+├── 普通：60%
+├── 稀有：30%
+├── 史诗：8%
+└── 传说：2%
+```
+
+### 2. 角色养成
+
+```
+入口：底部导航 → 角色 → 选择角色
+
+养成方式：
+├── 升级：消耗经验书，提升等级
+└── 突破：消耗金币，提升属性上限
+
+属性计算：
+基础属性 × 等级系数 × 星级系数 × 突破系数
+```
+
+### 3. 副本挑战
+
+```
+入口：底部导航 → 副本
+
+章节结构：
+├── 第一章：初入战场（3关）
+├── 第二章：名将云集（3关）
+└── 第三章：传说之战（3关）
+
+难度分级：
+├── 简单（绿色）
+├── 普通（蓝色）
+├── 困难（橙色）
+└── 地狱（红色）
+
+奖励内容：
+├── 金币
+├── 经验
+└── 钻石（部分关卡）
+```
+
+### 4. 战斗系统
+
+```
+战斗流程：
+1. 选择关卡 → 消耗体力
+2. 我方角色 vs 敌方角色
+3. 选择技能攻击
+4. 敌人回合反击
+5. 战斗结束 → 发放奖励
+
+技能类型：
+├── 物理攻击
+├── 特殊攻击
+└── 增益Buff
+```
+
+---
+
+## 🔌 API 接口
+
+### 召唤
+
+```http
+POST /api/summon
+Content-Type: application/json
+
+{
+  "type": "once"  // once | ten | ticket
 }
 ```
 
-**动态路由示例**
+### 升级角色
 
-```tsx
-// src/app/posts/[id]/page.tsx
-export default async function PostPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+```http
+POST /api/levelup
+Content-Type: application/json
 
-  return <div>文章 ID: {id}</div>;
+{
+  "instance_id": 1,
+  "exp": 100
 }
 ```
 
-**API 路由示例**
+### 突破角色
 
-```tsx
-// src/app/api/users/route.ts
-import { NextResponse } from 'next/server';
+```http
+POST /api/breakthrough
+Content-Type: application/json
 
-export async function GET() {
-  return NextResponse.json({ users: [] });
-}
-
-export async function POST(request: Request) {
-  const body = await request.json();
-  return NextResponse.json({ success: true });
+{
+  "instance_id": 1
 }
 ```
 
-### 3. 依赖管理
+### 设置队伍
 
-**必须使用 pnpm 管理依赖**
+```http
+POST /api/team
+Content-Type: application/json
 
-```bash
-# ✅ 安装依赖
-pnpm install
-
-# ✅ 添加新依赖
-pnpm add package-name
-
-# ✅ 添加开发依赖
-pnpm add -D package-name
-
-# ❌ 禁止使用 npm 或 yarn
-# npm install  # 错误！
-# yarn add     # 错误！
-```
-
-项目已配置 `preinstall` 脚本，使用其他包管理器会报错。
-
-### 4. 样式开发
-
-**使用 Tailwind CSS v4**
-
-本项目使用 Tailwind CSS v4 进行样式开发，并已配置 shadcn 主题变量。
-
-```tsx
-// 使用 Tailwind 类名
-<div className="flex items-center gap-4 p-4 rounded-lg bg-background">
-  <Button className="bg-primary text-primary-foreground">
-    主要按钮
-  </Button>
-</div>
-
-// 使用 cn() 工具函数合并类名
-import { cn } from '@/lib/utils';
-
-<div className={cn(
-  "base-class",
-  condition && "conditional-class",
-  className
-)}>
-  内容
-</div>
-```
-
-**主题变量**
-
-主题变量定义在 `src/app/globals.css` 中，支持亮色/暗色模式：
-
-- `--background`, `--foreground`
-- `--primary`, `--primary-foreground`
-- `--secondary`, `--secondary-foreground`
-- `--muted`, `--muted-foreground`
-- `--accent`, `--accent-foreground`
-- `--destructive`, `--destructive-foreground`
-- `--border`, `--input`, `--ring`
-
-### 5. 表单开发
-
-推荐使用 `react-hook-form` + `zod` 进行表单开发：
-
-```tsx
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-
-const formSchema = z.object({
-  username: z.string().min(2, '用户名至少 2 个字符'),
-  email: z.string().email('请输入有效的邮箱'),
-});
-
-export default function MyForm() {
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: { username: '', email: '' },
-  });
-
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    console.log(data);
-  };
-
-  return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      <Input {...form.register('username')} />
-      <Input {...form.register('email')} />
-      <Button type="submit">提交</Button>
-    </form>
-  );
+{
+  "team": [1, 2, 3, 4]  // 角色实例ID数组
 }
 ```
 
-### 6. 数据获取
+### 完成战斗
 
-**服务端组件（推荐）**
+```http
+POST /api/battle/complete
+Content-Type: application/json
 
-```tsx
-// src/app/posts/page.tsx
-async function getPosts() {
-  const res = await fetch('https://api.example.com/posts', {
-    cache: 'no-store', // 或 'force-cache'
-  });
-  return res.json();
-}
-
-export default async function PostsPage() {
-  const posts = await getPosts();
-
-  return (
-    <div>
-      {posts.map(post => (
-        <div key={post.id}>{post.title}</div>
-      ))}
-    </div>
-  );
+{
+  "stage_id": "stage-1-1",
+  "victory": true
 }
 ```
 
-**客户端组件**
+### 领取每日任务
 
-```tsx
-'use client';
+```http
+POST /api/daily/claim
+Content-Type: application/json
 
-import { useEffect, useState } from 'react';
-
-export default function ClientComponent() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    fetch('/api/data')
-      .then(res => res.json())
-      .then(setData);
-  }, []);
-
-  return <div>{JSON.stringify(data)}</div>;
+{
+  "task_id": "daily-login"
 }
 ```
 
-## 常见开发场景
+---
 
-### 添加新页面
+## 👥 角色列表
 
-1. 在 `src/app/` 下创建文件夹和 `page.tsx`
-2. 使用 shadcn 组件构建 UI
-3. 根据需要添加 `layout.tsx` 和 `loading.tsx`
+| 角色 | 稀有度 | 元素 | 类型 | 历史背景 |
+|------|--------|------|------|----------|
+| 诸葛亮 | 传说 | 水 | 法师 | 三国蜀汉丞相 |
+| 关羽 | 史诗 | 火 | 战士 | 三国蜀汉名将 |
+| 花木兰 | 史诗 | 风 | 战士 | 北魏女英雄 |
+| 亚瑟王 | 史诗 | 光 | 战士 | 不列颠传说之王 |
+| 曹操 | 史诗 | 暗 | 战士 | 曹魏奠基者 |
+| 宫本武藏 | 稀有 | 风 | 刺客 | 日本剑圣 |
 
-### 创建业务组件
+---
 
-1. 在 `src/components/` 下创建组件文件（非 UI 组件）
-2. 优先组合使用 `src/components/ui/` 中的基础组件
-3. 使用 TypeScript 定义 Props 类型
+## ⚙️ 配置说明
 
-### 添加全局状态
+### config.py
 
-推荐使用 React Context 或 Zustand：
-
-```tsx
-// src/lib/store.ts
-import { create } from 'zustand';
-
-interface Store {
-  count: number;
-  increment: () => void;
-}
-
-export const useStore = create<Store>((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-}));
+```python
+class Config:
+    # 游戏配置
+    MAX_TEAM_SIZE = 4        # 最大队伍人数
+    MAX_ENERGY = 100         # 最大体力
+    ENERGY_RECOVERY_RATE = 10 # 体力恢复速度（每小时）
+    PITY_EPIC = 50           # 史诗保底
+    PITY_LEGENDARY = 100     # 传说保底
 ```
 
-### 集成数据库
+### game_data.py
 
-推荐使用 Prisma 或 Drizzle ORM，在 `src/lib/db.ts` 中配置。
+角色、技能、关卡等静态数据配置文件，可根据需要扩展：
+- 添加新角色：在 `ALL_CHARACTERS` 列表中添加
+- 添加新关卡：在 `CHAPTERS` 列表中添加
 
-## 技术栈
+---
 
-- **框架**: Next.js 16.1.1 (App Router)
-- **UI 组件**: shadcn/ui (基于 Radix UI)
-- **样式**: Tailwind CSS v4
-- **表单**: React Hook Form + Zod
-- **图标**: Lucide React
-- **字体**: Geist Sans & Geist Mono
-- **包管理器**: pnpm 9+
-- **TypeScript**: 5.x
+## 🚀 开发指南
 
-## 参考文档
+### 添加新角色
 
-- [Next.js 官方文档](https://nextjs.org/docs)
-- [shadcn/ui 组件文档](https://ui.shadcn.com)
-- [Tailwind CSS 文档](https://tailwindcss.com/docs)
-- [React Hook Form](https://react-hook-form.com)
+编辑 `game_data.py`：
 
-## 重要提示
+```python
+ALL_CHARACTERS = [
+    {
+        'id': 'new-hero',
+        'name': '新英雄',
+        'title': '英雄称号',
+        'era': '时代',
+        'origin': '国家',
+        'element': 'fire',
+        'role_type': 'warrior',
+        'rarity': 'epic',
+        'stats': {...},
+        'skills': [...]
+    },
+    # ...
+]
+```
 
-1. **必须使用 pnpm** 作为包管理器
-2. **优先使用 shadcn/ui 组件** 而不是从零开发基础组件
-3. **遵循 Next.js App Router 规范**，正确区分服务端/客户端组件
-4. **使用 TypeScript** 进行类型安全开发
-5. **使用 `@/` 路径别名** 导入模块（已配置）
+### 添加新关卡
+
+编辑 `game_data.py`：
+
+```python
+CHAPTERS = [
+    {
+        'id': 'chapter-4',
+        'name': '新章节',
+        'stages': [
+            {
+                'id': 'stage-4-1',
+                'name': '新关卡',
+                'enemy_ids': ['hero-id'],
+                'enemy_levels': [20],
+                # ...
+            }
+        ]
+    }
+]
+```
+
+---
+
+## 📝 更新日志
+
+### v2.0.0 (当前版本)
+- 🔄 重构为 Flask + MySQL 架构
+- 🎨 使用 Jinja2 模板渲染
+- 🗄️ 支持 MySQL / SQLite 双数据库
+- 🎮 完整的游戏功能实现
+
+### v1.0.0
+- ✨ Next.js + React 初始版本
+- 🎭 角色养成系统
+- ⚔️ 回合制战斗系统
+
+---
+
+## 📄 许可证
+
+MIT License
+
+---
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
