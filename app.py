@@ -459,6 +459,13 @@ login_manager.login_message = '请先登录以访问此页面'
 login_manager.session_protection = 'strong'
 
 
+@login_manager.unauthorized_handler
+def unauthorized_api():
+    if request.path.startswith('/api/'):
+        return jsonify({'success': False, 'error': '请先登录'}), 401
+    return redirect(url_for('login', next=request.url))
+
+
 @login_manager.user_loader
 def load_user(player_id):
     return Player.query.get(int(player_id))
