@@ -98,6 +98,10 @@
 .boss-phase-alert p{color:#fff;text-align:center;margin-top:.4rem;font-size:.9rem}
 #dialogueModal .modal-content{max-width:720px}
 #resultModal .modal-content{text-align:center}
+.action-btn.btn-awaken{background:linear-gradient(135deg,#7c2d1240,#dc262640);border-color:#ef4444;color:#fca5a5;font-weight:700;position:relative;overflow:hidden;padding:10px 8px}
+.action-btn.btn-awaken::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,#ef444415,transparent 70%);pointer-events:none}
+.action-btn.btn-awaken.used{opacity:.35;cursor:not-allowed;border-color:#475569;background:rgba(51,65,85,.4);color:#64748b}
+.action-btn.btn-awaken.used::after{content:'已释放';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:.7rem;color:#ef4444;font-weight:700;background:rgba(0,0,0,.6);padding:2px 10px;border-radius:4px}
 @media(max-width:480px){.action-btn{padding:10px 6px;font-size:.82rem}}
 </style>
 
@@ -177,6 +181,11 @@
             </div>
             <div class="actor-status-text" id="actor-status">选择行动</div>
         </div>
+        <div id="awakening-bar" style="display:none;padding:4px 14px 0;">
+            <div id="awakening-btn" class="action-btn btn-awaken" onclick="useAwakeningSkill()" style="width:100%;text-align:center;">
+                🔥 <span id="awaken-name"></span> <span style="font-size:.65rem;opacity:.7;">（每场限1次）</span>
+            </div>
+        </div>
         <div class="action-menu" id="main-menu">
             <div class="action-btn btn-skill" onclick="showPanel('skills')">⚔️ 技能</div>
             <div class="action-btn btn-item" onclick="showPanel('items')">🎒 道具</div>
@@ -231,6 +240,7 @@ var gameState = {
 var battleItems = {{ battle_items | tojson }};
 var chapterDialogue = {{ (chapter_dialogue or {'pre':[],'post':[]}) | tojson }};
 
+gameState.awakeningUsed = {};
 gameState.allies.forEach(function(ally, i){
     ally.currentHp = ally.stats.max_hp;
     ally.maxHp = ally.stats.max_hp;
@@ -239,11 +249,14 @@ gameState.allies.forEach(function(ally, i){
         ally.skills.forEach(function(_,si){ gameState.skillCooldowns[i][si] = 0; });
     }
     gameState.buffs[i] = [];
+    gameState.awakeningUsed[i] = false;
 });
+gameState.enemyAwakeningUsed = {};
 gameState.enemies.forEach(function(enemy, i){
     enemy.currentHp = enemy.stats.max_hp;
     enemy.maxHp = enemy.stats.max_hp;
     if(enemy.is_boss) gameState.bossPhases[i] = 1;
+    gameState.enemyAwakeningUsed[i] = false;
 });
 battleItems.forEach(function(item){
     gameState.itemUsage[item.id] = 0;
@@ -367,13 +380,28 @@ function updateHpDisplay(type,index){
 }
 
 function updateActorInfo(){
-    var actor=gameState.allies[gameState.currentAllyIndex];if(!actor) return;
+    var ci=gameState.currentAllyIndex;
+    var actor=gameState.allies[ci];if(!actor) return;
     document.getElementById('actor-name').textContent=actor.name;
     var pct=Math.max(0,(actor.currentHp/actor.maxHp)*100);
     document.getElementById('actor-hp-fill').style.width=pct+'%';
     document.getElementById('actor-hp-text').textContent=Math.max(0,Math.floor(actor.currentHp))+'/'+actor.maxHp;
     var img=document.getElementById('actor-avatar-img');if(img)img.src=actor.avatar;
-    if(Battle3D.ready) Battle3D.highlight('ally',gameState.currentAllyIndex);
+    if(Battle3D.ready) Battle3D.highlight('ally',ci);
+    var awk=actor.awakening_skill;
+    var bar=document.getElementById('awakening-bar');
+    var btn=document.getElementById('awakening-btn');
+    if(awk){
+        bar.style.display='';
+        document.getElementById('awaken-name').textContent=awk.name;
+        if(gameState.awakeningUsed[ci]){
+            btn.classList.add('used');btn.onclick=null;
+        }else{
+            btn.classList.remove('used');btn.onclick=useAwakeningSkill;
+        }
+    }else{
+        bar.style.display='none';
+    }
 }
 
 function addLog(message){
@@ -410,11 +438,25 @@ async function autoAttack(){
     if(!gameState.autoBattle||gameState.battleEnded)return;
     if(gameState.phase!=='ally'||gameState.actionLock){clearAutoTimer();gameState.autoBattleTimer=setTimeout(autoAttack,getDelay(600));return;}
     autoSelectTarget();
-    var attacker=gameState.allies[gameState.currentAllyIndex];
+    var ci=gameState.currentAllyIndex;
+    var attacker=gameState.allies[ci];
+
+    if(gameState.autoBattleMode==='smart'){
+        var awk=attacker.awakening_skill;
+        if(awk&&!gameState.awakeningUsed[ci]){
+            var bossAlive=gameState.enemies.some(function(e){return e.currentHp>0&&e.is_boss});
+            if(bossAlive||(gameState.turnCount>=3&&Math.random()<0.5)){
+                await useAwakeningSkill();
+                if(gameState.autoBattle&&!gameState.battleEnded){clearAutoTimer();gameState.autoBattleTimer=setTimeout(autoAttack,getDelay(900));}
+                return;
+            }
+        }
+    }
+
     var skillIndex=-1;
     if(gameState.autoBattleMode==='smart'&&attacker.skills&&attacker.skills.length>0){
         var available=attacker.skills.map(function(s,i){return{s:s,i:i,p:Number(s.power||0),t:s.type||'physical'}})
-            .filter(function(x){return(gameState.skillCooldowns[gameState.currentAllyIndex][x.i]||0)<=0&&!x.s.is_passive&&x.t!=='passive'});
+            .filter(function(x){return(gameState.skillCooldowns[ci][x.i]||0)<=0&&!x.s.is_passive&&x.t!=='passive'});
         if(available.length>0){
             var needHeal=gameState.allies.some(function(a){return a.currentHp>0&&a.currentHp<a.stats.hp*0.4;});
             var healSkill=available.find(function(x){return x.t==='heal'});
@@ -654,6 +696,103 @@ async function useSkill(skillIndex){
     setTimeout(nextAlly,getDelay(400));
 }
 
+/* ========== 觉醒技能（每场限1次） ========== */
+async function useAwakeningSkill(){
+    if(gameState.battleEnded||gameState.actionLock)return;
+    var ci=gameState.currentAllyIndex;
+    var attacker=gameState.allies[ci];
+    if(!attacker||attacker.currentHp<=0)return;
+    var awk=attacker.awakening_skill;
+    if(!awk){ToastManager.warning('该角色没有觉醒技能');return;}
+    if(gameState.awakeningUsed[ci]){ToastManager.warning('觉醒技能本场已释放');return;}
+    if(gameState.selectedTargetIndex===null)autoSelectTarget();
+
+    gameState.actionLock=true;
+    disableActions(true);
+    showMenu();
+    gameState.awakeningUsed[ci]=true;
+    updateActorInfo();
+
+    var sType=awk.type||'physical';
+    var targetMode=awk.target||'single';
+    var skillName=awk.name;
+
+    if(sType==='heal'){
+        addLog('🔥💚 '+attacker.name+' 觉醒技能 '+skillName+'！');
+        var healTargets=[];
+        if(targetMode==='self') healTargets=[{char:attacker,side:'ally',idx:ci}];
+        else if(targetMode==='ally_all') gameState.allies.forEach(function(a,i){if(a.currentHp>0) healTargets.push({char:a,side:'ally',idx:i});});
+        else{var low=null;var li=0;gameState.allies.forEach(function(a,i){if(a.currentHp>0&&(!low||a.currentHp/a.stats.hp<low.currentHp/low.stats.hp)){low=a;li=i;}});if(low) healTargets=[{char:low,side:'ally',idx:li}];}
+        applyHeal(attacker,healTargets,awk);
+        if(window.AudioManager) window.AudioManager.playSfx('hit');
+        setTimeout(nextAlly,getDelay(400));
+        return;
+    }
+
+    if(sType==='buff'){
+        addLog('🔥✨ '+attacker.name+' 觉醒技能 '+skillName+'！');
+        var bTargets=[];
+        if(targetMode==='self') bTargets=[{char:attacker,side:'ally',idx:ci}];
+        else if(targetMode==='ally_all') gameState.allies.forEach(function(a,i){if(a.currentHp>0) bTargets.push({char:a,side:'ally',idx:i});});
+        else bTargets=[{char:attacker,side:'ally',idx:ci}];
+        applyBuff(attacker,bTargets,awk);
+        if(window.AudioManager) window.AudioManager.playSfx('hit');
+        updateActorInfo();
+        setTimeout(nextAlly,getDelay(400));
+        return;
+    }
+
+    if(sType==='debuff'){
+        addLog('🔥🔻 '+attacker.name+' 觉醒技能 '+skillName+'！');
+        var dTargets=[];
+        var aliveE=gameState.enemies.map(function(e,i){return{e:e,i:i}}).filter(function(x){return x.e.currentHp>0});
+        if(targetMode==='all') aliveE.forEach(function(x){dTargets.push({char:x.e,side:'enemy',idx:x.i});});
+        else{var ti=gameState.selectedTargetIndex;if(gameState.enemies[ti]&&gameState.enemies[ti].currentHp>0) dTargets=[{char:gameState.enemies[ti],side:'enemy',idx:ti}];else if(aliveE.length) dTargets=[{char:aliveE[0].e,side:'enemy',idx:aliveE[0].i}];}
+        applyDebuff(attacker,dTargets,awk);
+        if(window.AudioManager) window.AudioManager.playSfx('hit');
+        setTimeout(nextAlly,getDelay(400));
+        return;
+    }
+
+    /* 攻击类觉醒技能 */
+    addLog('🔥⚔️ '+attacker.name+' 觉醒技能 '+skillName+'！');
+    var aliveItems=gameState.enemies.map(function(e,i){return{e:e,i:i}}).filter(function(x){return x.e.currentHp>0});
+    if(targetMode==='all'){
+        if(!aliveItems.length){setTimeout(function(){endBattle(true)},getDelay(300));return;}
+        var skillEl=awk.element||attacker.element;
+        for(var ai=0;ai<aliveItems.length;ai++){
+            var x=aliveItems[ai];
+            if(Battle3D.ready) await Battle3D.playSkillEffect(skillEl,'ally',ci,'enemy',x.i);
+            var r=calculateDamage(attacker,x.e,awk);
+            x.e.currentHp-=r.damage;
+            updateHpDisplay('enemy',x.i);
+            if(Battle3D.ready){Battle3D.playHit('enemy',x.i);Battle3D.showDamage('enemy',x.i,r.damage,false,r.isCrit);}
+            addLog('→ '+x.e.name+' -'+r.damage+(r.isCrit?' 暴击!':'')+(r.elementText?' '+r.elementText:''));
+            checkBossPhase(x.e,x.i);
+            if(x.e.currentHp<=0){addLog('💀 '+x.e.name+' 被击败！');if(Battle3D.ready)Battle3D.playDeath('enemy',x.i);}
+        }
+    }else{
+        var tgtIdx=gameState.selectedTargetIndex;
+        var tgt=gameState.enemies[tgtIdx];
+        var sEl2=awk.element||attacker.element;
+        if(Battle3D.ready) await Battle3D.playSkillEffect(sEl2,'ally',ci,'enemy',tgtIdx);
+        var r2=calculateDamage(attacker,tgt,awk);
+        tgt.currentHp-=r2.damage;
+        var msg2='→ '+tgt.name+' -'+r2.damage+(r2.isCrit?' 暴击!':'')+(r2.elementText?' '+r2.elementText:'');
+        addLog(msg2);
+        updateHpDisplay('enemy',tgtIdx);
+        if(Battle3D.ready){Battle3D.playHit('enemy',tgtIdx);Battle3D.showDamage('enemy',tgtIdx,r2.damage,false,r2.isCrit);}
+        if(Battle3D.ready) Battle3D.cameraShake(r2.isCrit?0.15:0.08);
+        checkBossPhase(tgt,tgtIdx);
+        if(tgt.currentHp<=0){addLog('💀 '+tgt.name+' 被击败！');if(Battle3D.ready)Battle3D.playDeath('enemy',tgtIdx);}
+    }
+    if(window.AudioManager) window.AudioManager.playSfx('hit');
+    var alive=gameState.enemies.filter(function(e){return e.currentHp>0});
+    if(alive.length===0){setTimeout(function(){endBattle(true)},getDelay(600));return;}
+    autoSelectTarget();
+    setTimeout(nextAlly,getDelay(400));
+}
+
 /* ========== 道具 ========== */
 function useItem(itemId){
     if(gameState.battleEnded||gameState.actionLock)return;
@@ -770,8 +909,14 @@ async function enemyTurn(){
         var tgt=alive[Math.floor(Math.random()*alive.length)];
         var ti=gameState.allies.indexOf(tgt);
         var eSkill=null;
-        if(enemy.skills&&enemy.skills.length>0&&Math.random()>0.5)
+        var eAwk=enemy.awakening_skill;
+        if(eAwk&&!gameState.enemyAwakeningUsed[idx]&&Math.random()<0.4){
+            eSkill=eAwk;
+            gameState.enemyAwakeningUsed[idx]=true;
+            addLog('🔥 '+enemy.name+' 发动觉醒技能 '+eAwk.name+'！');
+        }else if(enemy.skills&&enemy.skills.length>0&&Math.random()>0.5){
             eSkill=enemy.skills[Math.floor(Math.random()*enemy.skills.length)];
+        }
 
         if(eSkill){
             var eEl=(eSkill.element)?eSkill.element:enemy.element;

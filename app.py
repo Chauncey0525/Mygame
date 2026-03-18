@@ -981,6 +981,12 @@ def get_battle_character(character_instance):
         all_skills = template.get('skills', [])
 
     passives = [s for s in all_skills if s.get('is_passive') or s.get('type') == 'passive']
+    awakening = next((s for s in all_skills if s.get('is_awakening')), None)
+
+    # 可装备的主动技能 = 排除被动和觉醒
+    equipable = [s for s in all_skills
+                 if not s.get('is_passive') and s.get('type') != 'passive'
+                 and not s.get('is_awakening')]
 
     # 从关系表读取已装备的主动技能
     equip_rows = CharacterEquippedSkill.query.filter_by(
@@ -991,13 +997,12 @@ def get_battle_character(character_instance):
     if equipped_ids:
         equipped = []
         for sid in equipped_ids:
-            for s in all_skills:
+            for s in equipable:
                 if s['id'] == sid:
                     equipped.append(s)
                     break
     else:
-        non_passive = [s for s in all_skills if not s.get('is_passive') and s.get('type') != 'passive']
-        equipped = non_passive[:4]
+        equipped = equipable[:4]
 
     battle_skills = equipped + passives
 
@@ -1017,6 +1022,7 @@ def get_battle_character(character_instance):
         'skills': battle_skills,
         'all_skills': all_skills,
         'equipped_skill_ids': equipped_ids,
+        'awakening_skill': awakening,
     }
 
 
@@ -1640,7 +1646,10 @@ def battle(stage_id):
             if not e_all_skills:
                 e_all_skills = template.get('skills', [])
             e_passives = [s for s in e_all_skills if s.get('is_passive') or s.get('type') == 'passive']
-            e_active = [s for s in e_all_skills if not s.get('is_passive') and s.get('type') != 'passive']
+            e_awakening = next((s for s in e_all_skills if s.get('is_awakening')), None)
+            e_active = [s for s in e_all_skills
+                        if not s.get('is_passive') and s.get('type') != 'passive'
+                        and not s.get('is_awakening')]
             e_equipped = (e_active[:4] if len(e_active) <= 4
                           else random.sample(e_active, 4))
             e_skills = e_equipped + e_passives
@@ -1655,6 +1664,7 @@ def battle(stage_id):
                 'stats': stats,
                 'current_stats': stats.copy(),
                 'skills': e_skills,
+                'awakening_skill': e_awakening,
                 'is_boss': is_boss,
             })
     
@@ -2043,7 +2053,9 @@ def api_equip_skills():
             template.get('role_type', 'warrior'),
             template.get('element', 'earth'),
         )
-        valid_ids = set(s['id'] for s in all_skills if not s.get('is_passive') and s.get('type') != 'passive')
+        valid_ids = set(s['id'] for s in all_skills
+                        if not s.get('is_passive') and s.get('type') != 'passive'
+                        and not s.get('is_awakening'))
         skill_ids = [sid for sid in skill_ids if sid in valid_ids]
 
     CharacterEquippedSkill.query.filter_by(character_instance_id=instance_id).delete()

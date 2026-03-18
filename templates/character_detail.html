@@ -102,6 +102,14 @@
         </div>
     </div>
 
+    <!-- 觉醒技能（金卡专属，独立于装备栏） -->
+    <div class="card" id="awakening-panel" style="display:none;">
+        <div class="card-header" style="background:linear-gradient(135deg,#7c2d1240,#dc262640);border-bottom:1px solid #ef444440;">
+            <h3 class="card-title" style="color:#fca5a5;">🔥 觉醒技能 <span style="font-size:.7rem;color:#f87171;font-weight:normal;">每场战斗限用1次</span></h3>
+        </div>
+        <div class="card-body" id="awakening-content"></div>
+    </div>
+
     <!-- 全部已解锁技能 -->
     <div class="card">
         <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
@@ -127,6 +135,8 @@
     .sk-tag.t-excl{background:#f59e0b30;color:#fbbf24}.sk-tag.t-awaken{background:#ef444430;color:#f87171}
     .sk-remove{position:absolute;top:4px;right:6px;font-size:.7rem;color:#ef4444;cursor:pointer;display:none}
     .sk-slot.filled .sk-remove{display:block}
+    .awaken-card{padding:.85rem;border-radius:8px;background:linear-gradient(135deg,#451a0340,#7c2d1240);border:2px solid #ef444460;position:relative}
+    .awaken-card::before{content:'';position:absolute;inset:0;border-radius:8px;background:radial-gradient(ellipse at 30% 50%,#ef444410,transparent 70%);pointer-events:none}
     </style>
 
     <!-- 操作按钮 -->
@@ -159,6 +169,7 @@ let isInTeam = {{ 'true' if is_in_team else 'false' }};
 let currentTeamIds = {{ team_ids | tojson if team_ids else '[]' }};
 
 const allSkills = {{ character.all_skills | tojson }};
+const awakeningSkill = {{ character.awakening_skill | tojson if character.awakening_skill else 'null' }};
 let equippedIds = {{ character.equipped_skill_ids | tojson if character.equipped_skill_ids else '[]' }};
 const MAX_EQUIP = 4;
 
@@ -214,9 +225,30 @@ function renderEquippedSlots() {
     document.getElementById('equip-count').textContent = equippedIds.length + ' / ' + MAX_EQUIP;
 }
 
+function renderAwakeningPanel() {
+    var panel = document.getElementById('awakening-panel');
+    if (!awakeningSkill) { panel.style.display = 'none'; return; }
+    panel.style.display = '';
+    var sk = awakeningSkill;
+    var html = '<div class="awaken-card">';
+    html += '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">';
+    html += '<span class="sk-tag t-awaken">觉醒</span>';
+    var t = TYPE_LABELS[sk.type] || TYPE_LABELS.physical;
+    html += '<span class="sk-tag ' + t.cls + '">' + t.text + '</span>';
+    html += '<span style="color:#fca5a5;font-weight:bold;font-size:1rem;">' + sk.name + '</span>';
+    html += getPowerText(sk);
+    html += '</div>';
+    html += '<p style="font-size:.8rem;color:#fca5a5;margin:0 0 .3rem 0;">' + (sk.description || '') + '</p>';
+    if (sk.cooldown > 0) html += '<span style="font-size:.7rem;color:#ef4444;">CD: ' + sk.cooldown + ' 回合</span> ';
+    html += '<span style="font-size:.7rem;color:#f87171;background:#ef444420;padding:1px 6px;border-radius:3px;">战斗中自动携带·每场限用1次</span>';
+    html += '</div>';
+    document.getElementById('awakening-content').innerHTML = html;
+}
+
 function renderAllSkills() {
     var html = '';
     allSkills.forEach(function(sk) {
+        if (sk.is_awakening) return;
         var passive = isPassive(sk);
         var equipped = isEquipped(sk.id);
         var cls = 'sk-card' + (equipped ? ' equipped' : '') + (passive ? ' passive-card' : '');
@@ -271,12 +303,13 @@ async function saveEquippedSkills() {
     }
 }
 
-// 初始化：如果没有已装备技能，自动装备前4个非被动技能
+// 初始化：如果没有已装备技能，自动装备前4个非被动、非觉醒技能
 if (equippedIds.length === 0) {
-    var defaults = allSkills.filter(function(s){ return !isPassive(s); }).slice(0, MAX_EQUIP);
+    var defaults = allSkills.filter(function(s){ return !isPassive(s) && !s.is_awakening; }).slice(0, MAX_EQUIP);
     equippedIds = defaults.map(function(s){ return s.id; });
     saveEquippedSkills();
 }
+renderAwakeningPanel();
 renderEquippedSlots();
 renderAllSkills();
 
