@@ -428,8 +428,16 @@
                        required>
             </div>
             
-            <button type="submit" class="btn-primary">立即注册</button>
+            <button type="submit" class="btn-primary" id="reg-btn">立即注册</button>
         </form>
+        <script>
+        document.querySelector('form').addEventListener('submit', function() {
+            var btn = document.getElementById('reg-btn');
+            btn.disabled = true;
+            btn.textContent = '注册中...';
+            btn.style.opacity = '0.7';
+        });
+        </script>
         
         <div class="auth-footer">
             已有账号？ <a href="{{ url_for('login') }}">立即登录</a>
