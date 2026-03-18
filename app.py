@@ -1592,6 +1592,7 @@ def battle(stage_id):
                 'character_id': template['id'],
                 'name': template['name'],
                 'element': template['element'],
+                'role_type': template.get('role_type', 'warrior'),
                 'avatar': template['avatar'],
                 'level': level,
                 'stats': stats,
