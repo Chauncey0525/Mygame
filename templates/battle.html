@@ -212,6 +212,7 @@ var gameState = {
     currentAllyIndex: 0,
     selectedTargetIndex: null,
     battleEnded: false,
+    actionLock: false,
     autoBattle: false,
     autoBattleMode: 'basic',
     autoBattleTimer: null,
@@ -267,7 +268,7 @@ function showMenu(){
     document.querySelectorAll('.sub-panel').forEach(function(p){p.classList.remove('active');});
 }
 function showPanel(panel){
-    if(gameState.battleEnded) return;
+    if(gameState.battleEnded||gameState.actionLock) return;
     if(window.AudioManager) window.AudioManager.playSfx('click');
     document.getElementById('main-menu').style.display='none';
     document.querySelectorAll('.sub-panel').forEach(function(p){p.classList.remove('active');});
@@ -384,8 +385,8 @@ function toggleAutoBattle(){
     gameState.autoBattle=!gameState.autoBattle;
     document.getElementById('auto-toggle').classList.toggle('active',gameState.autoBattle);
     document.getElementById('auto-mode').disabled=!gameState.autoBattle;
-    if(gameState.autoBattle&&!gameState.battleEnded){updateStatus('自动战斗中...');autoAttack();}
-    else{updateStatus('选择行动');clearAutoTimer();}
+    if(gameState.autoBattle&&!gameState.battleEnded&&!gameState.actionLock){updateStatus('自动战斗中...');autoAttack();}
+    else if(!gameState.autoBattle){updateStatus('选择行动');clearAutoTimer();}
 }
 function changeAutoMode(val){
     gameState.autoBattleMode=val;
@@ -395,7 +396,7 @@ function clearAutoTimer(){if(gameState.autoBattleTimer){clearTimeout(gameState.a
 
 async function autoAttack(){
     if(!gameState.autoBattle||gameState.battleEnded)return;
-    if(gameState.phase!=='ally'){clearAutoTimer();gameState.autoBattleTimer=setTimeout(autoAttack,getDelay(600));return;}
+    if(gameState.phase!=='ally'||gameState.actionLock){clearAutoTimer();gameState.autoBattleTimer=setTimeout(autoAttack,getDelay(600));return;}
     autoSelectTarget();
     var attacker=gameState.allies[gameState.currentAllyIndex];
     var skillIndex=-1;
@@ -458,7 +459,7 @@ function showBossPhaseAlert(name,phase,msg){
 
 /* ========== 使用技能（3D集成） ========== */
 async function useSkill(skillIndex){
-    if(gameState.battleEnded)return;
+    if(gameState.battleEnded||gameState.actionLock)return;
     if(skillIndex>=0){
         var cd=gameState.skillCooldowns[gameState.currentAllyIndex][skillIndex]||0;
         if(cd>0){ToastManager.warning('技能冷却中：还需 '+cd+' 回合');return;}
@@ -472,11 +473,14 @@ async function useSkill(skillIndex){
         var target=gameState.enemies[gameState.selectedTargetIndex];
         if(!target||target.currentHp<=0){ToastManager.warning('请选择有效目标');return;}
     }
+
+    gameState.actionLock=true;
+    disableActions(true);
+    showMenu();
+
     if(skill&&skill.cooldown)gameState.skillCooldowns[gameState.currentAllyIndex][skillIndex]=skill.cooldown;
     var skillName=skill?skill.name:'普通攻击';
     var aliveItems=gameState.enemies.map(function(e,i){return{e:e,i:i}}).filter(function(x){return x.e.currentHp>0});
-    showMenu();
-    disableActions(true);
 
     if(targetMode==='all'){
         if(!aliveItems.length){setTimeout(function(){endBattle(true)},getDelay(300));return;}
@@ -519,18 +523,21 @@ async function useSkill(skillIndex){
     var alive=gameState.enemies.filter(function(e){return e.currentHp>0});
     if(alive.length===0){setTimeout(function(){endBattle(true)},getDelay(600));return;}
     autoSelectTarget();
-    disableActions(false);
     setTimeout(nextAlly,getDelay(400));
 }
 
 /* ========== 道具 ========== */
 function useItem(itemId){
-    if(gameState.battleEnded)return;
+    if(gameState.battleEnded||gameState.actionLock)return;
     var item=battleItems.find(function(x){return x.id===itemId});if(!item)return;
     var used=gameState.itemUsage[itemId]||0;
     if(used>=item.max_per_battle){ToastManager.warning('本场已用完');return;}
     var actor=gameState.allies[gameState.currentAllyIndex];
     if(actor.currentHp<=0&&item.effect!=='revive'){ToastManager.warning('当前角色已阵亡');return;}
+
+    gameState.actionLock=true;
+    disableActions(true);
+
     gameState.itemUsage[itemId]=used+1;var logMsg='';
     switch(item.effect){
         case 'heal':
@@ -549,7 +556,7 @@ function useItem(itemId){
             break;
         case 'revive':
             var deadAllies=gameState.allies.map(function(a,i){return{a:a,i:i}}).filter(function(x){return x.a.currentHp<=0});
-            if(deadAllies.length===0){ToastManager.info('没有阵亡角色');gameState.itemUsage[itemId]=used;return;}
+            if(deadAllies.length===0){ToastManager.info('没有阵亡角色');gameState.itemUsage[itemId]=used;gameState.actionLock=false;disableActions(false);return;}
             var revived=deadAllies[0];
             revived.a.currentHp=Math.floor(revived.a.maxHp*item.value);
             updateHpDisplay('ally',revived.i);
@@ -563,10 +570,14 @@ function useItem(itemId){
 
 /* ========== 切换 ========== */
 function switchCharacter(index){
-    if(gameState.battleEnded)return;
+    if(gameState.battleEnded||gameState.actionLock)return;
     if(index===gameState.currentAllyIndex)return;
     var ally=gameState.allies[index];
     if(ally.currentHp<=0){ToastManager.warning('该角色已阵亡');return;}
+
+    gameState.actionLock=true;
+    disableActions(true);
+
     addLog('🔄 切换至 '+ally.name+'！');
     gameState.currentAllyIndex=index;updateActorInfo();
     showMenu();setTimeout(nextAlly,getDelay(300));
@@ -574,7 +585,7 @@ function switchCharacter(index){
 
 /* ========== 逃跑 ========== */
 function tryFlee(){
-    if(gameState.battleEnded)return;
+    if(gameState.battleEnded||gameState.actionLock)return;
     if(dungeonType==='trial'){ToastManager.warning('英雄试炼无法逃跑！');return;}
     if(!confirm('确定要逃跑吗？'))return;
     gameState.battleEnded=true;addLog('🏃 你选择了逃跑...');
@@ -587,7 +598,11 @@ function nextAlly(){
     var nextIdx=gameState.currentAllyIndex+1;
     while(nextIdx<gameState.allies.length&&gameState.allies[nextIdx].currentHp<=0)nextIdx++;
     if(nextIdx<gameState.allies.length){
-        gameState.currentAllyIndex=nextIdx;updateActorInfo();updateStatus('选择行动');
+        gameState.currentAllyIndex=nextIdx;
+        updateActorInfo();
+        updateStatus('选择行动');
+        gameState.actionLock=false;
+        disableActions(false);
     }else{
         setTimeout(enemyTurn,getDelay(300));
     }
@@ -663,7 +678,9 @@ async function enemyTurn(){
         gameState.currentAllyIndex++;
 
     addLog('--- 回合 '+gameState.turnCount+' 我方行动 ---');
-    gameState.phase='ally';updateActorInfo();updateStatus('选择行动');disableActions(false);
+    gameState.phase='ally';
+    gameState.actionLock=false;
+    updateActorInfo();updateStatus('选择行动');disableActions(false);
     if(gameState.autoBattle&&!gameState.battleEnded){clearAutoTimer();gameState.autoBattleTimer=setTimeout(autoAttack,getDelay(700));}
 }
 
