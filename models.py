@@ -143,6 +143,9 @@ class PlayerCharacter(db.Model):
     stars = db.Column(db.Integer, nullable=False, default=1)
     breakthrough = db.Column(db.Integer, nullable=False, default=0)
     
+    # 技能装备 (JSON: 最多4个技能id, 如 '["fire_01","fire_02a","fire_05","fire_07"]')
+    equipped_skills = db.Column(db.Text, nullable=True, default=None)
+
     # 羁绊
     bond_level = db.Column(db.Integer, nullable=False, default=1)
     bond_exp = db.Column(db.Integer, nullable=False, default=0)
@@ -155,6 +158,19 @@ class PlayerCharacter(db.Model):
         db.Index('idx_player_character', 'player_id', 'character_id'),
     )
     
+    def get_equipped_skill_ids(self):
+        if not self.equipped_skills:
+            return []
+        try:
+            import json
+            return json.loads(self.equipped_skills)
+        except Exception:
+            return []
+
+    def set_equipped_skill_ids(self, skill_ids):
+        import json
+        self.equipped_skills = json.dumps(skill_ids[:4])
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -165,6 +181,7 @@ class PlayerCharacter(db.Model):
             'stars': self.stars,
             'breakthrough': self.breakthrough,
             'bond_level': self.bond_level,
+            'equipped_skills': self.get_equipped_skill_ids(),
         }
 
 

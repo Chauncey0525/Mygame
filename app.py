@@ -222,6 +222,12 @@ def ensure_db_migrations():
                         db.session.execute(text(f"ALTER TABLE players ADD COLUMN {col_name} {col_def}"))
                         db.session.commit()
 
+                # player_characters.equipped_skills（技能装备栏）
+                pc_cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(player_characters)")).fetchall()]
+                if "equipped_skills" not in pc_cols:
+                    db.session.execute(text("ALTER TABLE player_characters ADD COLUMN equipped_skills TEXT"))
+                    db.session.commit()
+
                 # 为所有玩家关联表添加 player_uid 冗余字段，用于数据统计
                 uid_tables = [
                     'player_characters', 'player_favorite_characters', 'player_team',
@@ -962,15 +968,34 @@ def get_battle_character(character_instance):
         pass
 
     # 动态生成技能列表（新技能系统）
-    skills = get_skills_for_character(
+    all_skills = get_skills_for_character(
         template['id'],
         character_instance.level,
         rarity,
         template['role_type'],
         template['element'],
     )
-    if not skills:
-        skills = template.get('skills', [])
+    if not all_skills:
+        all_skills = template.get('skills', [])
+
+    # 被动技能（始终生效，不占装备栏）
+    passives = [s for s in all_skills if s.get('is_passive') or s.get('type') == 'passive']
+
+    # 已装备的4个主动技能（用于战斗）
+    equipped_ids = character_instance.get_equipped_skill_ids()
+    if equipped_ids:
+        id_set = set(equipped_ids)
+        equipped = []
+        for sid in equipped_ids:
+            for s in all_skills:
+                if s['id'] == sid:
+                    equipped.append(s)
+                    break
+    else:
+        non_passive = [s for s in all_skills if not s.get('is_passive') and s.get('type') != 'passive']
+        equipped = non_passive[:4]
+
+    battle_skills = equipped + passives
 
     return {
         'id': character_instance.id,
@@ -985,7 +1010,9 @@ def get_battle_character(character_instance):
         'stars': character_instance.stars,
         'stats': stats,
         'current_stats': stats.copy(),
-        'skills': skills,
+        'skills': battle_skills,
+        'all_skills': all_skills,
+        'equipped_skill_ids': equipped_ids,
     }
 
 
@@ -1601,13 +1628,18 @@ def battle(stage_id):
                 dungeon_type == 'trial' or
                 (str(stage.get('id', '')).endswith('-3') and i == 0)
             )
-            e_skills = get_skills_for_character(
+            e_all_skills = get_skills_for_character(
                 template['id'], level, e_rarity,
                 template.get('role_type', 'warrior'),
                 template.get('element', 'earth'),
             )
-            if not e_skills:
-                e_skills = template.get('skills', [])
+            if not e_all_skills:
+                e_all_skills = template.get('skills', [])
+            e_passives = [s for s in e_all_skills if s.get('is_passive') or s.get('type') == 'passive']
+            e_active = [s for s in e_all_skills if not s.get('is_passive') and s.get('type') != 'passive']
+            e_equipped = (e_active[:4] if len(e_active) <= 4
+                          else random.sample(e_active, 4))
+            e_skills = e_equipped + e_passives
             enemies.append({
                 'id': f'enemy-{i}',
                 'character_id': template['id'],
@@ -1975,6 +2007,45 @@ def api_starup():
         'star_soul': player.star_soul,
         'cost': cost,
     })
+
+
+@app.route('/api/equip_skills', methods=['POST'])
+@login_required
+def api_equip_skills():
+    """装备技能API——最多4个主动技能"""
+    player = current_user
+    data = request.get_json(force=True)
+    instance_id = data.get('instance_id')
+    skill_ids = data.get('skill_ids', [])
+
+    if not instance_id:
+        return jsonify({'success': False, 'error': '缺少角色ID'})
+
+    char_inst = PlayerCharacter.query.get(instance_id)
+    if not char_inst or char_inst.player_id != player.id:
+        return jsonify({'success': False, 'error': '角色不存在'})
+
+    if not isinstance(skill_ids, list):
+        return jsonify({'success': False, 'error': '技能列表格式错误'})
+
+    MAX_EQUIP = 4
+    skill_ids = skill_ids[:MAX_EQUIP]
+
+    template = get_character_by_id(char_inst.character_id)
+    if template:
+        all_skills = get_skills_for_character(
+            template['id'], char_inst.level,
+            template.get('rarity', 'common'),
+            template.get('role_type', 'warrior'),
+            template.get('element', 'earth'),
+        )
+        valid_ids = set(s['id'] for s in all_skills if not s.get('is_passive') and s.get('type') != 'passive')
+        skill_ids = [sid for sid in skill_ids if sid in valid_ids]
+
+    char_inst.set_equipped_skill_ids(skill_ids)
+    db.session.commit()
+
+    return jsonify({'success': True, 'equipped': skill_ids})
 
 
 @app.route('/api/levelup', methods=['POST'])
