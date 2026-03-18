@@ -4,9 +4,21 @@
 包含经验值升级系统配置
 """
 
+from skill_data import (
+    MAX_CHARACTER_LEVEL,
+    RARITY_CONFIG,
+    ROLE_MODIFIERS,
+    ELEMENT_SKILL_POOL,
+    CHARACTER_EXCLUSIVE_SKILLS,
+    CHARACTER_PASSIVES,
+    get_skills_for_character,
+    get_skill_unlock_preview,
+    calculate_stats_with_rarity,
+)
+
 # ==================== 经验值升级系统配置 ====================
 
-# 等级上限
+# 玩家账号等级上限
 MAX_PLAYER_LEVEL = 50
 
 # 玩家等级解锁配置
@@ -1473,27 +1485,28 @@ def get_stage_by_id(stage_id):
     return None
 
 
-def calculate_stats(base_stats, level, stars, breakthrough):
-    """计算角色属性
-    
+def calculate_stats(base_stats, level, stars, breakthrough, rarity=None):
+    """计算角色属性（兼容旧接口，新增 rarity 参数）
+
     Args:
-        base_stats: 基础属性字典，支持两种格式：
-            - 直接属性字典: {'hp': 800, 'attack': 60, ...}
-            - 角色数据字典: {'stats': {'hp': 800, ...}}
+        base_stats: 基础属性字典 或 {'stats': {...}}
         level: 等级
         stars: 星级
         breakthrough: 突破等级
+        rarity: 'common'|'rare'|'epic'|'legendary'（可选，传入后使用品质成长体系）
     """
-    # 兼容传入完整角色数据的情况
+    if rarity:
+        return calculate_stats_with_rarity(base_stats, level, stars, breakthrough, rarity)
+
     if 'stats' in base_stats:
         base_stats = base_stats['stats']
-    
+
     level_multiplier = 1 + (level - 1) * 0.05
     star_multiplier = 1 + stars * 0.1
     breakthrough_multiplier = 1 + breakthrough * 0.15
-    
+
     multiplier = level_multiplier * star_multiplier * breakthrough_multiplier
-    
+
     return {
         'hp': int(base_stats.get('hp', 1000) * multiplier),
         'max_hp': int(base_stats.get('hp', 1000) * multiplier),

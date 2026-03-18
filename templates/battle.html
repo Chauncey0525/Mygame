@@ -54,7 +54,7 @@
 .action-btn.btn-item{background:linear-gradient(135deg,#16a34a20,#16a34a10);border-color:#22c55e;color:#86efac}
 .action-btn.btn-switch{background:linear-gradient(135deg,#2563eb20,#2563eb10);border-color:#3b82f6;color:#93c5fd}
 .action-btn.btn-flee{background:linear-gradient(135deg,#71717a20,#71717a10);border-color:#71717a;color:#a1a1aa}
-.sub-panel{display:none;padding:10px 14px;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sub-panel{display:none;padding:10px 14px;max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .sub-panel.active{display:block}
 .sub-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .sub-panel-title{font-size:.82rem;font-weight:700;color:#e2e8f0}
@@ -70,6 +70,10 @@
 .sk-right{text-align:right}
 .sk-power{font-size:.82rem;font-weight:700;color:#fbbf24}
 .sk-cd-tag{font-size:.62rem;color:#ef4444;margin-top:2px}
+.sk-type-tag{display:inline-block;padding:1px 5px;border-radius:3px;font-size:.6rem;font-weight:700;margin-right:4px}
+.sk-type-tag.tag-phys{background:#ef444430;color:#fca5a5}.sk-type-tag.tag-magic{background:#a855f730;color:#d8b4fe}
+.sk-type-tag.tag-heal{background:#22c55e30;color:#86efac}.sk-type-tag.tag-buff{background:#3b82f630;color:#93c5fd}
+.sk-type-tag.tag-debuff{background:#f59e0b30;color:#fcd34d}.sk-type-tag.tag-excl{background:#f59e0b30;color:#fbbf24}
 .item-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:rgba(51,65,85,.4);border:1px solid #47556940;cursor:pointer;transition:all .15s;margin-bottom:6px}
 .item-row:hover:not(.item-empty){background:rgba(71,85,105,.5);border-color:#22c55e60}
 .item-row.item-empty{opacity:.4;cursor:not-allowed}
@@ -280,21 +284,29 @@ function showPanel(panel){
 }
 function renderSkills(){
     var actor=gameState.allies[gameState.currentAllyIndex];var html='';
+    var typeTagMap={'physical':'tag-phys','magic':'tag-magic','heal':'tag-heal','buff':'tag-buff','debuff':'tag-debuff'};
+    var typeNameMap={'physical':'物理','magic':'魔法','heal':'治疗','buff':'增益','debuff':'减益'};
+    var tgtLabelMap={'all':'敌方全体','ally_all':'友方全体','ally_single':'友方单体','self':'自身','single':'单体'};
     if(actor.skills){
         actor.skills.forEach(function(skill,si){
+            if(skill.is_passive||skill.type==='passive') return;
             var cd=gameState.skillCooldowns[gameState.currentAllyIndex][si]||0;
             var onCd=cd>0;
-            var tgtLabel={'all':'全体','allies':'友方','self':'自身'}[skill.target||'single']||'单体';
+            var tgt=tgtLabelMap[skill.target||'single']||'单体';
+            var typeTag='<span class="sk-type-tag '+(typeTagMap[skill.type]||'tag-phys')+'">'+((typeNameMap[skill.type])||'物理')+'</span>';
+            if(skill.is_exclusive) typeTag+='<span class="sk-type-tag tag-excl">专属</span>';
             html+='<div class="skill-row '+(onCd?'on-cd':'')+'" onclick="'+(onCd?'':'useSkill('+si+')')+'">';
-            html+='<div class="sk-left"><div class="sk-name">'+skill.name+'</div>';
-            html+='<div class="sk-meta">'+tgtLabel+' | CD '+(skill.cooldown||0)+(skill.element?' | '+skill.element:'')+'</div></div>';
+            html+='<div class="sk-left"><div class="sk-name">'+typeTag+skill.name+'</div>';
+            html+='<div class="sk-meta">'+tgt+' | CD '+(skill.cooldown||0)+'</div></div>';
             html+='<div class="sk-right">';
-            if(skill.power>0) html+='<div class="sk-power">'+skill.power+'</div>';
+            if(skill.type==='heal') html+='<div class="sk-power" style="color:#22c55e">'+skill.power+'%</div>';
+            else if(skill.type==='buff'||skill.type==='debuff') html+='<div class="sk-power" style="color:#3b82f6">效果</div>';
+            else if(skill.power>0) html+='<div class="sk-power">'+skill.power+'</div>';
             if(onCd) html+='<div class="sk-cd-tag">冷却 '+cd+'</div>';
             html+='</div></div>';
         });
     }
-    html+='<div class="skill-row" onclick="useSkill(-1)"><div class="sk-left"><div class="sk-name">普通攻击</div><div class="sk-meta">单体 | 无冷却</div></div><div class="sk-right"><div class="sk-power" style="color:#94a3b8">基础</div></div></div>';
+    html+='<div class="skill-row" onclick="useSkill(-1)"><div class="sk-left"><div class="sk-name"><span class="sk-type-tag tag-phys">物理</span>普通攻击</div><div class="sk-meta">单体 | 无冷却</div></div><div class="sk-right"><div class="sk-power" style="color:#94a3b8">基础</div></div></div>';
     document.getElementById('skill-list').innerHTML=html;
 }
 function renderItems(){
@@ -401,9 +413,18 @@ async function autoAttack(){
     var attacker=gameState.allies[gameState.currentAllyIndex];
     var skillIndex=-1;
     if(gameState.autoBattleMode==='smart'&&attacker.skills&&attacker.skills.length>0){
-        var available=attacker.skills.map(function(s,i){return{s:s,i:i,p:Number(s.power||0)}})
-            .filter(function(x){return(gameState.skillCooldowns[gameState.currentAllyIndex][x.i]||0)<=0});
-        if(available.length>0){available.sort(function(a,b){return b.p-a.p});skillIndex=available[0].i;}
+        var available=attacker.skills.map(function(s,i){return{s:s,i:i,p:Number(s.power||0),t:s.type||'physical'}})
+            .filter(function(x){return(gameState.skillCooldowns[gameState.currentAllyIndex][x.i]||0)<=0&&!x.s.is_passive&&x.t!=='passive'});
+        if(available.length>0){
+            var needHeal=gameState.allies.some(function(a){return a.currentHp>0&&a.currentHp<a.stats.hp*0.4;});
+            var healSkill=available.find(function(x){return x.t==='heal'});
+            if(needHeal&&healSkill) skillIndex=healSkill.i;
+            else{
+                var atkSkills=available.filter(function(x){return x.t==='physical'||x.t==='magic'});
+                if(atkSkills.length){atkSkills.sort(function(a,b){return b.p-a.p});skillIndex=atkSkills[0].i;}
+                else{available.sort(function(a,b){return b.p-a.p});skillIndex=available[0].i;}
+            }
+        }
     }
     await useSkill(skillIndex);
     if(gameState.autoBattle&&!gameState.battleEnded){clearAutoTimer();gameState.autoBattleTimer=setTimeout(autoAttack,getDelay(900));}
@@ -457,7 +478,52 @@ function showBossPhaseAlert(name,phase,msg){
     addLog('⚠️ '+name+' 进入阶段 '+phase+'！');
 }
 
-/* ========== 使用技能（3D集成） ========== */
+/* ========== 治疗/增益/减益辅助 ========== */
+function applyHeal(caster,targets,skill){
+    var healPct=skill.power||10;
+    targets.forEach(function(t){
+        var maxHp=t.char.stats.hp||t.char.stats.max_hp||1;
+        var heal=Math.floor(maxHp*healPct/100);
+        t.char.currentHp=Math.min(maxHp,t.char.currentHp+heal);
+        updateHpDisplay(t.side,t.idx);
+        if(Battle3D.ready){Battle3D.playHeal(t.side,t.idx);Battle3D.showDamage(t.side,t.idx,heal,true);}
+        addLog('💚 '+t.char.name+' 恢复 '+heal+' HP');
+    });
+}
+function applyBuff(caster,targets,skill){
+    var effects=(skill.effects&&skill.effects.length)?skill.effects:[];
+    targets.forEach(function(t){
+        effects.forEach(function(eff){
+            var val=eff.value||10;var dur=eff.duration||3;
+            if(eff.type==='buff_atk'){t.char.stats.attack=Math.floor(t.char.stats.attack*(1+val/100));addLog('⬆️ '+t.char.name+' 攻击力+'+val+'%('+dur+'回合)');}
+            else if(eff.type==='buff_def'){t.char.stats.defense=Math.floor(t.char.stats.defense*(1+val/100));addLog('⬆️ '+t.char.name+' 防御力+'+val+'%');}
+            else if(eff.type==='buff_spd'){t.char.stats.speed=Math.floor(t.char.stats.speed*(1+val/100));addLog('⬆️ '+t.char.name+' 速度+'+val+'%');}
+            else if(eff.type==='buff_crit'){addLog('⬆️ '+t.char.name+' 暴击率+'+val+'%');}
+            else if(eff.type==='buff_mdef'){t.char.stats.magic_defense=Math.floor(t.char.stats.magic_defense*(1+val/100));}
+            else if(eff.type==='evasion_up'){addLog('⬆️ '+t.char.name+' 闪避率大幅提升');}
+            else if(eff.type==='shield'){addLog('🛡️ '+t.char.name+' 获得护盾(减伤'+val+'%)');}
+            else if(eff.type==='heal_pct'){var h=Math.floor((t.char.stats.hp||1)*val/100);t.char.currentHp=Math.min(t.char.stats.hp,t.char.currentHp+h);updateHpDisplay(t.side,t.idx);}
+        });
+        if(Battle3D.ready) Battle3D.playHeal(t.side,t.idx);
+    });
+    if(!effects.length) addLog('✨ '+caster.name+' 使用 '+skill.name+'，效果激活！');
+}
+function applyDebuff(caster,targets,skill){
+    var effects=(skill.effects&&skill.effects.length)?skill.effects:[];
+    targets.forEach(function(t){
+        effects.forEach(function(eff){
+            var val=eff.value||10;
+            if(eff.type==='debuff_atk'){t.char.stats.attack=Math.max(1,Math.floor(t.char.stats.attack*(1-val/100)));addLog('⬇️ '+t.char.name+' 攻击力-'+val+'%');}
+            else if(eff.type==='debuff_def'){t.char.stats.defense=Math.max(1,Math.floor(t.char.stats.defense*(1-val/100)));addLog('⬇️ '+t.char.name+' 防御力-'+val+'%');}
+            else if(eff.type==='debuff_mdef'){t.char.stats.magic_defense=Math.max(1,Math.floor(t.char.stats.magic_defense*(1-val/100)));}
+            else if(eff.type==='debuff_spd'){t.char.stats.speed=Math.max(1,Math.floor(t.char.stats.speed*(1-val/100)));addLog('⬇️ '+t.char.name+' 速度-'+val+'%');}
+        });
+        if(Battle3D.ready){Battle3D.playHit(t.side,t.idx);Battle3D.showDamage(t.side,t.idx,0,false,false);}
+    });
+    if(!effects.length) addLog('🔻 '+caster.name+' 对目标施加了 '+skill.name);
+}
+
+/* ========== 使用技能（3D集成 — 支持治疗/增益/减益） ========== */
 async function useSkill(skillIndex){
     if(gameState.battleEnded||gameState.actionLock)return;
     if(skillIndex>=0){
@@ -468,8 +534,11 @@ async function useSkill(skillIndex){
     var attacker=gameState.allies[gameState.currentAllyIndex];
     if(attacker.currentHp<=0){nextAlly();return;}
     var skill=skillIndex>=0?attacker.skills[skillIndex]:null;
+    if(skill&&(skill.is_passive||skill.type==='passive'))return;
+    var sType=skill?skill.type:'physical';
     var targetMode=skill?(skill.target||'single'):'single';
-    if(targetMode==='single'){
+
+    if((sType==='physical'||sType==='magic')&&targetMode==='single'){
         var target=gameState.enemies[gameState.selectedTargetIndex];
         if(!target||target.currentHp<=0){ToastManager.warning('请选择有效目标');return;}
     }
@@ -480,6 +549,65 @@ async function useSkill(skillIndex){
 
     if(skill&&skill.cooldown)gameState.skillCooldowns[gameState.currentAllyIndex][skillIndex]=skill.cooldown;
     var skillName=skill?skill.name:'普通攻击';
+
+    /* --- 治疗技能 --- */
+    if(sType==='heal'){
+        addLog('💚 '+attacker.name+' 使用 '+skillName);
+        var healTargets=[];
+        if(targetMode==='self'){
+            healTargets=[{char:attacker,side:'ally',idx:gameState.currentAllyIndex}];
+        }else if(targetMode==='ally_all'){
+            gameState.allies.forEach(function(a,i){if(a.currentHp>0) healTargets.push({char:a,side:'ally',idx:i});});
+        }else{
+            var lowest=null;var lowestIdx=0;
+            gameState.allies.forEach(function(a,i){if(a.currentHp>0&&(!lowest||a.currentHp/a.stats.hp<lowest.currentHp/lowest.stats.hp)){lowest=a;lowestIdx=i;}});
+            if(lowest) healTargets=[{char:lowest,side:'ally',idx:lowestIdx}];
+        }
+        applyHeal(attacker,healTargets,skill);
+        if(window.AudioManager) window.AudioManager.playSfx('hit');
+        setTimeout(nextAlly,getDelay(400));
+        return;
+    }
+
+    /* --- 增益技能 --- */
+    if(sType==='buff'){
+        addLog('✨ '+attacker.name+' 使用 '+skillName);
+        var buffTargets=[];
+        if(targetMode==='self'){
+            buffTargets=[{char:attacker,side:'ally',idx:gameState.currentAllyIndex}];
+        }else if(targetMode==='ally_all'){
+            gameState.allies.forEach(function(a,i){if(a.currentHp>0) buffTargets.push({char:a,side:'ally',idx:i});});
+        }else{
+            buffTargets=[{char:attacker,side:'ally',idx:gameState.currentAllyIndex}];
+        }
+        applyBuff(attacker,buffTargets,skill);
+        if(window.AudioManager) window.AudioManager.playSfx('hit');
+        updateActorInfo();
+        setTimeout(nextAlly,getDelay(400));
+        return;
+    }
+
+    /* --- 减益技能 --- */
+    if(sType==='debuff'){
+        addLog('🔻 '+attacker.name+' 使用 '+skillName);
+        var dbTargets=[];
+        var aliveEnemies=gameState.enemies.map(function(e,i){return{e:e,i:i}}).filter(function(x){return x.e.currentHp>0});
+        if(targetMode==='all'){
+            aliveEnemies.forEach(function(x){dbTargets.push({char:x.e,side:'enemy',idx:x.i});});
+        }else{
+            var ti=gameState.selectedTargetIndex;
+            if(gameState.enemies[ti]&&gameState.enemies[ti].currentHp>0)
+                dbTargets=[{char:gameState.enemies[ti],side:'enemy',idx:ti}];
+            else if(aliveEnemies.length)
+                dbTargets=[{char:aliveEnemies[0].e,side:'enemy',idx:aliveEnemies[0].i}];
+        }
+        applyDebuff(attacker,dbTargets,skill);
+        if(window.AudioManager) window.AudioManager.playSfx('hit');
+        setTimeout(nextAlly,getDelay(400));
+        return;
+    }
+
+    /* --- 攻击技能 (physical / magic / 普通攻击) --- */
     var aliveItems=gameState.enemies.map(function(e,i){return{e:e,i:i}}).filter(function(x){return x.e.currentHp>0});
 
     if(targetMode==='all'){

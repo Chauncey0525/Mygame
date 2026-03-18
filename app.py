@@ -37,7 +37,6 @@ from game_data import (
     DEFAULT_DAILY_TASKS, get_character_by_id, get_characters_by_rarity,
     get_all_characters, get_stage_by_id, calculate_stats,
     CURRENT_UP_CHARACTERS, UP_RATE_MULTIPLIER,
-    # 经验值升级系统
     get_exp_to_next_level, get_total_exp_to_level, get_level_from_exp,
     get_chapter_unlock_status, get_stage_unlock_status, get_level_reward,
     get_chapter_by_id, get_starter_character_by_id,
@@ -45,6 +44,7 @@ from game_data import (
     SHOP_ITEMS, MAIN_QUESTS, DEFAULT_ANNOUNCEMENTS, ARENA_BOTS, NEWBIE_PACK,
     FEATURE_UNLOCK, DEFAULT_SEVEN_DAY_GOALS,
     BATTLE_MODES, BATTLE_ITEMS, DAILY_DUNGEONS, HERO_TRIALS, HARD_DUNGEONS,
+    get_skills_for_character,
 )
 
 # ==================== 账号工具 ====================
@@ -899,14 +899,16 @@ def get_battle_character(character_instance):
     if not template:
         return None
     
+    rarity = template['rarity']
     stats = calculate_stats(
         template['stats'],
         character_instance.level,
         character_instance.stars,
-        character_instance.breakthrough
+        character_instance.breakthrough,
+        rarity=rarity,
     )
 
-    # 装备加成（最小版：按装备表叠加属性）
+    # 装备加成
     try:
         eqs = PlayerEquipment.query.filter_by(
             player_id=character_instance.player_id,
@@ -923,7 +925,7 @@ def get_battle_character(character_instance):
     except Exception:
         pass
 
-    # 符文加成（最小版）
+    # 符文加成
     try:
         runes = PlayerRune.query.filter_by(
             player_id=character_instance.player_id,
@@ -940,7 +942,7 @@ def get_battle_character(character_instance):
     except Exception:
         pass
 
-    # 天赋加成（最小版）
+    # 天赋加成
     try:
         talents = PlayerTalent.query.filter_by(
             player_id=character_instance.player_id,
@@ -958,7 +960,18 @@ def get_battle_character(character_instance):
                 stats['max_hp'] += 40 * (t.level or 0)
     except Exception:
         pass
-    
+
+    # 动态生成技能列表（新技能系统）
+    skills = get_skills_for_character(
+        template['id'],
+        character_instance.level,
+        rarity,
+        template['role_type'],
+        template['element'],
+    )
+    if not skills:
+        skills = template.get('skills', [])
+
     return {
         'id': character_instance.id,
         'character_id': template['id'],
@@ -967,12 +980,12 @@ def get_battle_character(character_instance):
         'element': template['element'],
         'role_type': template['role_type'],
         'avatar': template['avatar'],
-        'rarity': template['rarity'],
+        'rarity': rarity,
         'level': character_instance.level,
         'stars': character_instance.stars,
         'stats': stats,
         'current_stats': stats.copy(),
-        'skills': template['skills']
+        'skills': skills,
     }
 
 
@@ -1576,17 +1589,25 @@ def battle(stage_id):
         except Exception:
             pass
     
-    # 生成敌人
+    # 生成敌人（使用新技能系统）
     enemies = []
     for i, enemy_id in enumerate(stage['enemy_ids']):
         template = get_character_by_id(enemy_id)
         if template:
             level = stage['enemy_levels'][i] if i < len(stage['enemy_levels']) else 1
-            stats = calculate_stats(template['stats'], level, 1, 0)
+            e_rarity = template.get('rarity', 'common')
+            stats = calculate_stats(template['stats'], level, 1, 0, rarity=e_rarity)
             is_boss = bool(
                 dungeon_type == 'trial' or
                 (str(stage.get('id', '')).endswith('-3') and i == 0)
             )
+            e_skills = get_skills_for_character(
+                template['id'], level, e_rarity,
+                template.get('role_type', 'warrior'),
+                template.get('element', 'earth'),
+            )
+            if not e_skills:
+                e_skills = template.get('skills', [])
             enemies.append({
                 'id': f'enemy-{i}',
                 'character_id': template['id'],
@@ -1597,7 +1618,7 @@ def battle(stage_id):
                 'level': level,
                 'stats': stats,
                 'current_stats': stats.copy(),
-                'skills': template['skills'],
+                'skills': e_skills,
                 'is_boss': is_boss,
             })
     
