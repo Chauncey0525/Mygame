@@ -532,7 +532,6 @@ def login():
             # 登录用户，设置记住我
             login_user(player, remember=True)
             db.session.commit()
-            flash(f'欢迎回来，{player.name}！', 'success')
             
             # 更新登录信息
             check_daily_reset(player)
@@ -665,7 +664,6 @@ def register():
         
         # 自动登录
         login_user(player)
-        flash(f'注册成功！欢迎，{player.name}！', 'success')
         
         return redirect(url_for('index'))
     
