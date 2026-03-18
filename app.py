@@ -802,6 +802,45 @@ def check_daily_reset(player):
         db.session.commit()
 
 
+def grant_player_exp(player, exp_amount, source=''):
+    """通用玩家经验发放 + 自动升级检测
+
+    Returns:
+        dict: {'level_ups': int, 'new_level': int, 'level_rewards': list}
+    """
+    if exp_amount <= 0:
+        return {'level_ups': 0, 'new_level': player.level, 'level_rewards': []}
+
+    player.exp += exp_amount
+    level_ups = 0
+    level_rewards = []
+
+    while player.level < MAX_PLAYER_LEVEL:
+        exp_needed = get_exp_to_next_level(player.level)
+        if exp_needed <= 0 or player.exp < exp_needed:
+            break
+        player.exp -= exp_needed
+        player.level += 1
+        level_ups += 1
+
+        reward = get_level_reward(player.level)
+        if reward:
+            player.gold += reward.get('gold', 0)
+            player.gems += reward.get('gems', 0)
+            level_rewards.append({'level': player.level, 'reward': reward})
+
+    player.exp_to_next = get_exp_to_next_level(player.level)
+
+    if level_ups > 0 and source:
+        try:
+            _sync_seven_day_by_event(player, 'levelup', {'level': player.level})
+            sync_main_quests(player, 'levelup')
+        except Exception:
+            pass
+
+    return {'level_ups': level_ups, 'new_level': player.level, 'level_rewards': level_rewards}
+
+
 def get_battle_character(character_instance):
     """获取战斗用角色数据"""
     template = get_character_by_id(character_instance.character_id)
@@ -1603,12 +1642,20 @@ def api_newbie_pack_claim():
     player.newbie_pack_claimed = True
     player.tutorial_step = max(player.tutorial_step or 0, 1)
 
+    # 新手礼包赠送50玩家经验（足够从Lv1升到Lv2还有富余）
+    newbie_exp = 50
+    lvl_result = grant_player_exp(player, newbie_exp, source='newbie_pack')
+
     db.session.commit()
     sync_main_quests(player, 'claim_newbie')
 
+    pack_info = dict(NEWBIE_PACK)
+    pack_info['player_exp'] = newbie_exp
     return jsonify({
         'success': True,
-        'resources': NEWBIE_PACK,
+        'resources': pack_info,
+        'level_up': lvl_result['level_ups'] > 0,
+        'new_level': player.level
     })
 
 
@@ -1793,6 +1840,10 @@ def api_summon():
 
     _sync_seven_day_by_event(player, 'summon', {'count': count})
     sync_main_quests(player, 'summon')
+
+    # 召唤给玩家经验：单抽15，十连150
+    summon_exp = 15 * count
+    lvl_result = grant_player_exp(player, summon_exp, source='summon')
     
     db.session.commit()
     
@@ -1800,7 +1851,10 @@ def api_summon():
         'success': True,
         'results': results,
         'pity': player.pity_count,
-        'legendary_pity': player.legendary_pity_count
+        'legendary_pity': player.legendary_pity_count,
+        'exp_gained': summon_exp,
+        'level_up': lvl_result['level_ups'] > 0,
+        'new_level': player.level
     })
 
 
@@ -1883,13 +1937,20 @@ def api_levelup():
             task.completed = True
 
     _sync_seven_day_by_event(player, 'levelup')
+
+    # 强化角色给玩家经验：每消耗100经验书=10玩家经验
+    player_exp_gain = max(5, exp_amount // 10)
+    lvl_result = grant_player_exp(player, player_exp_gain, source='levelup')
     
     db.session.commit()
     
     return jsonify({
         'success': True,
         'new_level': char.level,
-        'exp': char.exp
+        'exp': char.exp,
+        'player_exp_gained': player_exp_gain,
+        'player_level_up': lvl_result['level_ups'] > 0,
+        'player_new_level': player.level
     })
 
 
@@ -1976,8 +2037,6 @@ def api_battle_complete():
         # 发放奖励
         rewards = stage['rewards']
         player.gold += rewards.get('gold', 0)
-        exp_gained = rewards.get('exp', 0)
-        player.exp += exp_gained
         if rewards.get('gems'):
             player.gems += rewards['gems']
         if rewards.get('exp_books'):
@@ -1987,30 +2046,9 @@ def api_battle_complete():
         if rewards.get('breakthrough_stone'):
             player.breakthrough_stone = (player.breakthrough_stone or 0) + rewards['breakthrough_stone']
         
-        # 检查玩家升级
-        level_ups = 0
-        level_rewards = []
-        while player.level < MAX_PLAYER_LEVEL:
-            exp_needed = get_exp_to_next_level(player.level)
-            if player.exp >= exp_needed:
-                player.exp -= exp_needed
-                player.level += 1
-                level_ups += 1
-                
-                # 检查等级奖励
-                reward = get_level_reward(player.level)
-                if reward:
-                    player.gold += reward.get('gold', 0)
-                    player.gems += reward.get('gems', 0)
-                    level_rewards.append({
-                        'level': player.level,
-                        'reward': reward
-                    })
-            else:
-                break
-        
-        # 更新下一级所需经验
-        player.exp_to_next = get_exp_to_next_level(player.level)
+        # 发放玩家经验 + 自动升级
+        exp_gained = rewards.get('exp', 0)
+        lvl_result = grant_player_exp(player, exp_gained, source='battle')
         
         # 计算星级
         # 1星：通关
@@ -2067,10 +2105,10 @@ def api_battle_complete():
         'victory': victory,
         'rewards': stage['rewards'] if victory else None,
         'stars': stars if victory else 0,
-        'level_up': level_ups > 0,
-        'level_ups': level_ups if victory else 0,
-        'new_level': player.level if victory else player.level,
-        'level_rewards': level_rewards if victory else []
+        'level_up': lvl_result['level_ups'] > 0 if victory else False,
+        'level_ups': lvl_result['level_ups'] if victory else 0,
+        'new_level': player.level,
+        'level_rewards': lvl_result['level_rewards'] if victory else []
     })
 
 
@@ -2109,7 +2147,6 @@ def api_sweep():
     # 发放奖励（与战斗相同）
     rewards = stage['rewards']
     player.gold += rewards.get('gold', 0)
-    player.exp += rewards.get('exp', 0)
     if rewards.get('gems'):
         player.gems += rewards['gems']
     if rewards.get('exp_books'):
@@ -2118,6 +2155,7 @@ def api_sweep():
         player.star_soul = (player.star_soul or 0) + rewards['star_soul']
     if rewards.get('breakthrough_stone'):
         player.breakthrough_stone = (player.breakthrough_stone or 0) + rewards['breakthrough_stone']
+    grant_player_exp(player, rewards.get('exp', 0), source='sweep')
     
     # 更新每日任务
     task = PlayerDailyTask.query.filter_by(
@@ -2167,6 +2205,8 @@ def api_daily_claim():
     # 发放奖励
     player.gold += task.reward_gold or 0
     player.gems += task.reward_gems or 0
+    exp_reward = task.reward_exp or 0
+    lvl_result = grant_player_exp(player, exp_reward, source='daily_task')
     task.claimed = True
     
     db.session.commit()
@@ -2175,8 +2215,11 @@ def api_daily_claim():
         'success': True,
         'rewards': {
             'gold': task.reward_gold or 0,
-            'gems': task.reward_gems or 0
-        }
+            'gems': task.reward_gems or 0,
+            'exp': exp_reward
+        },
+        'level_up': lvl_result['level_ups'] > 0,
+        'new_level': player.level
     })
 
 
@@ -2390,6 +2433,10 @@ def api_main_quest_claim():
 
     player.gold += cfg.get('reward_gold', 0)
     player.gems += cfg.get('reward_gems', 0)
+    quest_exp = cfg.get('reward_exp', 0)
+    if quest_exp <= 0:
+        quest_exp = 30 + cfg.get('reward_gold', 0) // 20
+    lvl_result = grant_player_exp(player, quest_exp, source='main_quest')
     mq.claimed = True
     db.session.commit()
 
@@ -2398,7 +2445,10 @@ def api_main_quest_claim():
         'rewards': {
             'gold': cfg.get('reward_gold', 0),
             'gems': cfg.get('reward_gems', 0),
-        }
+            'exp': quest_exp,
+        },
+        'level_up': lvl_result['level_ups'] > 0,
+        'new_level': player.level
     })
 
 
@@ -2615,6 +2665,9 @@ def api_seven_day_claim():
     # 发放奖励
     player.gold += goal.reward_gold or 0
     player.gems += goal.reward_gems or 0
+    # 七日目标额外给经验：与金币奖励等比
+    goal_exp = max(20, (goal.reward_gold or 0) // 10)
+    lvl_result = grant_player_exp(player, goal_exp, source='seven_day')
     goal.claimed = True
     
     db.session.commit()
@@ -2623,8 +2676,11 @@ def api_seven_day_claim():
         'success': True,
         'rewards': {
             'gold': goal.reward_gold or 0,
-            'gems': goal.reward_gems or 0
-        }
+            'gems': goal.reward_gems or 0,
+            'exp': goal_exp
+        },
+        'level_up': lvl_result['level_ups'] > 0,
+        'new_level': player.level
     })
 
 

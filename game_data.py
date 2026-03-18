@@ -1234,7 +1234,8 @@ DEFAULT_DAILY_TASKS = [
         'description': '登录游戏',
         'target': 1,
         'reward_gold': 500,
-        'reward_gems': 50
+        'reward_gems': 50,
+        'reward_exp': 30
     },
     {
         'task_id': 'daily-battle',
@@ -1250,7 +1251,8 @@ DEFAULT_DAILY_TASKS = [
         'description': '进行1次召唤',
         'target': 1,
         'reward_gold': 200,
-        'reward_gems': 20
+        'reward_gems': 20,
+        'reward_exp': 20
     },
     {
         'task_id': 'daily-levelup',
@@ -1266,7 +1268,8 @@ DEFAULT_DAILY_TASKS = [
         'description': '扫荡任意关卡1次',
         'target': 1,
         'reward_gold': 300,
-        'reward_gems': 15
+        'reward_gems': 15,
+        'reward_exp': 25
     },
     {
         'task_id': 'daily-team',
@@ -1370,7 +1373,7 @@ NEWBIE_PACK = {
 FEATURE_UNLOCK = {
     'summon':    {'quest': None, 'level': 1,  'name': '群英馆'},
     'characters':{'quest': None, 'level': 1,  'name': '军营'},
-    'stages':    {'quest': None, 'level': 2,  'name': '副本大厅'},
+    'stages':    {'quest': None, 'level': 1,  'name': '副本大厅'},
     'shop':      {'quest': None, 'level': 5,  'name': '商会'},
     'research':  {'quest': None, 'level': 10, 'name': '研究所'},
     'arena':     {'quest': None, 'level': 15, 'name': '竞技场'},
