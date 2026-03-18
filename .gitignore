@@ -59,3 +59,4 @@ logs/
 *.pyc
 instance/*.db
 .coze
+cookies.txt
