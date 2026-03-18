@@ -222,6 +222,30 @@ def ensure_db_migrations():
                         db.session.execute(text(f"ALTER TABLE players ADD COLUMN {col_name} {col_def}"))
                         db.session.commit()
 
+                # 为所有玩家关联表添加 player_uid 冗余字段，用于数据统计
+                uid_tables = [
+                    'player_characters', 'player_favorite_characters', 'player_team',
+                    'player_completed_stages', 'player_daily_tasks', 'player_equipment',
+                    'player_runes', 'player_talents', 'summon_history',
+                    'seven_day_goals', 'player_main_quests', 'shop_purchases', 'arena_records',
+                ]
+                for tbl in uid_tables:
+                    try:
+                        tcols = [r[1] for r in db.session.execute(text(f"PRAGMA table_info({tbl})")).fetchall()]
+                    except Exception:
+                        continue
+                    if 'player_uid' not in tcols:
+                        db.session.execute(text(f"ALTER TABLE {tbl} ADD COLUMN player_uid VARCHAR(8)"))
+                        db.session.commit()
+                    db.session.execute(text(f"CREATE INDEX IF NOT EXISTS idx_{tbl}_player_uid ON {tbl}(player_uid)"))
+                    db.session.commit()
+                    db.session.execute(text(
+                        f"UPDATE {tbl} SET player_uid = ("
+                        f"  SELECT p.uid FROM players p WHERE p.id = {tbl}.player_id"
+                        f") WHERE player_uid IS NULL OR player_uid = ''"
+                    ))
+                    db.session.commit()
+
             elif dialect in ("mysql", "mariadb"):
                 # MySQL 简易检查列是否存在
                 row = db.session.execute(text(
@@ -308,6 +332,33 @@ def ensure_db_migrations():
                         db.session.execute(text(f"ALTER TABLE players ADD COLUMN {col_name} {col_def}"))
                         db.session.commit()
 
+                uid_tables_mysql = [
+                    'player_characters', 'player_favorite_characters', 'player_team',
+                    'player_completed_stages', 'player_daily_tasks', 'player_equipment',
+                    'player_runes', 'player_talents', 'summon_history',
+                    'seven_day_goals', 'player_main_quests', 'shop_purchases', 'arena_records',
+                ]
+                for tbl in uid_tables_mysql:
+                    cnt = db.session.execute(text(
+                        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME=:t AND COLUMN_NAME='player_uid'"
+                    ), {'t': tbl}).scalar()
+                    if int(cnt or 0) == 0:
+                        db.session.execute(text(f"ALTER TABLE {tbl} ADD COLUMN player_uid VARCHAR(8) NULL"))
+                        db.session.commit()
+                    idx_cnt = db.session.execute(text(
+                        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS "
+                        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME=:t AND INDEX_NAME=:idx"
+                    ), {'t': tbl, 'idx': f'idx_{tbl}_player_uid'}).scalar()
+                    if int(idx_cnt or 0) == 0:
+                        db.session.execute(text(f"CREATE INDEX idx_{tbl}_player_uid ON {tbl}(player_uid)"))
+                        db.session.commit()
+                    db.session.execute(text(
+                        f"UPDATE {tbl} t INNER JOIN players p ON t.player_id = p.id "
+                        f"SET t.player_uid = p.uid WHERE t.player_uid IS NULL OR t.player_uid = ''"
+                    ))
+                    db.session.commit()
+
     except Exception as e:
         # 不阻塞应用启动，但会影响 phone 字段写入；打印出来便于排查
         print("[WARN] ensure_db_migrations failed:", type(e).__name__, str(e))
@@ -340,7 +391,7 @@ def create_main_quests(player):
     for q in MAIN_QUESTS:
         existing = PlayerMainQuest.query.filter_by(player_id=player.id, quest_id=q['id']).first()
         if not existing:
-            mq = PlayerMainQuest(player_id=player.id, quest_id=q['id'], progress=0)
+            mq = PlayerMainQuest(player_id=player.id, player_uid=player.uid, quest_id=q['id'], progress=0)
             db.session.add(mq)
     db.session.commit()
 
@@ -762,6 +813,7 @@ def create_daily_tasks(player):
     for task_data in DEFAULT_DAILY_TASKS:
         task = PlayerDailyTask(
             player_id=player.id,
+            player_uid=player.uid,
             task_id=task_data['task_id'],
             name=task_data['name'],
             description=task_data['description'],
@@ -946,9 +998,9 @@ def seed_starter_equipment(player: Player) -> None:
     if existing:
         return
     items = [
-        PlayerEquipment(player_id=player.id, name='新手铁剑', slot_type='weapon', rarity='common', bonus_attack=12),
-        PlayerEquipment(player_id=player.id, name='学徒护甲', slot_type='armor', rarity='common', bonus_defense=10, bonus_hp=60),
-        PlayerEquipment(player_id=player.id, name='训练护符', slot_type='accessory', rarity='common', bonus_speed=6),
+        PlayerEquipment(player_id=player.id, player_uid=player.uid, name='新手铁剑', slot_type='weapon', rarity='common', bonus_attack=12),
+        PlayerEquipment(player_id=player.id, player_uid=player.uid, name='学徒护甲', slot_type='armor', rarity='common', bonus_defense=10, bonus_hp=60),
+        PlayerEquipment(player_id=player.id, player_uid=player.uid, name='训练护符', slot_type='accessory', rarity='common', bonus_speed=6),
     ]
     for it in items:
         db.session.add(it)
@@ -973,6 +1025,7 @@ def seed_starter_character(player: Player) -> None:
     # 创建角色实例
     char_instance = PlayerCharacter(
         player_id=player.id,
+        player_uid=player.uid,
         character_id=starter_char['id'],
         level=1,
         exp=0,
@@ -982,9 +1035,9 @@ def seed_starter_character(player: Player) -> None:
     db.session.add(char_instance)
     db.session.commit()
     
-    # 将角色加入队伍第一个位置
     team_slot = PlayerTeam(
         player_id=player.id,
+        player_uid=player.uid,
         slot=0,
         character_instance_id=char_instance.id
     )
@@ -998,9 +1051,9 @@ def seed_starter_research(player: Player) -> None:
     if existing:
         return
     items = [
-        PlayerRune(player_id=player.id, name='微光符文·攻', rarity='common', bonus_attack=8),
-        PlayerRune(player_id=player.id, name='微光符文·守', rarity='common', bonus_defense=8),
-        PlayerRune(player_id=player.id, name='微光符文·生', rarity='common', bonus_hp=80),
+        PlayerRune(player_id=player.id, player_uid=player.uid, name='微光符文·攻', rarity='common', bonus_attack=8),
+        PlayerRune(player_id=player.id, player_uid=player.uid, name='微光符文·守', rarity='common', bonus_defense=8),
+        PlayerRune(player_id=player.id, player_uid=player.uid, name='微光符文·生', rarity='common', bonus_hp=80),
     ]
     for it in items:
         db.session.add(it)
@@ -1753,6 +1806,7 @@ def api_summon():
             # 创建新角色
             new_char = PlayerCharacter(
                 player_id=player.id,
+                player_uid=player.uid,
                 character_id=char_template['id'],
                 stars=2 if rarity == 'legendary' else (1 if rarity == 'epic' else 1)
             )
@@ -1775,6 +1829,7 @@ def api_summon():
         # 记录抽卡历史
         history = SummonHistory(
             player_id=player.id,
+            player_uid=player.uid,
             character_id=char_template['id'],
             rarity=rarity
         )
@@ -1809,6 +1864,7 @@ def api_summon():
                 else:
                     new_epic = PlayerCharacter(
                         player_id=player.id,
+                        player_uid=player.uid,
                         character_id=epic_pick['id'],
                         stars=1,
                     )
@@ -2001,6 +2057,7 @@ def api_team():
         if instance_id:
             team_member = PlayerTeam(
                 player_id=player.id,
+                player_uid=player.uid,
                 slot=slot,
                 character_instance_id=instance_id
             )
@@ -2072,6 +2129,7 @@ def api_battle_complete():
         else:
             completed = PlayerCompletedStage(
                 player_id=player.id,
+                player_uid=player.uid,
                 stage_id=stage_id,
                 stars=stars
             )
@@ -2252,7 +2310,7 @@ def api_favorites_toggle():
     if slot is None:
         return jsonify({'success': False, 'error': '常用角色已满'}), 400
 
-    fav = PlayerFavoriteCharacter(player_id=player.id, character_instance_id=instance_id, slot=slot)
+    fav = PlayerFavoriteCharacter(player_id=player.id, player_uid=player.uid, character_instance_id=instance_id, slot=slot)
     db.session.add(fav)
     db.session.commit()
     return jsonify({'success': True, 'favorited': True, 'slot': slot})
@@ -2302,7 +2360,7 @@ def api_favorites_set():
     if existing_slot:
         existing_slot.character_instance_id = instance_id
     else:
-        db.session.add(PlayerFavoriteCharacter(player_id=player.id, character_instance_id=instance_id, slot=slot))
+        db.session.add(PlayerFavoriteCharacter(player_id=player.id, player_uid=player.uid, character_instance_id=instance_id, slot=slot))
     db.session.commit()
     return jsonify({'success': True, 'slot': slot, 'instance_id': instance_id})
 
@@ -2508,7 +2566,7 @@ def api_shop_buy():
     if purchase:
         purchase.count += 1
     else:
-        purchase = ShopPurchase(player_id=player.id, item_id=item_id, purchase_date=today, count=1)
+        purchase = ShopPurchase(player_id=player.id, player_uid=player.uid, item_id=item_id, purchase_date=today, count=1)
         db.session.add(purchase)
 
     db.session.commit()
@@ -2566,6 +2624,7 @@ def api_arena_challenge():
 
     record = ArenaRecord(
         player_id=player.id,
+        player_uid=player.uid,
         opponent_name=bot['name'],
         opponent_score=bot['rank_score'],
         victory=victory,
@@ -2598,6 +2657,7 @@ def create_seven_day_goals(player):
         if not existing:
             goal = SevenDayGoal(
                 player_id=player.id,
+                player_uid=player.uid,
                 day=goal_data['day'],
                 goal_id=goal_data['goal_id'],
                 name=goal_data['name'],

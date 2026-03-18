@@ -134,6 +134,7 @@ class PlayerCharacter(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     character_id = db.Column(db.String(64), nullable=False)
     
     # 养成数据
@@ -157,6 +158,7 @@ class PlayerCharacter(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'player_uid': self.player_uid,
             'character_id': self.character_id,
             'level': self.level,
             'exp': self.exp,
@@ -172,6 +174,7 @@ class PlayerFavoriteCharacter(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     character_instance_id = db.Column(db.Integer, db.ForeignKey('player_characters.id'), nullable=False, index=True)
     slot = db.Column(db.Integer, nullable=False, default=1)  # 1-6
     created_at = db.Column(db.DateTime, default=datetime.now)
@@ -189,6 +192,7 @@ class PlayerTeam(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     slot = db.Column(db.Integer, nullable=False)  # 队伍位置 0-3
     character_instance_id = db.Column(db.Integer, db.ForeignKey('player_characters.id'), nullable=False)
     
@@ -206,6 +210,7 @@ class PlayerCompletedStage(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     stage_id = db.Column(db.String(64), nullable=False)
     stars = db.Column(db.Integer, default=1)  # 关卡星级 1-3
     completed_at = db.Column(db.DateTime, default=datetime.now)
@@ -222,6 +227,7 @@ class PlayerDailyTask(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     task_id = db.Column(db.String(64), nullable=False)
     
     name = db.Column(db.String(128), nullable=False)
@@ -249,6 +255,7 @@ class PlayerDailyTask(db.Model):
     def to_dict(self):
         return {
             'id': self.task_id,
+            'player_uid': self.player_uid,
             'name': self.name,
             'description': self.description,
             'target': self.target,
@@ -269,6 +276,7 @@ class PlayerEquipment(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
 
     name = db.Column(db.String(128), nullable=False)
     slot_type = db.Column(db.String(32), nullable=False)  # weapon/armor/accessory
@@ -294,6 +302,7 @@ class PlayerEquipment(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'player_uid': self.player_uid,
             'name': self.name,
             'slot_type': self.slot_type,
             'rarity': self.rarity,
@@ -315,6 +324,7 @@ class PlayerRune(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
 
     name = db.Column(db.String(128), nullable=False)
     rarity = db.Column(db.String(16), nullable=False, default='common')
@@ -340,6 +350,7 @@ class PlayerRune(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'player_uid': self.player_uid,
             'name': self.name,
             'rarity': self.rarity,
             'bonuses': {
@@ -361,6 +372,7 @@ class PlayerTalent(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     character_instance_id = db.Column(db.Integer, db.ForeignKey('player_characters.id'), nullable=False, index=True)
 
     node_id = db.Column(db.String(32), nullable=False)  # atk/def/hp
@@ -377,6 +389,7 @@ class PlayerTalent(db.Model):
     def to_dict(self):
         return {
             'node_id': self.node_id,
+            'player_uid': self.player_uid,
             'level': self.level,
         }
 
@@ -387,6 +400,7 @@ class SummonHistory(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     character_id = db.Column(db.String(64), nullable=False)
     rarity = db.Column(db.String(16), nullable=False)
     
@@ -531,18 +545,18 @@ class SevenDayGoal(db.Model):
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
-    day = db.Column(db.Integer, nullable=False)  # 第几天 (1-7)
-    goal_id = db.Column(db.String(64), nullable=False)  # 目标ID
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
+    day = db.Column(db.Integer, nullable=False)
+    goal_id = db.Column(db.String(64), nullable=False)
     
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text, nullable=False)
     target = db.Column(db.Integer, nullable=False, default=1)
     progress = db.Column(db.Integer, nullable=False, default=0)
     
-    # 奖励
     reward_gold = db.Column(db.Integer, default=0)
     reward_gems = db.Column(db.Integer, default=0)
-    reward_items = db.Column(db.Text, nullable=True)  # JSON格式道具奖励
+    reward_items = db.Column(db.Text, nullable=True)
     
     completed = db.Column(db.Boolean, nullable=False, default=False)
     claimed = db.Column(db.Boolean, nullable=False, default=False)
@@ -558,6 +572,7 @@ class SevenDayGoal(db.Model):
         import json
         return {
             'id': self.goal_id,
+            'player_uid': self.player_uid,
             'day': self.day,
             'name': self.name,
             'description': self.description,
@@ -579,6 +594,7 @@ class PlayerMainQuest(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     quest_id = db.Column(db.String(64), nullable=False)
     progress = db.Column(db.Integer, nullable=False, default=0)
     completed = db.Column(db.Boolean, nullable=False, default=False)
@@ -593,6 +609,7 @@ class PlayerMainQuest(db.Model):
     def to_dict(self):
         return {
             'quest_id': self.quest_id,
+            'player_uid': self.player_uid,
             'progress': self.progress,
             'completed': self.completed,
             'claimed': self.claimed,
@@ -605,6 +622,7 @@ class ShopPurchase(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     item_id = db.Column(db.String(64), nullable=False)
     purchase_date = db.Column(db.Date, nullable=False, default=date.today)
     count = db.Column(db.Integer, nullable=False, default=1)
@@ -621,6 +639,7 @@ class ArenaRecord(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    player_uid = db.Column(db.String(8), nullable=True, index=True)
     opponent_name = db.Column(db.String(128), nullable=False)
     opponent_score = db.Column(db.Integer, nullable=False)
     victory = db.Column(db.Boolean, nullable=False)
