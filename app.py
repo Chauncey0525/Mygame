@@ -11,7 +11,7 @@ import random
 from sqlalchemy import text
 
 from config import config
-from models import db, Player, PlayerCharacter, PlayerTeam, PlayerCompletedStage, PlayerDailyTask, SummonHistory, SmsVerification, CharacterTemplate
+from models import db, Player, PlayerCharacter, PlayerTeam, PlayerCompletedStage, PlayerDailyTask, SummonHistory, SmsVerification, CharacterTemplate, Announcement, SevenDayGoal
 from game_data import (
     CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
     ELEMENT_NAMES, ELEMENT_COLORS, ROLE_NAMES, DIFFICULTY_NAMES, DIFFICULTY_COLORS,
@@ -1110,6 +1110,170 @@ def api_daily_claim():
         'rewards': {
             'gold': task.reward_gold or 0,
             'gems': task.reward_gems or 0
+        }
+    })
+
+
+# ==================== 公告系统API ====================
+
+@app.route('/api/announcements')
+@login_required
+def api_announcements():
+    """获取公告列表"""
+    now = datetime.now()
+    
+    announcements = Announcement.query.filter(
+        Announcement.is_active == True,
+        Announcement.start_time <= now,
+        (Announcement.end_time == None) | (Announcement.end_time > now)
+    ).order_by(Announcement.priority.desc(), Announcement.created_at.desc()).limit(10).all()
+    
+    return jsonify({
+        'success': True,
+        'announcements': [a.to_dict() for a in announcements]
+    })
+
+
+@app.route('/api/announcements/login')
+@login_required
+def api_login_announcements():
+    """获取登录时显示的公告"""
+    now = datetime.now()
+    
+    announcements = Announcement.query.filter(
+        Announcement.is_active == True,
+        Announcement.show_on_login == True,
+        Announcement.start_time <= now,
+        (Announcement.end_time == None) | (Announcement.end_time > now)
+    ).order_by(Announcement.priority.desc(), Announcement.created_at.desc()).limit(5).all()
+    
+    return jsonify({
+        'success': True,
+        'announcements': [a.to_dict() for a in announcements]
+    })
+
+
+# ==================== 七日目标系统 ====================
+
+DEFAULT_SEVEN_DAY_GOALS = [
+    # Day 1
+    {'day': 1, 'goal_id': 'day1-login', 'name': '初次登录', 'description': '登录游戏', 'target': 1, 'reward_gold': 500, 'reward_gems': 100},
+    {'day': 1, 'goal_id': 'day1-summon', 'name': '首次召唤', 'description': '进行1次召唤', 'target': 1, 'reward_gold': 300, 'reward_gems': 50},
+    {'day': 1, 'goal_id': 'day1-battle', 'name': '初战告捷', 'description': '完成1次战斗', 'target': 1, 'reward_gold': 400},
+    # Day 2
+    {'day': 2, 'goal_id': 'day2-levelup', 'name': '角色强化', 'description': '强化角色1次', 'target': 1, 'reward_gold': 500, 'reward_gems': 50},
+    {'day': 2, 'goal_id': 'day2-battle3', 'name': '勇者之路', 'description': '完成3次战斗', 'target': 3, 'reward_gold': 600},
+    {'day': 2, 'goal_id': 'day2-team', 'name': '组建队伍', 'description': '设置出战队伍', 'target': 1, 'reward_gold': 400, 'reward_gems': 50},
+    # Day 3
+    {'day': 3, 'goal_id': 'day3-summon5', 'name': '召唤大师', 'description': '累计召唤5次', 'target': 5, 'reward_gold': 800, 'reward_gems': 100},
+    {'day': 3, 'goal_id': 'day3-stage5', 'name': '副本探索', 'description': '通关5个关卡', 'target': 5, 'reward_gold': 1000},
+    {'day': 3, 'goal_id': 'day3-char3', 'name': '英雄集结', 'description': '拥有3名角色', 'target': 3, 'reward_gems': 150},
+    # Day 4
+    {'day': 4, 'goal_id': 'day4-level10', 'name': '实力提升', 'description': '任意角色达到10级', 'target': 1, 'reward_gold': 1000, 'reward_gems': 100},
+    {'day': 4, 'goal_id': 'day4-breakthrough', 'name': '突破极限', 'description': '进行1次突破', 'target': 1, 'reward_gold': 800, 'reward_gems': 80},
+    {'day': 4, 'goal_id': 'day4-battle10', 'name': '战斗狂人', 'description': '累计完成10次战斗', 'target': 10, 'reward_gold': 1200},
+    # Day 5
+    {'day': 5, 'goal_id': 'day5-chapter2', 'name': '章节推进', 'description': '通关第2章', 'target': 1, 'reward_gems': 200},
+    {'day': 5, 'goal_id': 'day5-char5', 'name': '英雄团', 'description': '拥有5名角色', 'target': 5, 'reward_gems': 200},
+    {'day': 5, 'goal_id': 'day5-summon10', 'name': '召唤专家', 'description': '累计召唤10次', 'target': 10, 'reward_gold': 1500, 'reward_gems': 150},
+    # Day 6
+    {'day': 6, 'goal_id': 'day6-level20', 'name': '精英养成', 'description': '任意角色达到20级', 'target': 1, 'reward_gold': 1500, 'reward_gems': 150},
+    {'day': 6, 'goal_id': 'day6-epic', 'name': '史诗英雄', 'description': '获得1名史诗或传说角色', 'target': 1, 'reward_gems': 300},
+    {'day': 6, 'goal_id': 'day6-stage20', 'name': '副本达人', 'description': '累计通关20个关卡', 'target': 20, 'reward_gold': 2000},
+    # Day 7
+    {'day': 7, 'goal_id': 'day7-chapter3', 'name': '传说之路', 'description': '通关第3章', 'target': 1, 'reward_gems': 500},
+    {'day': 7, 'goal_id': 'day7-level30', 'name': '英雄成长', 'description': '任意角色达到30级', 'target': 1, 'reward_gold': 2000, 'reward_gems': 200},
+    {'day': 7, 'goal_id': 'day7-complete', 'name': '七日毕业', 'description': '完成所有七日目标', 'target': 1, 'reward_gems': 500},
+]
+
+
+def create_seven_day_goals(player):
+    """创建七日目标"""
+    for goal_data in DEFAULT_SEVEN_DAY_GOALS:
+        existing = SevenDayGoal.query.filter_by(
+            player_id=player.id,
+            goal_id=goal_data['goal_id']
+        ).first()
+        
+        if not existing:
+            goal = SevenDayGoal(
+                player_id=player.id,
+                day=goal_data['day'],
+                goal_id=goal_data['goal_id'],
+                name=goal_data['name'],
+                description=goal_data['description'],
+                target=goal_data['target'],
+                reward_gold=goal_data.get('reward_gold', 0),
+                reward_gems=goal_data.get('reward_gems', 0),
+            )
+            db.session.add(goal)
+    db.session.commit()
+
+
+@app.route('/api/seven-day-goals')
+@login_required
+def api_seven_day_goals():
+    """获取七日目标"""
+    player = current_user
+    
+    # 确保七日目标已创建
+    goals_count = SevenDayGoal.query.filter_by(player_id=player.id).count()
+    if goals_count == 0:
+        create_seven_day_goals(player)
+    
+    # 获取当前天数（从首次登录开始计算）
+    day_played = min(7, player.total_play_days)
+    
+    goals = SevenDayGoal.query.filter_by(player_id=player.id).order_by(SevenDayGoal.day, SevenDayGoal.id).all()
+    
+    # 按天分组
+    goals_by_day = {}
+    for goal in goals:
+        if goal.day not in goals_by_day:
+            goals_by_day[goal.day] = []
+        goals_by_day[goal.day].append(goal.to_dict())
+    
+    return jsonify({
+        'success': True,
+        'current_day': day_played,
+        'goals_by_day': goals_by_day
+    })
+
+
+@app.route('/api/seven-day-goals/claim', methods=['POST'])
+@login_required
+def api_seven_day_claim():
+    """领取七日目标奖励"""
+    player = current_user
+    data = request.get_json()
+    goal_id = data.get('goal_id')
+    
+    goal = SevenDayGoal.query.filter_by(
+        player_id=player.id,
+        goal_id=goal_id
+    ).first()
+    
+    if not goal:
+        return jsonify({'success': False, 'error': '目标不存在'})
+    
+    if not goal.completed:
+        return jsonify({'success': False, 'error': '目标未完成'})
+    
+    if goal.claimed:
+        return jsonify({'success': False, 'error': '已领取'})
+    
+    # 发放奖励
+    player.gold += goal.reward_gold or 0
+    player.gems += goal.reward_gems or 0
+    goal.claimed = True
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'rewards': {
+            'gold': goal.reward_gold or 0,
+            'gems': goal.reward_gems or 0
         }
     })
 

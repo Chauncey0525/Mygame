@@ -837,4 +837,288 @@ async function claimTask(taskId) {
     });
 })();
 </script>
+
+<!-- 公告弹窗 -->
+<div id="announcementModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="card-title">📢 公告</h3>
+            <button class="modal-close" type="button" onclick="closeTownModal('announcementModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="announcement-content">
+            <div style="text-align: center; color: #94a3b8; padding: 2rem;">加载中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- 七日目标弹窗 -->
+<div id="sevenDayModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+            <h3 class="card-title">🎯 七日目标</h3>
+            <button class="modal-close" type="button" onclick="closeTownModal('sevenDayModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="seven-day-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;"></div>
+            <div id="seven-day-content"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 公告样式 */
+.announcement-item {
+    padding: 1rem;
+    border-bottom: 1px solid var(--medieval-border);
+}
+
+.announcement-item:last-child {
+    border-bottom: none;
+}
+
+.announcement-title {
+    font-weight: 700;
+    color: var(--medieval-gold-light);
+    margin-bottom: 0.5rem;
+}
+
+.announcement-content {
+    color: var(--medieval-text);
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.announcement-time {
+    font-size: 0.75rem;
+    color: var(--medieval-text-muted);
+    margin-top: 0.5rem;
+}
+
+.announcement-type {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    margin-right: 0.5rem;
+}
+
+.announcement-type.event { background: #22c55e; color: white; }
+.announcement-type.update { background: #3b82f6; color: white; }
+.announcement-type.maintenance { background: #ef4444; color: white; }
+.announcement-type.normal { background: #6b7280; color: white; }
+
+/* 七日目标样式 */
+.seven-day-tab {
+    padding: 0.5rem 1rem;
+    background: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.seven-day-tab.active {
+    background: var(--medieval-gold);
+    color: #1a1612;
+    border-color: var(--medieval-gold);
+}
+
+.seven-day-tab.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.seven-day-goal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+}
+
+.seven-day-goal.completed {
+    border-color: #22c55e;
+}
+
+.seven-day-goal.claimed {
+    opacity: 0.6;
+}
+
+.goal-info h4 {
+    color: var(--medieval-text);
+    margin-bottom: 0.25rem;
+}
+
+.goal-info p {
+    font-size: 0.85rem;
+    color: var(--medieval-text-muted);
+}
+
+.goal-progress {
+    font-size: 0.8rem;
+    color: var(--medieval-gold-light);
+    margin-top: 0.25rem;
+}
+
+.goal-rewards {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+}
+</style>
+
+<script>
+// 加载公告
+async function loadAnnouncements() {
+    try {
+        const result = await apiCall('/api/announcements', {});
+        if (result.success && result.announcements.length > 0) {
+            const content = document.getElementById('announcement-content');
+            content.innerHTML = result.announcements.map(a => `
+                <div class="announcement-item">
+                    <div class="announcement-title">
+                        <span class="announcement-type ${a.type}">${
+                            a.type === 'event' ? '活动' :
+                            a.type === 'update' ? '更新' :
+                            a.type === 'maintenance' ? '维护' : '公告'
+                        }</span>
+                        ${a.title}
+                    </div>
+                    <div class="announcement-content">${a.content}</div>
+                    <div class="announcement-time">${new Date(a.start_time).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        } else {
+            document.getElementById('announcement-content').innerHTML = 
+                '<div style="text-align: center; color: #94a3b8; padding: 2rem;">暂无公告</div>';
+        }
+    } catch (e) {
+        document.getElementById('announcement-content').innerHTML = 
+            '<div style="text-align: center; color: #94a3b8; padding: 2rem;">加载失败</div>';
+    }
+}
+
+// 加载七日目标
+async function loadSevenDayGoals() {
+    try {
+        const result = await apiCall('/api/seven-day-goals', {});
+        if (result.success) {
+            const tabsContainer = document.getElementById('seven-day-tabs');
+            const contentContainer = document.getElementById('seven-day-content');
+            
+            const currentDay = result.current_day;
+            const goalsByDay = result.goals_by_day;
+            
+            // 创建标签
+            tabsContainer.innerHTML = '';
+            for (let day = 1; day <= 7; day++) {
+                const tab = document.createElement('button');
+                tab.className = 'seven-day-tab';
+                if (day === 1) tab.classList.add('active');
+                if (day > currentDay) tab.classList.add('locked');
+                tab.textContent = `第${day}天`;
+                tab.onclick = () => showDay(day, currentDay);
+                tabsContainer.appendChild(tab);
+            }
+            
+            // 显示第一天
+            showDay(1, currentDay);
+            
+            function showDay(day, maxDay) {
+                // 更新标签状态
+                document.querySelectorAll('.seven-day-tab').forEach((t, i) => {
+                    t.classList.toggle('active', i + 1 === day);
+                });
+                
+                if (day > maxDay) {
+                    contentContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">该天数尚未解锁</div>';
+                    return;
+                }
+                
+                const goals = goalsByDay[day] || [];
+                if (goals.length === 0) {
+                    contentContainer.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 2rem;">暂无目标</div>';
+                    return;
+                }
+                
+                contentContainer.innerHTML = goals.map(goal => `
+                    <div class="seven-day-goal ${goal.completed ? 'completed' : ''} ${goal.claimed ? 'claimed' : ''}">
+                        <div class="goal-info">
+                            <h4>${goal.name}</h4>
+                            <p>${goal.description}</p>
+                            <div class="goal-progress">${goal.progress}/${goal.target}</div>
+                        </div>
+                        <div>
+                            <div class="goal-rewards">
+                                ${goal.rewards.gold ? `<span>💰 ${goal.rewards.gold}</span>` : ''}
+                                ${goal.rewards.gems ? `<span>💎 ${goal.rewards.gems}</span>` : ''}
+                            </div>
+                            ${goal.completed && !goal.claimed ? 
+                                `<button class="btn btn-success" style="margin-top: 0.5rem; padding: 0.35rem 0.75rem;" onclick="claimSevenDayGoal('${goal.id}')">领取</button>` : 
+                                goal.claimed ? '<span style="color: #22c55e;">✓ 已领取</span>' : ''
+                            }
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (e) {
+        console.error('加载七日目标失败', e);
+    }
+}
+
+// 领取七日目标奖励
+async function claimSevenDayGoal(goalId) {
+    const result = await apiCall('/api/seven-day-goals/claim', { goal_id: goalId });
+    if (result.success) {
+        showToast('success', '领取成功', `金币 +${result.rewards.gold}, 钻石 +${result.rewards.gems}`);
+        setTimeout(() => loadSevenDayGoals(), 1000);
+    } else {
+        showToast('error', '领取失败', result.error);
+    }
+}
+
+// 页面加载时检查公告
+document.addEventListener('DOMContentLoaded', function() {
+    loadAnnouncements();
+    loadSevenDayGoals();
+    
+    // 首次登录显示公告
+    const hasSeenAnnouncement = localStorage.getItem('hasSeenAnnouncement');
+    if (!hasSeenAnnouncement) {
+        setTimeout(() => {
+            openTownModal('announcementModal');
+            localStorage.setItem('hasSeenAnnouncement', 'true');
+        }, 1000);
+    }
+});
+</script>
+
+<!-- 底部快捷入口添加公告和七日目标按钮 -->
+<script>
+// 更新底部快捷入口，添加新按钮
+document.addEventListener('DOMContentLoaded', function() {
+    const shortcuts = document.querySelector('.town-shortcuts');
+    if (shortcuts) {
+        // 添加七日目标按钮
+        const sevenDayBtn = document.createElement('button');
+        sevenDayBtn.type = 'button';
+        sevenDayBtn.className = 'shortcut-btn';
+        sevenDayBtn.onclick = () => openTownModal('sevenDayModal');
+        sevenDayBtn.innerHTML = '<span class="shortcut-icon">🎯</span><span class="shortcut-label">七日</span>';
+        shortcuts.appendChild(sevenDayBtn);
+        
+        // 添加公告按钮
+        const announcementBtn = document.createElement('button');
+        announcementBtn.type = 'button';
+        announcementBtn.className = 'shortcut-btn';
+        announcementBtn.onclick = () => { openTownModal('announcementModal'); };
+        announcementBtn.innerHTML = '<span class="shortcut-icon">📢</span><span class="shortcut-label">公告</span>';
+        shortcuts.appendChild(announcementBtn);
+    }
+});
+</script>
 {% endblock %}
