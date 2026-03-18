@@ -47,17 +47,17 @@
             </a>
 
             {% set stages_u = unlocked_features.get('stages', {'unlocked':true}) %}
-            <a {% if stages_u.unlocked %}href="{{ url_for('stages') }}"{% else %}href="javascript:void(0)" onclick="showLockedTip('演武场', {{ stages_u.level }})"{% endif %}
+            <a {% if stages_u.unlocked %}href="{{ url_for('stages') }}"{% else %}href="javascript:void(0)" onclick="showLockedTip('副本大厅', {{ stages_u.level }})"{% endif %}
                class="building-link{% if not stages_u.unlocked %} building-locked{% endif %}" data-building="dungeon">
-                <div class="building-item" data-name="演武场">
+                <div class="building-item" data-name="副本大厅">
                     <div class="building-glow"></div>
                     <div class="building-img-wrap">
-                        <img src="{{ url_for('static', filename='images/buildings/dungeon.png') }}" alt="演武场" class="building-img">
+                        <img src="{{ url_for('static', filename='images/buildings/dungeon.png') }}" alt="副本大厅" class="building-img">
                         {% if not stages_u.unlocked %}<div class="building-lock-overlay"><span class="lock-icon">🔒</span><span class="lock-text">Lv.{{ stages_u.level }} 解锁</span></div>{% endif %}
                     </div>
                     <div class="building-label">
-                        <span class="building-name">演武场</span>
-                        <span class="building-desc">副本挑战</span>
+                        <span class="building-name">副本大厅</span>
+                        <span class="building-desc">主线·日常·试炼·深渊</span>
                     </div>
                     <div class="building-particles"></div>
                 </div>
@@ -675,7 +675,7 @@ document.querySelectorAll('.building-img').forEach(function(img) {
     img.onerror = function() {
         var wrap = img.parentElement;
         var name = wrap.closest('.building-item')?.getAttribute('data-name') || '';
-        var icons = {'群英馆':'🏛️','军营':'⚔️','演武场':'🏰','竞技场':'🏆','研究所':'🔮','商会':'💰','仓库':'📦'};
+        var icons = {'群英馆':'🏛️','军营':'⚔️','副本大厅':'🏰','竞技场':'🏆','研究所':'🔮','商会':'💰','仓库':'📦'};
         var fb = document.createElement('div');
         fb.className = 'building-img-fallback';
         fb.textContent = icons[name] || '🏠';
@@ -705,7 +705,7 @@ document.querySelectorAll('.building-link').forEach(link => {
         const icons = {
             '群英馆': '🏛️',
             '军营': '⚔️',
-            '演武场': '🏰',
+            '副本大厅': '🏰',
             '竞技场': '🏆',
             '研究所': '🔮',
             '商会': '💰',

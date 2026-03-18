@@ -35,6 +35,7 @@ class Player(db.Model, UserMixin):
     exp_books = db.Column(db.Integer, nullable=False, default=100)
     summon_tickets = db.Column(db.Integer, nullable=False, default=10)
     star_soul = db.Column(db.Integer, nullable=False, default=0)  # 星魂：用于升星
+    breakthrough_stone = db.Column(db.Integer, nullable=False, default=0)  # 突破石
     energy = db.Column(db.Integer, nullable=False, default=100)
     max_energy = db.Column(db.Integer, nullable=False, default=100)
     last_energy_update = db.Column(db.DateTime, default=datetime.now)

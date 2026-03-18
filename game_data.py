@@ -680,15 +680,184 @@ DIFFICULTY_NAMES = {
     'easy': '简单',
     'normal': '普通',
     'hard': '困难',
-    'hell': '地狱'
+    'hell': '地狱',
+    'nightmare': '噩梦'
 }
 
 DIFFICULTY_COLORS = {
     'easy': '#22c55e',
     'normal': '#3b82f6',
     'hard': '#f59e0b',
-    'hell': '#ef4444'
+    'hell': '#ef4444',
+    'nightmare': '#9333ea'
 }
+
+# ==================== 战斗模式 ====================
+BATTLE_MODES = {
+    '1v1': {'name': '单挑', 'team_size': 1, 'icon': '⚔️', 'description': '一对一英雄对决'},
+    '3v3': {'name': '鏖战', 'team_size': 3, 'icon': '🗡️', 'description': '三人小队作战'},
+    '5v5': {'name': '大战', 'team_size': 5, 'icon': '⚔️🛡️', 'description': '五人团队决战'},
+}
+
+# ==================== 战斗道具 ====================
+BATTLE_ITEMS = [
+    {'id': 'potion-hp-s',   'name': '小回复药水', 'icon': '🧪', 'description': '恢复30%最大生命值',    'effect': 'heal',       'value': 0.3,  'max_per_battle': 3},
+    {'id': 'potion-hp-l',   'name': '大回复药水', 'icon': '🧴', 'description': '恢复60%最大生命值',    'effect': 'heal',       'value': 0.6,  'max_per_battle': 1},
+    {'id': 'potion-atk',    'name': '力量药剂',   'icon': '💪', 'description': '提升攻击力25%持续3回合','effect': 'buff_atk',   'value': 0.25, 'max_per_battle': 2, 'duration': 3},
+    {'id': 'potion-def',    'name': '铁壁药剂',   'icon': '🛡️', 'description': '提升防御力30%持续3回合','effect': 'buff_def',   'value': 0.3,  'max_per_battle': 2, 'duration': 3},
+    {'id': 'potion-speed',  'name': '疾风药剂',   'icon': '💨', 'description': '提升速度20%持续3回合',  'effect': 'buff_speed', 'value': 0.2,  'max_per_battle': 2, 'duration': 3},
+    {'id': 'potion-revive', 'name': '复活卷轴',   'icon': '📜', 'description': '复活一名阵亡角色(50%HP)','effect': 'revive',   'value': 0.5,  'max_per_battle': 1},
+]
+
+# ==================== 日常材料副本 ====================
+DAILY_DUNGEONS = [
+    {
+        'id': 'daily-forge',
+        'name': '铸魂熔炉',
+        'icon': '🔥',
+        'description': '在烈火中锤炼英雄之魂，获取大量经验书',
+        'reward_type': 'exp_books',
+        'battle_mode': '3v3',
+        'open_days': [1, 3, 5, 7],  # 周一三五日
+        'levels': [
+            {'id': 'forge-1', 'name': '初级熔炉', 'difficulty': 'easy',   'recommended_level': 5,  'energy_cost': 10, 'enemy_ids': ['soldier', 'soldier', 'archer'],        'enemy_levels': [5, 5, 4],    'rewards': {'exp_books': 10, 'gold': 200}},
+            {'id': 'forge-2', 'name': '中级熔炉', 'difficulty': 'normal', 'recommended_level': 15, 'energy_cost': 15, 'enemy_ids': ['hua-mulan', 'miyamoto', 'archer'],      'enemy_levels': [15, 14, 13], 'rewards': {'exp_books': 25, 'gold': 500}},
+            {'id': 'forge-3', 'name': '高级熔炉', 'difficulty': 'hard',   'recommended_level': 25, 'energy_cost': 20, 'enemy_ids': ['guan-yu', 'arthur', 'cao-cao'],         'enemy_levels': [25, 24, 23], 'rewards': {'exp_books': 50, 'gold': 1000}},
+        ]
+    },
+    {
+        'id': 'daily-treasure',
+        'name': '聚宝秘窟',
+        'icon': '💰',
+        'description': '深入宝藏洞窟，搜刮堆积如山的金币',
+        'reward_type': 'gold',
+        'battle_mode': '3v3',
+        'open_days': [2, 4, 6, 7],  # 周二四六日
+        'levels': [
+            {'id': 'treasure-1', 'name': '秘窟外围', 'difficulty': 'easy',   'recommended_level': 5,  'energy_cost': 10, 'enemy_ids': ['soldier', 'archer', 'soldier'],          'enemy_levels': [5, 5, 4],    'rewards': {'gold': 3000}},
+            {'id': 'treasure-2', 'name': '秘窟深层', 'difficulty': 'normal', 'recommended_level': 15, 'energy_cost': 15, 'enemy_ids': ['cao-cao', 'mage-apprentice', 'soldier'], 'enemy_levels': [15, 14, 13], 'rewards': {'gold': 8000}},
+            {'id': 'treasure-3', 'name': '秘窟宝库', 'difficulty': 'hard',   'recommended_level': 25, 'energy_cost': 20, 'enemy_ids': ['zhuge-liang', 'guan-yu', 'hua-mulan'],  'enemy_levels': [25, 24, 23], 'rewards': {'gold': 20000}},
+        ]
+    },
+    {
+        'id': 'daily-starpath',
+        'name': '星辉之径',
+        'icon': '⭐',
+        'description': '追寻星辉的轨迹，收集珍贵的星魂碎片',
+        'reward_type': 'star_soul',
+        'battle_mode': '3v3',
+        'open_days': [1, 4, 7],  # 周一四日
+        'levels': [
+            {'id': 'star-1', 'name': '微光小径', 'difficulty': 'easy',   'recommended_level': 10, 'energy_cost': 12, 'enemy_ids': ['miyamoto', 'archer', 'soldier'],           'enemy_levels': [10, 9, 8],   'rewards': {'star_soul': 3, 'gold': 300}},
+            {'id': 'star-2', 'name': '星河走廊', 'difficulty': 'normal', 'recommended_level': 20, 'energy_cost': 18, 'enemy_ids': ['arthur', 'hua-mulan', 'cao-cao'],           'enemy_levels': [20, 19, 18], 'rewards': {'star_soul': 6, 'gold': 600}},
+            {'id': 'star-3', 'name': '星辉圣殿', 'difficulty': 'hard',   'recommended_level': 28, 'energy_cost': 22, 'enemy_ids': ['zhuge-liang', 'guan-yu', 'genghis-khan'],  'enemy_levels': [28, 27, 26], 'rewards': {'star_soul': 12, 'gold': 1200}},
+        ]
+    },
+    {
+        'id': 'daily-mine',
+        'name': '灵石矿脉',
+        'icon': '💎',
+        'description': '深入矿脉采掘灵石，用于英雄突破',
+        'reward_type': 'breakthrough_stone',
+        'battle_mode': '3v3',
+        'open_days': [2, 5, 7],  # 周二五日
+        'levels': [
+            {'id': 'mine-1', 'name': '浅层矿道', 'difficulty': 'easy',   'recommended_level': 10, 'energy_cost': 12, 'enemy_ids': ['soldier', 'soldier', 'mage-apprentice'],         'enemy_levels': [10, 9, 8],   'rewards': {'breakthrough_stone': 2, 'gold': 300}},
+            {'id': 'mine-2', 'name': '深层矿道', 'difficulty': 'normal', 'recommended_level': 20, 'energy_cost': 18, 'enemy_ids': ['viking-ragnar', 'robin-hood', 'archer'],         'enemy_levels': [20, 19, 18], 'rewards': {'breakthrough_stone': 5, 'gold': 600}},
+            {'id': 'mine-3', 'name': '矿脉核心', 'difficulty': 'hard',   'recommended_level': 28, 'energy_cost': 22, 'enemy_ids': ['joan-of-arc', 'genghis-khan', 'cleopatra'],      'enemy_levels': [28, 27, 26], 'rewards': {'breakthrough_stone': 10, 'gold': 1200}},
+        ]
+    },
+]
+
+# ==================== 英雄试炼（1v1 单挑副本）====================
+HERO_TRIALS = {
+    'id': 'hero-trials',
+    'name': '武神殿',
+    'icon': '🏛️',
+    'description': '与传说中的武神一对一对决，证明你是真正的强者',
+    'battle_mode': '1v1',
+    'bosses': [
+        {'id': 'trial-1',  'name': '剑圣试炼',     'boss_id': 'miyamoto',      'boss_level': 8,  'difficulty': 'easy',   'energy_cost': 10, 'recommended_level': 8,  'rewards': {'gold': 1000, 'gems': 30,  'exp_books': 5}},
+        {'id': 'trial-2',  'name': '花木兰的考验',  'boss_id': 'hua-mulan',     'boss_level': 15, 'difficulty': 'normal', 'energy_cost': 15, 'recommended_level': 15, 'rewards': {'gold': 2000, 'gems': 50,  'exp_books': 10}},
+        {'id': 'trial-3',  'name': '奸雄之刃',     'boss_id': 'cao-cao',       'boss_level': 18, 'difficulty': 'normal', 'energy_cost': 15, 'recommended_level': 18, 'rewards': {'gold': 2500, 'gems': 60,  'star_soul': 3}},
+        {'id': 'trial-4',  'name': '圆桌骑士的荣耀','boss_id': 'arthur',        'boss_level': 22, 'difficulty': 'hard',   'energy_cost': 18, 'recommended_level': 22, 'rewards': {'gold': 3000, 'gems': 80,  'star_soul': 5}},
+        {'id': 'trial-5',  'name': '武圣降临',     'boss_id': 'guan-yu',       'boss_level': 25, 'difficulty': 'hard',   'energy_cost': 18, 'recommended_level': 25, 'rewards': {'gold': 4000, 'gems': 100, 'star_soul': 8}},
+        {'id': 'trial-6',  'name': '卧龙绝智',     'boss_id': 'zhuge-liang',   'boss_level': 28, 'difficulty': 'hell',   'energy_cost': 20, 'recommended_level': 28, 'rewards': {'gold': 5000, 'gems': 120, 'star_soul': 10}},
+        {'id': 'trial-7',  'name': '圣女之怒',     'boss_id': 'joan-of-arc',   'boss_level': 30, 'difficulty': 'hell',   'energy_cost': 22, 'recommended_level': 30, 'rewards': {'gold': 6000, 'gems': 150, 'breakthrough_stone': 5}},
+        {'id': 'trial-8',  'name': '天可汗',       'boss_id': 'genghis-khan',  'boss_level': 35, 'difficulty': 'nightmare','energy_cost': 25,'recommended_level': 35, 'rewards': {'gold': 8000, 'gems': 200, 'breakthrough_stone': 8}},
+    ]
+}
+
+# ==================== 高难度副本 ====================
+HARD_DUNGEONS = [
+    {
+        'id': 'abyss-gate',
+        'name': '深渊之门',
+        'icon': '🌀',
+        'description': '来自深渊的怪物蜂拥而出，只有最强的团队才能封印裂缝',
+        'battle_mode': '5v5',
+        'levels': [
+            {
+                'id': 'abyss-1', 'name': '深渊裂隙·壹层', 'difficulty': 'hard',
+                'recommended_level': 20, 'energy_cost': 25,
+                'enemy_ids': ['soldier', 'archer', 'mage-apprentice', 'viking-ragnar', 'robin-hood'],
+                'enemy_levels': [20, 20, 19, 19, 18],
+                'rewards': {'gold': 5000, 'gems': 80, 'star_soul': 5}
+            },
+            {
+                'id': 'abyss-2', 'name': '深渊裂隙·贰层', 'difficulty': 'hell',
+                'recommended_level': 25, 'energy_cost': 30,
+                'enemy_ids': ['cao-cao', 'hua-mulan', 'miyamoto', 'arthur', 'guan-yu'],
+                'enemy_levels': [25, 25, 24, 24, 23],
+                'rewards': {'gold': 10000, 'gems': 150, 'star_soul': 10}
+            },
+            {
+                'id': 'abyss-3', 'name': '深渊裂隙·叁层', 'difficulty': 'nightmare',
+                'recommended_level': 30, 'energy_cost': 35,
+                'enemy_ids': ['zhuge-liang', 'guan-yu', 'arthur', 'joan-of-arc', 'genghis-khan'],
+                'enemy_levels': [30, 30, 29, 29, 28],
+                'rewards': {'gold': 20000, 'gems': 300, 'star_soul': 20, 'breakthrough_stone': 5}
+            },
+        ]
+    },
+    {
+        'id': 'purgatory-tower',
+        'name': '炼狱之塔',
+        'icon': '🗼',
+        'description': '登上无尽的炼狱之塔，每十层一个关卡BOSS，奖励随层数倍增',
+        'battle_mode': '5v5',
+        'levels': [
+            {
+                'id': 'tower-10',  'name': '炼狱之塔·第10层', 'difficulty': 'normal',
+                'recommended_level': 15, 'energy_cost': 20,
+                'enemy_ids': ['miyamoto', 'soldier', 'archer', 'mage-apprentice', 'soldier'],
+                'enemy_levels': [15, 14, 13, 13, 12],
+                'rewards': {'gold': 3000, 'gems': 50, 'exp_books': 15}
+            },
+            {
+                'id': 'tower-20',  'name': '炼狱之塔·第20层', 'difficulty': 'hard',
+                'recommended_level': 22, 'energy_cost': 25,
+                'enemy_ids': ['cao-cao', 'hua-mulan', 'robin-hood', 'viking-ragnar', 'archer'],
+                'enemy_levels': [22, 21, 21, 20, 20],
+                'rewards': {'gold': 6000, 'gems': 100, 'exp_books': 30, 'star_soul': 5}
+            },
+            {
+                'id': 'tower-30',  'name': '炼狱之塔·第30层', 'difficulty': 'hell',
+                'recommended_level': 28, 'energy_cost': 30,
+                'enemy_ids': ['guan-yu', 'arthur', 'zhuge-liang', 'joan-of-arc', 'cao-cao'],
+                'enemy_levels': [28, 27, 27, 26, 26],
+                'rewards': {'gold': 12000, 'gems': 200, 'breakthrough_stone': 8, 'star_soul': 10}
+            },
+            {
+                'id': 'tower-50',  'name': '炼狱之塔·第50层', 'difficulty': 'nightmare',
+                'recommended_level': 35, 'energy_cost': 35,
+                'enemy_ids': ['genghis-khan', 'joan-of-arc', 'zhuge-liang', 'guan-yu', 'arthur'],
+                'enemy_levels': [35, 34, 34, 33, 33],
+                'rewards': {'gold': 25000, 'gems': 500, 'breakthrough_stone': 15, 'star_soul': 20}
+            },
+        ]
+    },
+]
 
 # 默认每日任务
 DEFAULT_DAILY_TASKS = [
@@ -834,7 +1003,7 @@ NEWBIE_PACK = {
 FEATURE_UNLOCK = {
     'summon':    {'quest': None, 'level': 1,  'name': '群英馆'},
     'characters':{'quest': None, 'level': 1,  'name': '军营'},
-    'stages':    {'quest': None, 'level': 2,  'name': '演武场'},
+    'stages':    {'quest': None, 'level': 2,  'name': '副本大厅'},
     'shop':      {'quest': None, 'level': 5,  'name': '商会'},
     'research':  {'quest': None, 'level': 10, 'name': '研究所'},
     'arena':     {'quest': None, 'level': 15, 'name': '竞技场'},
@@ -890,11 +1059,47 @@ def get_all_characters():
 
 
 def get_stage_by_id(stage_id):
-    """根据ID获取关卡配置"""
+    """根据ID获取关卡配置（搜索所有副本类型）"""
+    # 主线副本
     for chapter in CHAPTERS:
         for stage in chapter['stages']:
             if stage['id'] == stage_id:
-                return stage
+                stage_copy = dict(stage)
+                stage_copy['dungeon_type'] = 'main'
+                stage_copy['battle_mode'] = '3v3'
+                return stage_copy
+
+    # 日常材料副本
+    for dungeon in DAILY_DUNGEONS:
+        for level in dungeon['levels']:
+            if level['id'] == stage_id:
+                level_copy = dict(level)
+                level_copy['dungeon_type'] = 'daily'
+                level_copy['battle_mode'] = dungeon['battle_mode']
+                level_copy['dungeon_name'] = dungeon['name']
+                return level_copy
+
+    # 英雄试炼
+    for boss in HERO_TRIALS['bosses']:
+        if boss['id'] == stage_id:
+            boss_copy = dict(boss)
+            boss_copy['dungeon_type'] = 'trial'
+            boss_copy['battle_mode'] = '1v1'
+            boss_copy['enemy_ids'] = [boss['boss_id']]
+            boss_copy['enemy_levels'] = [boss['boss_level']]
+            boss_copy['dungeon_name'] = HERO_TRIALS['name']
+            return boss_copy
+
+    # 高难度副本
+    for dungeon in HARD_DUNGEONS:
+        for level in dungeon['levels']:
+            if level['id'] == stage_id:
+                level_copy = dict(level)
+                level_copy['dungeon_type'] = 'hard'
+                level_copy['battle_mode'] = dungeon['battle_mode']
+                level_copy['dungeon_name'] = dungeon['name']
+                return level_copy
+
     return None
 
 

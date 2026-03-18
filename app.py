@@ -39,6 +39,7 @@ from game_data import (
     CURRENT_UP_CHARACTERS, UP_RATE_MULTIPLIER,
     SHOP_ITEMS, MAIN_QUESTS, DEFAULT_ANNOUNCEMENTS, ARENA_BOTS, NEWBIE_PACK,
     FEATURE_UNLOCK, DEFAULT_SEVEN_DAY_GOALS,
+    BATTLE_MODES, BATTLE_ITEMS, DAILY_DUNGEONS, HERO_TRIALS, HARD_DUNGEONS,
 )
 
 # ==================== 账号工具 ====================
@@ -199,7 +200,7 @@ def ensure_db_migrations():
                     db.session.execute(text("ALTER TABLE players ADD COLUMN star_soul INTEGER DEFAULT 0"))
                     db.session.commit()
 
-                # 新增字段：新手引导/统计/竞技场
+                # 新增字段：新手引导/统计/竞技场/突破石
                 cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(players)")).fetchall()]
                 new_player_cols = {
                     'tutorial_step': 'INTEGER DEFAULT 0',
@@ -209,6 +210,7 @@ def ensure_db_migrations():
                     'arena_score': 'INTEGER DEFAULT 1000',
                     'arena_wins': 'INTEGER DEFAULT 0',
                     'arena_losses': 'INTEGER DEFAULT 0',
+                    'breakthrough_stone': 'INTEGER DEFAULT 0',
                 }
                 for col_name, col_def in new_player_cols.items():
                     if col_name not in cols:
@@ -290,6 +292,7 @@ def ensure_db_migrations():
                     'arena_score': 'INT NOT NULL DEFAULT 1000',
                     'arena_wins': 'INT NOT NULL DEFAULT 0',
                     'arena_losses': 'INT NOT NULL DEFAULT 0',
+                    'breakthrough_stone': 'INT NOT NULL DEFAULT 0',
                 }
                 for col_name, col_def in new_player_cols_mysql.items():
                     cnt = db.session.execute(text(
@@ -1345,6 +1348,14 @@ def stages():
             battle_char = get_battle_character(char_instance)
             if battle_char:
                 team.append(battle_char)
+
+    # 计算日常副本开放状态（今天星期几，1=周一 7=周日）
+    today_weekday = datetime.now().isoweekday()
+    daily_dungeons_today = []
+    for d in DAILY_DUNGEONS:
+        dd = dict(d)
+        dd['is_open'] = today_weekday in d['open_days']
+        daily_dungeons_today.append(dd)
     
     return render_template('stages.html',
         player=player,
@@ -1358,7 +1369,11 @@ def stages():
         rarity_colors=RARITY_COLORS,
         element_names=ELEMENT_NAMES,
         element_colors=ELEMENT_COLORS,
-        get_character_by_id=get_character_by_id
+        get_character_by_id=get_character_by_id,
+        battle_modes=BATTLE_MODES,
+        daily_dungeons=daily_dungeons_today,
+        hero_trials=HERO_TRIALS,
+        hard_dungeons=HARD_DUNGEONS,
     )
 
 
@@ -1377,6 +1392,10 @@ def battle(stage_id):
     if player.energy < stage['energy_cost']:
         flash('体力不足', 'error')
         return redirect(url_for('stages'))
+
+    battle_mode = stage.get('battle_mode', '3v3')
+    mode_info = BATTLE_MODES.get(battle_mode, BATTLE_MODES['3v3'])
+    team_size = mode_info['team_size']
     
     # 获取队伍
     team = []
@@ -1386,20 +1405,24 @@ def battle(stage_id):
             battle_char = get_battle_character(char_instance)
             if battle_char:
                 team.append(battle_char)
+                if len(team) >= team_size:
+                    break
     
     if not team:
         flash('请先设置队伍', 'error')
         return redirect(url_for('stages'))
 
-    # 章节轻剧情：按关卡归属章节注入（关卡前/后对话）
+    # 章节轻剧情
     chapter_dialogue = {'pre': [], 'post': []}
-    try:
-        for ch in CHAPTERS:
-            if any(s.get('id') == stage_id for s in (ch.get('stages') or [])):
-                chapter_dialogue = ch.get('dialogue') or chapter_dialogue
-                break
-    except Exception:
-        chapter_dialogue = {'pre': [], 'post': []}
+    dungeon_type = stage.get('dungeon_type', 'main')
+    if dungeon_type == 'main':
+        try:
+            for ch in CHAPTERS:
+                if any(s.get('id') == stage_id for s in (ch.get('stages') or [])):
+                    chapter_dialogue = ch.get('dialogue') or chapter_dialogue
+                    break
+        except Exception:
+            pass
     
     # 生成敌人
     enemies = []
@@ -1408,9 +1431,9 @@ def battle(stage_id):
         if template:
             level = stage['enemy_levels'][i] if i < len(stage['enemy_levels']) else 1
             stats = calculate_stats(template['stats'], level, 1, 0)
-            # 简易 Boss 判定：每章最后一关的第一个敌人视为 Boss（用于阶段机制演示）
             is_boss = bool(
-                str(stage.get('id', '')).endswith('-3') and i == 0
+                dungeon_type == 'trial' or
+                (str(stage.get('id', '')).endswith('-3') and i == 0)
             )
             enemies.append({
                 'id': f'enemy-{i}',
@@ -1431,6 +1454,10 @@ def battle(stage_id):
         chapter_dialogue=chapter_dialogue,
         team=team,
         enemies=enemies,
+        battle_mode=battle_mode,
+        mode_info=mode_info,
+        battle_items=BATTLE_ITEMS,
+        dungeon_type=dungeon_type,
         rarity_names=RARITY_NAMES,
         rarity_colors=RARITY_COLORS,
         element_names=ELEMENT_NAMES,
@@ -1892,6 +1919,12 @@ def api_battle_complete():
         player.exp += rewards.get('exp', 0)
         if rewards.get('gems'):
             player.gems += rewards['gems']
+        if rewards.get('exp_books'):
+            player.exp_books = (player.exp_books or 0) + rewards['exp_books']
+        if rewards.get('star_soul'):
+            player.star_soul = (player.star_soul or 0) + rewards['star_soul']
+        if rewards.get('breakthrough_stone'):
+            player.breakthrough_stone = (player.breakthrough_stone or 0) + rewards['breakthrough_stone']
         
         # 计算星级
         # 1星：通关
@@ -1989,6 +2022,12 @@ def api_sweep():
     player.exp += rewards.get('exp', 0)
     if rewards.get('gems'):
         player.gems += rewards['gems']
+    if rewards.get('exp_books'):
+        player.exp_books = (player.exp_books or 0) + rewards['exp_books']
+    if rewards.get('star_soul'):
+        player.star_soul = (player.star_soul or 0) + rewards['star_soul']
+    if rewards.get('breakthrough_stone'):
+        player.breakthrough_stone = (player.breakthrough_stone or 0) + rewards['breakthrough_stone']
     
     # 更新每日任务
     task = PlayerDailyTask.query.filter_by(
