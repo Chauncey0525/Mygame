@@ -46,6 +46,13 @@ class Player(db.Model, UserMixin):
     # 游戏进度
     total_play_days = db.Column(db.Integer, nullable=False, default=1)
     last_login_date = db.Column(db.Date, default=date.today)
+    tutorial_step = db.Column(db.Integer, nullable=False, default=0)
+    newbie_pack_claimed = db.Column(db.Boolean, nullable=False, default=False)
+    total_summon_count = db.Column(db.Integer, nullable=False, default=0)
+    total_battle_count = db.Column(db.Integer, nullable=False, default=0)
+    arena_score = db.Column(db.Integer, nullable=False, default=1000)
+    arena_wins = db.Column(db.Integer, nullable=False, default=0)
+    arena_losses = db.Column(db.Integer, nullable=False, default=0)
     
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -563,3 +570,58 @@ class SevenDayGoal(db.Model):
             'completed': self.completed,
             'claimed': self.claimed,
         }
+
+
+class PlayerMainQuest(db.Model):
+    """玩家主线任务进度"""
+    __tablename__ = 'player_main_quests'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    quest_id = db.Column(db.String(64), nullable=False)
+    progress = db.Column(db.Integer, nullable=False, default=0)
+    completed = db.Column(db.Boolean, nullable=False, default=False)
+    claimed = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    __table_args__ = (
+        db.UniqueConstraint('player_id', 'quest_id', name='uix_player_quest'),
+    )
+
+    def to_dict(self):
+        return {
+            'quest_id': self.quest_id,
+            'progress': self.progress,
+            'completed': self.completed,
+            'claimed': self.claimed,
+        }
+
+
+class ShopPurchase(db.Model):
+    """商店购买记录（每日限购追踪）"""
+    __tablename__ = 'shop_purchases'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    item_id = db.Column(db.String(64), nullable=False)
+    purchase_date = db.Column(db.Date, nullable=False, default=date.today)
+    count = db.Column(db.Integer, nullable=False, default=1)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    __table_args__ = (
+        db.UniqueConstraint('player_id', 'item_id', 'purchase_date', name='uix_shop_daily'),
+    )
+
+
+class ArenaRecord(db.Model):
+    """竞技场挑战记录"""
+    __tablename__ = 'arena_records'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    opponent_name = db.Column(db.String(128), nullable=False)
+    opponent_score = db.Column(db.Integer, nullable=False)
+    victory = db.Column(db.Boolean, nullable=False)
+    score_change = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.now)

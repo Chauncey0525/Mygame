@@ -282,6 +282,183 @@ ALL_CHARACTERS = [
              'description': '大幅提升物攻和速度'},
         ]
     },
+    # ---- 普通角色 ----
+    {
+        'id': 'soldier',
+        'name': '步兵',
+        'name_en': 'Soldier',
+        'title': '忠诚卫士',
+        'era': '中世纪',
+        'origin': '大陆',
+        'element': 'earth',
+        'role_type': 'tank',
+        'description': '经验丰富的步兵，手持长矛与盾牌，是战场上最可靠的防线。',
+        'avatar': '/static/images/characters/soldier.jpg',
+        'illustration': '/static/images/characters/soldier.jpg',
+        'rarity': 'common',
+        'stats': {'hp': 1200, 'attack': 70, 'defense': 90, 'magic_attack': 20, 'magic_defense': 60, 'speed': 55},
+        'skills': [
+            {'id': 'skill-1', 'name': '长矛突刺', 'type': 'physical', 'power': 80, 'element': 'earth', 'cooldown': 1, 'target': 'single',
+             'description': '用长矛刺击敌人，造成物理伤害'},
+            {'id': 'skill-2', 'name': '盾墙', 'type': 'buff', 'power': 0, 'element': 'earth', 'cooldown': 3, 'target': 'self',
+             'description': '举起盾牌，大幅提升物防'},
+        ]
+    },
+    {
+        'id': 'archer',
+        'name': '弓箭手',
+        'name_en': 'Archer',
+        'title': '百步穿杨',
+        'era': '中世纪',
+        'origin': '大陆',
+        'element': 'wind',
+        'role_type': 'assassin',
+        'description': '精通弓术的远程射手，擅长在远处精准狙击敌方要害。',
+        'avatar': '/static/images/characters/archer.jpg',
+        'illustration': '/static/images/characters/archer.jpg',
+        'rarity': 'common',
+        'stats': {'hp': 700, 'attack': 110, 'defense': 40, 'magic_attack': 30, 'magic_defense': 40, 'speed': 100},
+        'skills': [
+            {'id': 'skill-1', 'name': '精准射击', 'type': 'physical', 'power': 90, 'element': 'wind', 'cooldown': 1, 'target': 'single',
+             'description': '瞄准要害射出一箭，造成物理伤害'},
+            {'id': 'skill-2', 'name': '箭雨', 'type': 'physical', 'power': 55, 'element': 'wind', 'cooldown': 3, 'target': 'all',
+             'description': '向天空射出箭雨，对全体敌人造成伤害'},
+        ]
+    },
+    {
+        'id': 'mage-apprentice',
+        'name': '见习法师',
+        'name_en': 'Mage Apprentice',
+        'title': '魔法学徒',
+        'era': '中世纪',
+        'origin': '大陆',
+        'element': 'fire',
+        'role_type': 'mage',
+        'description': '刚从法师学院毕业的年轻法师，虽然经验不足但天赋极高。',
+        'avatar': '/static/images/characters/mage-apprentice.jpg',
+        'illustration': '/static/images/characters/mage-apprentice.jpg',
+        'rarity': 'common',
+        'stats': {'hp': 650, 'attack': 40, 'defense': 35, 'magic_attack': 120, 'magic_defense': 70, 'speed': 80},
+        'skills': [
+            {'id': 'skill-1', 'name': '火球术', 'type': 'magic', 'power': 85, 'element': 'fire', 'cooldown': 1, 'target': 'single',
+             'description': '释放一颗火球，造成火属性魔法伤害'},
+            {'id': 'skill-2', 'name': '冰冻术', 'type': 'magic', 'power': 70, 'element': 'water', 'cooldown': 2, 'target': 'single',
+             'description': '冻结敌人，造成水属性魔法伤害并降低速度'},
+        ]
+    },
+    {
+        'id': 'cleopatra',
+        'name': '克娄巴特拉',
+        'name_en': 'Cleopatra',
+        'title': '尼罗河女王',
+        'era': '古埃及',
+        'origin': '埃及',
+        'element': 'water',
+        'role_type': 'support',
+        'description': '古埃及最后的法老，以智慧和美貌闻名于世，精通治愈之术。',
+        'avatar': '/static/images/characters/cleopatra.jpg',
+        'illustration': '/static/images/characters/cleopatra.jpg',
+        'rarity': 'epic',
+        'stats': {'hp': 900, 'attack': 50, 'defense': 60, 'magic_attack': 140, 'magic_defense': 110, 'speed': 88},
+        'skills': [
+            {'id': 'skill-1', 'name': '尼罗之泪', 'type': 'magic', 'power': 100, 'element': 'water', 'cooldown': 2, 'target': 'single',
+             'description': '召唤尼罗河之力，对敌方造成水属性魔法伤害'},
+            {'id': 'skill-2', 'name': '生命之泉', 'type': 'heal', 'power': 120, 'element': 'water', 'cooldown': 3, 'target': 'allies',
+             'description': '治愈全队，恢复生命值'},
+            {'id': 'skill-3', 'name': '女王威仪', 'type': 'buff', 'power': 0, 'element': 'water', 'cooldown': 4, 'target': 'allies',
+             'description': '提升全队魔攻和魔防'},
+        ]
+    },
+    {
+        'id': 'viking-ragnar',
+        'name': '拉格纳',
+        'name_en': 'Ragnar',
+        'title': '北海之王',
+        'era': '维京时代',
+        'origin': '斯堪的纳维亚',
+        'element': 'earth',
+        'role_type': 'warrior',
+        'description': '传说中的维京国王，率领龙头战船征服四方海域。',
+        'avatar': '/static/images/characters/viking-ragnar.jpg',
+        'illustration': '/static/images/characters/viking-ragnar.jpg',
+        'rarity': 'rare',
+        'stats': {'hp': 1100, 'attack': 140, 'defense': 70, 'magic_attack': 30, 'magic_defense': 50, 'speed': 85},
+        'skills': [
+            {'id': 'skill-1', 'name': '维京战斧', 'type': 'physical', 'power': 120, 'element': 'earth', 'cooldown': 2, 'target': 'single',
+             'description': '挥舞巨斧猛击敌人，造成土属性物理伤害'},
+            {'id': 'skill-2', 'name': '狂战士之怒', 'type': 'buff', 'power': 0, 'element': 'earth', 'cooldown': 3, 'target': 'self',
+             'description': '进入狂暴状态，大幅提升物攻但降低物防'},
+        ]
+    },
+    {
+        'id': 'robin-hood',
+        'name': '罗宾汉',
+        'name_en': 'Robin Hood',
+        'title': '侠盗义士',
+        'era': '中世纪',
+        'origin': '英格兰',
+        'element': 'wind',
+        'role_type': 'assassin',
+        'description': '劫富济贫的传奇侠盗，箭无虚发，行踪如风。',
+        'avatar': '/static/images/characters/robin-hood.jpg',
+        'illustration': '/static/images/characters/robin-hood.jpg',
+        'rarity': 'rare',
+        'stats': {'hp': 800, 'attack': 155, 'defense': 45, 'magic_attack': 40, 'magic_defense': 50, 'speed': 125},
+        'skills': [
+            {'id': 'skill-1', 'name': '穿心箭', 'type': 'physical', 'power': 140, 'element': 'wind', 'cooldown': 2, 'target': 'single',
+             'description': '一箭穿心，对单体造成巨大物理伤害'},
+            {'id': 'skill-2', 'name': '丛林伏击', 'type': 'physical', 'power': 65, 'element': 'wind', 'cooldown': 1, 'target': 'single',
+             'description': '从暗处突袭，有概率附加减速效果'},
+            {'id': 'skill-3', 'name': '义贼之风', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4, 'target': 'self',
+             'description': '提升自身闪避率和速度'},
+        ]
+    },
+    {
+        'id': 'joan-of-arc',
+        'name': '贞德',
+        'name_en': 'Joan of Arc',
+        'title': '圣女',
+        'era': '中世纪',
+        'origin': '法兰西',
+        'element': 'light',
+        'role_type': 'support',
+        'description': '法兰西的救世圣女，以不屈的信念引领军队走向胜利。',
+        'avatar': '/static/images/characters/joan-of-arc.jpg',
+        'illustration': '/static/images/characters/joan-of-arc.jpg',
+        'rarity': 'legendary',
+        'stats': {'hp': 1000, 'attack': 80, 'defense': 90, 'magic_attack': 160, 'magic_defense': 120, 'speed': 85},
+        'skills': [
+            {'id': 'skill-1', 'name': '圣光审判', 'type': 'magic', 'power': 130, 'element': 'light', 'cooldown': 2, 'target': 'single',
+             'description': '召唤圣光降罚敌人，造成光属性魔法伤害'},
+            {'id': 'skill-2', 'name': '圣女祈祷', 'type': 'heal', 'power': 150, 'element': 'light', 'cooldown': 3, 'target': 'allies',
+             'description': '祈祷圣光，治愈全队并清除减益'},
+            {'id': 'skill-3', 'name': '不灭军旗', 'type': 'buff', 'power': 0, 'element': 'light', 'cooldown': 5, 'target': 'allies',
+             'description': '举起军旗鼓舞全队，大幅提升全队所有属性'},
+        ]
+    },
+    {
+        'id': 'genghis-khan',
+        'name': '成吉思汗',
+        'name_en': 'Genghis Khan',
+        'title': '草原雄鹰',
+        'era': '蒙古帝国',
+        'origin': '蒙古',
+        'element': 'earth',
+        'role_type': 'warrior',
+        'description': '蒙古帝国的缔造者，征服了横跨欧亚的辽阔疆域。',
+        'avatar': '/static/images/characters/genghis-khan.jpg',
+        'illustration': '/static/images/characters/genghis-khan.jpg',
+        'rarity': 'legendary',
+        'stats': {'hp': 1100, 'attack': 170, 'defense': 80, 'magic_attack': 60, 'magic_defense': 70, 'speed': 100},
+        'skills': [
+            {'id': 'skill-1', 'name': '铁骑冲锋', 'type': 'physical', 'power': 145, 'element': 'earth', 'cooldown': 2, 'target': 'single',
+             'description': '率领铁骑冲锋，造成毁灭性物理伤害'},
+            {'id': 'skill-2', 'name': '万马奔腾', 'type': 'physical', 'power': 90, 'element': 'earth', 'cooldown': 3, 'target': 'all',
+             'description': '召唤万骑践踏，对全体敌人造成物理伤害'},
+            {'id': 'skill-3', 'name': '大汗威压', 'type': 'buff', 'power': 0, 'element': 'earth', 'cooldown': 4, 'target': 'self',
+             'description': '释放帝王气场，大幅提升物攻和速度'},
+        ]
+    },
 ]
 
 # 关卡配置
@@ -546,8 +723,125 @@ DEFAULT_DAILY_TASKS = [
         'target': 1,
         'reward_gold': 400,
         'reward_exp': 50
+    },
+    {
+        'task_id': 'daily-sweep',
+        'name': '扫荡关卡',
+        'description': '扫荡任意关卡1次',
+        'target': 1,
+        'reward_gold': 300,
+        'reward_gems': 15
+    },
+    {
+        'task_id': 'daily-team',
+        'name': '调整队伍',
+        'description': '编辑或更换队伍阵容1次',
+        'target': 1,
+        'reward_gold': 200,
+        'reward_exp': 30
     }
 ]
+
+# 七日目标
+DEFAULT_SEVEN_DAY_GOALS = [
+    {'day': 1, 'goal_id': 'day1-login',    'name': '首次登录',   'description': '登录游戏', 'target': 1, 'reward_gold': 1000, 'reward_gems': 100},
+    {'day': 1, 'goal_id': 'day1-summon',   'name': '初次召唤',   'description': '完成1次召唤', 'target': 1, 'reward_gold': 500, 'reward_gems': 50},
+    {'day': 1, 'goal_id': 'day1-battle',   'name': '初战告捷',   'description': '完成1次战斗', 'target': 1, 'reward_gold': 500, 'reward_gems': 50},
+    {'day': 2, 'goal_id': 'day2-battle3',  'name': '战场老手',   'description': '累计完成3次战斗', 'target': 3, 'reward_gold': 800, 'reward_gems': 80},
+    {'day': 2, 'goal_id': 'day2-levelup',  'name': '强化英雄',   'description': '强化任意角色1次', 'target': 1, 'reward_gold': 600, 'reward_gems': 50},
+    {'day': 2, 'goal_id': 'day2-team',     'name': '组建队伍',   'description': '编辑你的战斗队伍', 'target': 1, 'reward_gold': 500, 'reward_gems': 50},
+    {'day': 3, 'goal_id': 'day3-summon5',  'name': '召唤达人',   'description': '累计完成5次召唤', 'target': 5, 'reward_gold': 1200, 'reward_gems': 120},
+    {'day': 3, 'goal_id': 'day3-char3',    'name': '英雄集结',   'description': '拥有3个不同角色', 'target': 3, 'reward_gold': 800, 'reward_gems': 80},
+    {'day': 3, 'goal_id': 'day3-stage5',   'name': '关卡先锋',   'description': '通关5个关卡', 'target': 5, 'reward_gold': 1000, 'reward_gems': 100},
+    {'day': 4, 'goal_id': 'day4-battle10', 'name': '百战不殆',   'description': '累计完成10次战斗', 'target': 10, 'reward_gold': 1500, 'reward_gems': 150},
+    {'day': 4, 'goal_id': 'day4-level10',  'name': '初露锋芒',   'description': '将任意角色提升到10级', 'target': 10, 'reward_gold': 1000, 'reward_gems': 100},
+    {'day': 4, 'goal_id': 'day4-breakthrough', 'name': '突破极限', 'description': '突破任意角色1次', 'target': 1, 'reward_gold': 1200, 'reward_gems': 120},
+    {'day': 5, 'goal_id': 'day5-summon10', 'name': '召唤大师',   'description': '累计完成10次召唤', 'target': 10, 'reward_gold': 2000, 'reward_gems': 200},
+    {'day': 5, 'goal_id': 'day5-char5',    'name': '群英荟萃',   'description': '拥有5个不同角色', 'target': 5, 'reward_gold': 1500, 'reward_gems': 150},
+    {'day': 5, 'goal_id': 'day5-chapter2', 'name': '勇闯名将',   'description': '通关第2章全部关卡', 'target': 1, 'reward_gold': 2000, 'reward_gems': 200},
+    {'day': 6, 'goal_id': 'day6-stage20',  'name': '身经百战',   'description': '累计通关20个关卡', 'target': 20, 'reward_gold': 2500, 'reward_gems': 250},
+    {'day': 6, 'goal_id': 'day6-level20',  'name': '渐入佳境',   'description': '将任意角色提升到20级', 'target': 20, 'reward_gold': 2000, 'reward_gems': 200},
+    {'day': 6, 'goal_id': 'day6-epic',     'name': '史诗英雄',   'description': '拥有至少1个史诗角色', 'target': 1, 'reward_gold': 1500, 'reward_gems': 150},
+    {'day': 7, 'goal_id': 'day7-battle30', 'name': '战神降临',   'description': '累计完成30次战斗', 'target': 30, 'reward_gold': 3000, 'reward_gems': 300},
+    {'day': 7, 'goal_id': 'day7-char8',    'name': '名将云集',   'description': '拥有8个不同角色', 'target': 8, 'reward_gold': 2500, 'reward_gems': 250},
+    {'day': 7, 'goal_id': 'day7-chapter3', 'name': '传说之路',   'description': '通关第3章全部关卡', 'target': 1, 'reward_gold': 5000, 'reward_gems': 500},
+]
+
+# 商店商品配置
+SHOP_ITEMS = [
+    {'id': 'shop-gold-1',    'name': '金币小包',   'description': '获得 5000 金币', 'price_type': 'gems', 'price': 50,  'reward_type': 'gold',          'reward_amount': 5000,  'daily_limit': 5, 'category': 'resource'},
+    {'id': 'shop-gold-2',    'name': '金币大包',   'description': '获得 25000 金币', 'price_type': 'gems', 'price': 200, 'reward_type': 'gold',          'reward_amount': 25000, 'daily_limit': 3, 'category': 'resource'},
+    {'id': 'shop-exp-1',     'name': '经验书小包', 'description': '获得 20 本经验书', 'price_type': 'gold', 'price': 2000, 'reward_type': 'exp_books',    'reward_amount': 20,    'daily_limit': 5, 'category': 'resource'},
+    {'id': 'shop-exp-2',     'name': '经验书大包', 'description': '获得 100 本经验书', 'price_type': 'gold', 'price': 8000, 'reward_type': 'exp_books',   'reward_amount': 100,   'daily_limit': 3, 'category': 'resource'},
+    {'id': 'shop-energy-1',  'name': '体力药水',   'description': '恢复 50 点体力', 'price_type': 'gems', 'price': 30,  'reward_type': 'energy',         'reward_amount': 50,    'daily_limit': 5, 'category': 'resource'},
+    {'id': 'shop-ticket-1',  'name': '召唤券',     'description': '获得 1 张召唤券', 'price_type': 'gems', 'price': 80,  'reward_type': 'summon_tickets', 'reward_amount': 1,     'daily_limit': 3, 'category': 'summon'},
+    {'id': 'shop-ticket-5',  'name': '召唤券礼包', 'description': '获得 5 张召唤券', 'price_type': 'gems', 'price': 350, 'reward_type': 'summon_tickets', 'reward_amount': 5,     'daily_limit': 1, 'category': 'summon'},
+    {'id': 'shop-starsoul-1','name': '星魂碎片',   'description': '获得 5 个星魂', 'price_type': 'gold', 'price': 10000, 'reward_type': 'star_soul',     'reward_amount': 5,     'daily_limit': 3, 'category': 'upgrade'},
+]
+
+# 主线任务配置
+MAIN_QUESTS = [
+    {'id': 'mq-1-1', 'chapter': 1, 'order': 1, 'name': '领取新手补给',   'description': '领取新手礼包中的资源',              'goal_type': 'claim_newbie',  'goal_target': 1, 'reward_gold': 500,  'reward_gems': 50},
+    {'id': 'mq-1-2', 'chapter': 1, 'order': 2, 'name': '召唤你的第一位英雄', 'description': '前往群英馆进行一次召唤',       'goal_type': 'summon',        'goal_target': 1, 'reward_gold': 300,  'reward_gems': 30},
+    {'id': 'mq-1-3', 'chapter': 1, 'order': 3, 'name': '强化英雄',       'description': '在军营中强化任意角色1次',           'goal_type': 'levelup',       'goal_target': 1, 'reward_gold': 500,  'reward_gems': 0},
+    {'id': 'mq-1-4', 'chapter': 1, 'order': 4, 'name': '组建你的队伍',   'description': '在队伍中编辑你的战斗阵容',          'goal_type': 'team_set',      'goal_target': 1, 'reward_gold': 300,  'reward_gems': 30},
+    {'id': 'mq-1-5', 'chapter': 1, 'order': 5, 'name': '初次试炼',       'description': '通关演武场关卡 1-1',               'goal_type': 'clear_stage',   'goal_target': 1, 'reward_gold': 800,  'reward_gems': 80,  'goal_param': 'stage-1-1'},
+    {'id': 'mq-1-6', 'chapter': 1, 'order': 6, 'name': '通关第一章',     'description': '通关第一章全部关卡',                'goal_type': 'clear_stage',   'goal_target': 1, 'reward_gold': 1500, 'reward_gems': 150, 'goal_param': 'stage-1-3'},
+    {'id': 'mq-2-1', 'chapter': 2, 'order': 1, 'name': '十连召唤',       'description': '完成一次十连召唤',                  'goal_type': 'summon_ten',    'goal_target': 1, 'reward_gold': 1000, 'reward_gems': 100},
+    {'id': 'mq-2-2', 'chapter': 2, 'order': 2, 'name': '角色突破',       'description': '突破任意角色1次',                   'goal_type': 'breakthrough',  'goal_target': 1, 'reward_gold': 800,  'reward_gems': 80},
+    {'id': 'mq-2-3', 'chapter': 2, 'order': 3, 'name': '挑战名将',       'description': '通关关卡 2-1',                     'goal_type': 'clear_stage',   'goal_target': 1, 'reward_gold': 1000, 'reward_gems': 100, 'goal_param': 'stage-2-1'},
+    {'id': 'mq-2-4', 'chapter': 2, 'order': 4, 'name': '通关第二章',     'description': '通关第二章全部关卡',                'goal_type': 'clear_stage',   'goal_target': 1, 'reward_gold': 2000, 'reward_gems': 200, 'goal_param': 'stage-2-3'},
+    {'id': 'mq-3-1', 'chapter': 3, 'order': 1, 'name': '角色升至15级',   'description': '将任意角色提升到15级',              'goal_type': 'char_level',    'goal_target': 15, 'reward_gold': 1200, 'reward_gems': 120},
+    {'id': 'mq-3-2', 'chapter': 3, 'order': 2, 'name': '挑战传说',       'description': '通关关卡 3-1',                     'goal_type': 'clear_stage',   'goal_target': 1, 'reward_gold': 1500, 'reward_gems': 150, 'goal_param': 'stage-3-1'},
+    {'id': 'mq-3-3', 'chapter': 3, 'order': 3, 'name': '通关第三章',     'description': '通关第三章全部关卡',                'goal_type': 'clear_stage',   'goal_target': 1, 'reward_gold': 3000, 'reward_gems': 300, 'goal_param': 'stage-3-3'},
+    {'id': 'mq-4-1', 'chapter': 4, 'order': 1, 'name': '角色升至25级',   'description': '将任意角色提升到25级',              'goal_type': 'char_level',    'goal_target': 25, 'reward_gold': 2000, 'reward_gems': 200},
+    {'id': 'mq-4-2', 'chapter': 4, 'order': 2, 'name': '暗影降临',       'description': '通关关卡 4-1',                     'goal_type': 'clear_stage',   'goal_target': 1, 'reward_gold': 2000, 'reward_gems': 200, 'goal_param': 'stage-4-1'},
+    {'id': 'mq-4-3', 'chapter': 4, 'order': 3, 'name': '通关第四章',     'description': '通关第四章全部关卡',                'goal_type': 'clear_stage',   'goal_target': 1, 'reward_gold': 5000, 'reward_gems': 500, 'goal_param': 'stage-4-3'},
+]
+
+# 公告种子数据
+DEFAULT_ANNOUNCEMENTS = [
+    {'title': '欢迎来到巅峰对决！',        'content': '亲爱的勇者，欢迎加入巅峰对决！\n\n在这里，你将召唤古今中外的传奇英雄，组建你的最强战队。\n\n- 完成新手引导领取丰厚奖励\n- 每日签到获取免费资源\n- 七日目标助你快速成长\n\n祝你游戏愉快！', 'announcement_type': 'normal', 'priority': 10, 'show_on_login': True},
+    {'title': '新手福利大放送',            'content': '新玩家专属福利：\n\n🎁 注册即送：金币20000 + 钻石500 + 召唤券10张\n⭐ 首次十连必得史诗英雄\n📋 七日目标累计可领取超过50000金币和3000钻石\n\n快来开启你的英雄之旅吧！', 'announcement_type': 'event', 'priority': 9, 'show_on_login': True},
+    {'title': 'UP池：诸葛亮 & 关羽概率提升', 'content': '限时UP池开启！\n\n🌟 传说UP：诸葛亮（水属性法师）\n💜 史诗UP：关羽（火属性战士）\n\nUP角色在对应稀有度中出现概率大幅提升，不要错过！', 'announcement_type': 'event', 'priority': 8, 'show_on_login': True},
+    {'title': '游戏更新 v2.1.0',           'content': '本次更新内容：\n\n✅ 新增角色：贞德、成吉思汗、克娄巴特拉等\n✅ 商会系统正式开放\n✅ 竞技场系统上线\n✅ 任务中心全面升级\n✅ 公告与七日目标系统完善\n\n感谢大家的支持！', 'announcement_type': 'update', 'priority': 7, 'show_on_login': False, 'show_on_main': True},
+]
+
+# 竞技场机器人
+ARENA_BOTS = [
+    {'name': '训练假人',       'level': 5,  'character_ids': ['soldier'],                     'rank_score': 800},
+    {'name': '新手剑客',       'level': 8,  'character_ids': ['miyamoto'],                    'rank_score': 900},
+    {'name': '守城卫兵',       'level': 10, 'character_ids': ['soldier', 'archer'],            'rank_score': 1000},
+    {'name': '游荡猎人',       'level': 12, 'character_ids': ['robin-hood', 'archer'],         'rank_score': 1100},
+    {'name': '维京掠夺者',     'level': 15, 'character_ids': ['viking-ragnar', 'soldier'],     'rank_score': 1200},
+    {'name': '骑士团长',       'level': 18, 'character_ids': ['arthur', 'soldier'],            'rank_score': 1400},
+    {'name': '蜀汉先锋',       'level': 20, 'character_ids': ['guan-yu', 'hua-mulan'],        'rank_score': 1600},
+    {'name': '暗影将军',       'level': 25, 'character_ids': ['cao-cao', 'miyamoto', 'archer'],'rank_score': 1800},
+    {'name': '传说挑战者',     'level': 28, 'character_ids': ['zhuge-liang', 'guan-yu', 'arthur'], 'rank_score': 2000},
+    {'name': '巅峰王者',       'level': 30, 'character_ids': ['joan-of-arc', 'genghis-khan', 'zhuge-liang', 'guan-yu'], 'rank_score': 2500},
+]
+
+# 新手福利包内容
+NEWBIE_PACK = {
+    'gold': 20000,
+    'gems': 500,
+    'summon_tickets': 10,
+    'exp_books': 20,
+    'energy': 50,
+}
+
+# 功能解锁配置 (按主线进度/玩家等级解锁)
+FEATURE_UNLOCK = {
+    'summon':    {'quest': None,     'level': 1,  'name': '群英馆'},
+    'characters':{'quest': None,     'level': 1,  'name': '军营'},
+    'team':      {'quest': 'mq-1-2', 'level': 1,  'name': '队伍'},
+    'stages':    {'quest': 'mq-1-4', 'level': 1,  'name': '演武场'},
+    'tasks':     {'quest': 'mq-1-5', 'level': 3,  'name': '任务'},
+    'shop':      {'quest': 'mq-1-6', 'level': 5,  'name': '商会'},
+    'research':  {'quest': 'mq-2-2', 'level': 10, 'name': '研究所'},
+    'arena':     {'quest': 'mq-2-4', 'level': 15, 'name': '竞技场'},
+    'sweep':     {'quest': 'mq-2-4', 'level': 15, 'name': '扫荡'},
+}
 
 
 def get_character_by_id(character_id):

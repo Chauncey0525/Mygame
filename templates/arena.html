@@ -3,7 +3,9 @@
 {% block title %}竞技场 - 巅峰对决{% endblock %}
 
 {% block back_link %}
-<div class="back-bar"><a href="{{ url_for('index') }}" class="back-btn">← 返回城镇</a></div>
+<div class="back-bar">
+    <a href="{{ url_for('index') }}" class="back-btn">← 返回主城</a>
+</div>
 {% endblock %}
 
 {% block content %}
@@ -16,33 +18,201 @@
         </div>
     </div>
 
-    <!-- 功能预告 -->
+    <!-- 玩家竞技场统计 -->
+    <div class="card" style="background: var(--medieval-parchment); border-color: var(--medieval-border);">
+        <div class="card-header">
+            <h3 class="card-title">📊 我的战绩</h3>
+        </div>
+        <div class="card-body" style="display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: var(--medieval-text-muted);">段位分</span>
+                <span id="arena-score" style="font-size: 1.5rem; font-weight: 900; color: var(--medieval-gold-light);">{{ arena_stats.arena_score }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: #22c55e;">胜</span>
+                <span id="arena-wins" style="font-weight: 800; color: #22c55e;">{{ arena_stats.arena_wins }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: #ef4444;">负</span>
+                <span id="arena-losses" style="font-weight: 800; color: #ef4444;">{{ arena_stats.arena_losses }}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: var(--medieval-text-muted);">胜率</span>
+                <span id="arena-winrate" style="font-weight: 800; color: var(--medieval-text);">
+                    {% set total = arena_stats.arena_wins + arena_stats.arena_losses %}
+                    {% if total > 0 %}{{ (arena_stats.arena_wins / total * 100)|round(1) }}%{% else %}0%{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 对手列表 -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">🚧 功能开发中</h3>
+            <h3 class="card-title">🏆 挑战对手</h3>
         </div>
-        <div class="card-body" style="text-align: center; padding: 3rem;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🏆</div>
-            <h3 style="color: var(--medieval-gold-light); margin-bottom: 0.5rem;">竞技场即将开放</h3>
-            <p style="color: var(--medieval-text-muted);">这里将提供以下功能：</p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">🎯</div>
-                    <div style="font-weight: bold; color: white;">PVP对战</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">挑战其他玩家</div>
+        <div class="card-body">
+            {% if arena_bots %}
+            <div class="grid grid-4" style="gap: 1rem;">
+                {% for bot in arena_bots %}
+                <div class="card arena-bot-card" style="background: var(--medieval-bg-panel); border: 1px solid var(--medieval-border); overflow: hidden;">
+                    <div class="card-body">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+                            <h4 style="font-weight: bold; color: white; font-size: 1.1rem;">{{ bot.name }}</h4>
+                            <span class="badge" style="background: var(--medieval-gold-dim); color: var(--medieval-text);">Lv.{{ bot.level }}</span>
+                        </div>
+                        <!-- 角色头像预览 -->
+                        <div class="stage-enemies" style="margin-bottom: 0.75rem; display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            {% for cid in bot.character_ids %}
+                            {% set char_tpl = get_character_by_id(cid) %}
+                            {% if char_tpl %}
+                            <img src="{{ char_tpl.avatar }}" alt="{{ char_tpl.name }}" class="enemy-avatar"
+                                 style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--medieval-border);">
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--medieval-text-muted); margin-bottom: 0.5rem;">
+                            {% set _ns = namespace(names=[]) %}
+                            {% for cid in bot.character_ids %}
+                                {% set _c = get_character_by_id(cid) %}
+                                {% if _c %}{% set _ns.names = _ns.names + [_c.name] %}{% endif %}
+                            {% endfor %}
+                            阵容：{{ _ns.names | join('、') or '未知' }}
+                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+                            <span style="font-size: 0.85rem; color: var(--medieval-gold-light);">积分 {{ bot.rank_score }}</span>
+                            <button type="button" class="btn btn-primary arena-challenge-btn" data-bot-index="{{ loop.index0 }}" data-bot-name="{{ bot.name }}"
+                                    style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+                                挑战
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">📊</div>
-                    <div style="font-weight: bold; color: white;">排名系统</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">争夺竞技排名</div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="text-align: center; color: var(--medieval-text-muted); padding: 2rem;">暂无可挑战的对手</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 近期战况 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📜 近期战况</h3>
+        </div>
+        <div class="card-body">
+            <div id="arena-records-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                {% if arena_records %}
+                {% for rec in arena_records %}
+                <div class="arena-record-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(148,163,184,0.2);">
+                    <span style="color: white; font-weight: 600;">{{ rec.opponent_name }}</span>
+                    <span style="font-weight: 700; {% if rec.victory %}color: #22c55e;{% else %}color: #ef4444;{% endif %}">
+                        {% if rec.victory %}胜利{% else %}失败{% endif %}
+                    </span>
+                    <span style="{% if rec.score_change >= 0 %}color: #22c55e;{% else %}color: #ef4444;{% endif %} font-weight: 700;">
+                        {% if rec.score_change >= 0 %}+{% endif %}{{ rec.score_change }}
+                    </span>
+                    <span style="font-size: 0.75rem; color: var(--medieval-text-muted);">
+                        {% if rec.created_at %}{{ rec.created_at.strftime('%m-%d %H:%M') }}{% else %}-{% endif %}
+                    </span>
                 </div>
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">🎖️</div>
-                    <div style="font-weight: bold; color: white;">赛季奖励</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">赛季结算奖励</div>
-                </div>
+                {% endfor %}
+                {% else %}
+                <p id="arena-no-records" style="text-align: center; color: var(--medieval-text-muted); padding: 2rem;">暂无战斗记录</p>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<!-- 战斗结果弹窗 -->
+<div id="arenaResultModal" class="modal" role="dialog" aria-hidden="true" style="z-index: 20000;">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 class="card-title" id="arena-result-title">战斗结果</h3>
+            <button class="modal-close" type="button" id="arena-result-close" aria-label="关闭">&times;</button>
+        </div>
+        <div class="modal-body" id="arena-result-body">
+            <!-- 由 JS 填充 -->
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const resultModal = document.getElementById('arenaResultModal');
+    const resultTitle = document.getElementById('arena-result-title');
+    const resultBody = document.getElementById('arena-result-body');
+    const resultClose = document.getElementById('arena-result-close');
+    const scoreEl = document.getElementById('arena-score');
+    const winsEl = document.getElementById('arena-wins');
+    const lossesEl = document.getElementById('arena-losses');
+    const winrateEl = document.getElementById('arena-winrate');
+
+    function closeResultModal() {
+        if (resultModal) {
+            resultModal.classList.remove('active');
+            resultModal.setAttribute('aria-hidden', 'true');
+        }
+        if (window.AudioManager) window.AudioManager.playSfx('click');
+    }
+
+    if (resultClose) resultClose.addEventListener('click', closeResultModal);
+    if (resultModal) resultModal.addEventListener('click', function(e) {
+        if (e.target === resultModal) closeResultModal();
+    });
+
+    document.querySelectorAll('.arena-challenge-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+            const idx = parseInt(this.getAttribute('data-bot-index'), 10);
+            const botName = this.getAttribute('data-bot-name') || '对手';
+            if (window.AudioManager) window.AudioManager.playSfx('click');
+            const result = await apiCall('/api/arena/challenge', { bot_index: idx }, 'POST');
+            if (!result || !result.success) {
+                ToastManager.error(result && result.error ? result.error : '挑战失败');
+                return;
+            }
+            // 显示结果
+            const victory = result.victory;
+            const scoreChange = result.score_change;
+            resultTitle.textContent = victory ? '🎉 胜利！' : '😔 失败';
+            resultBody.innerHTML = 
+                '<div style="text-align: center; padding: 1rem;">' +
+                '<p style="font-size: 1.5rem; font-weight: 900; ' + (victory ? 'color: #22c55e;' : 'color: #ef4444;') + '">' +
+                (victory ? '胜利' : '失败') + '</p>' +
+                '<p style="font-size: 1.2rem; color: var(--medieval-text); margin-top: 0.5rem;">积分变化：' +
+                '<span style="font-weight: 800; ' + (scoreChange >= 0 ? 'color: #22c55e;' : 'color: #ef4444;') + '">' +
+                (scoreChange >= 0 ? '+' : '') + scoreChange + '</span></p>' +
+                '<p style="color: var(--medieval-text-muted); margin-top: 0.5rem; font-size: 0.9rem;">新积分：' + (result.arena_score || 0) + '</p>' +
+                '</div>';
+            resultModal.classList.add('active');
+            resultModal.setAttribute('aria-hidden', 'false');
+            ToastManager.success(victory ? '战斗胜利！' : '再接再厉！');
+            if (window.AudioManager) window.AudioManager.playSfx(victory ? 'success' : 'click');
+            // 更新页面上的统计
+            if (scoreEl) scoreEl.textContent = result.arena_score || 0;
+            if (winsEl) winsEl.textContent = result.arena_wins || 0;
+            if (lossesEl) lossesEl.textContent = result.arena_losses || 0;
+            const total = (result.arena_wins || 0) + (result.arena_losses || 0);
+            if (winrateEl) winrateEl.textContent = total > 0 ? ((result.arena_wins || 0) / total * 100).toFixed(1) + '%' : '0%';
+            // 在战况列表顶部插入新记录（不刷新页面）
+            const recordsWrap = document.getElementById('arena-records-list');
+            const noRecordsEl = document.getElementById('arena-no-records');
+            if (recordsWrap) {
+                if (noRecordsEl) noRecordsEl.remove();
+                const row = document.createElement('div');
+                row.className = 'arena-record-row';
+                row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid rgba(148,163,184,0.2);';
+                row.innerHTML = 
+                    '<span style="color: white; font-weight: 600;">' + botName + '</span>' +
+                    '<span style="font-weight: 700; ' + (victory ? 'color: #22c55e;' : 'color: #ef4444;') + '">' + (victory ? '胜利' : '失败') + '</span>' +
+                    '<span style="' + (scoreChange >= 0 ? 'color: #22c55e;' : 'color: #ef4444;') + ' font-weight: 700;">' + (scoreChange >= 0 ? '+' : '') + scoreChange + '</span>' +
+                    '<span style="font-size: 0.75rem; color: var(--medieval-text-muted);">刚刚</span>';
+                recordsWrap.insertBefore(row, recordsWrap.firstChild);
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

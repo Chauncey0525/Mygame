@@ -27,13 +27,18 @@ from models import (
     PlayerEquipment,
     PlayerRune,
     PlayerTalent,
+    PlayerMainQuest,
+    ShopPurchase,
+    ArenaRecord,
 )
 from game_data import (
     CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
     ELEMENT_NAMES, ELEMENT_COLORS, ROLE_NAMES, DIFFICULTY_NAMES, DIFFICULTY_COLORS,
     DEFAULT_DAILY_TASKS, get_character_by_id, get_characters_by_rarity,
     get_all_characters, get_stage_by_id, calculate_stats,
-    CURRENT_UP_CHARACTERS, UP_RATE_MULTIPLIER
+    CURRENT_UP_CHARACTERS, UP_RATE_MULTIPLIER,
+    SHOP_ITEMS, MAIN_QUESTS, DEFAULT_ANNOUNCEMENTS, ARENA_BOTS, NEWBIE_PACK,
+    FEATURE_UNLOCK, DEFAULT_SEVEN_DAY_GOALS,
 )
 
 # ==================== 账号工具 ====================
@@ -193,6 +198,23 @@ def ensure_db_migrations():
                 if "star_soul" not in cols:
                     db.session.execute(text("ALTER TABLE players ADD COLUMN star_soul INTEGER DEFAULT 0"))
                     db.session.commit()
+
+                # 新增字段：新手引导/统计/竞技场
+                cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(players)")).fetchall()]
+                new_player_cols = {
+                    'tutorial_step': 'INTEGER DEFAULT 0',
+                    'newbie_pack_claimed': 'BOOLEAN DEFAULT 0',
+                    'total_summon_count': 'INTEGER DEFAULT 0',
+                    'total_battle_count': 'INTEGER DEFAULT 0',
+                    'arena_score': 'INTEGER DEFAULT 1000',
+                    'arena_wins': 'INTEGER DEFAULT 0',
+                    'arena_losses': 'INTEGER DEFAULT 0',
+                }
+                for col_name, col_def in new_player_cols.items():
+                    if col_name not in cols:
+                        db.session.execute(text(f"ALTER TABLE players ADD COLUMN {col_name} {col_def}"))
+                        db.session.commit()
+
             elif dialect in ("mysql", "mariadb"):
                 # MySQL 简易检查列是否存在
                 row = db.session.execute(text(
@@ -259,9 +281,60 @@ def ensure_db_migrations():
                 if int(row or 0) == 0:
                     db.session.execute(text("ALTER TABLE player_completed_stages ADD COLUMN stars INT DEFAULT 1"))
                     db.session.commit()
+
+                new_player_cols_mysql = {
+                    'tutorial_step': 'INT NOT NULL DEFAULT 0',
+                    'newbie_pack_claimed': 'TINYINT(1) NOT NULL DEFAULT 0',
+                    'total_summon_count': 'INT NOT NULL DEFAULT 0',
+                    'total_battle_count': 'INT NOT NULL DEFAULT 0',
+                    'arena_score': 'INT NOT NULL DEFAULT 1000',
+                    'arena_wins': 'INT NOT NULL DEFAULT 0',
+                    'arena_losses': 'INT NOT NULL DEFAULT 0',
+                }
+                for col_name, col_def in new_player_cols_mysql.items():
+                    cnt = db.session.execute(text(
+                        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='players' AND COLUMN_NAME=:c"
+                    ), {'c': col_name}).scalar()
+                    if int(cnt or 0) == 0:
+                        db.session.execute(text(f"ALTER TABLE players ADD COLUMN {col_name} {col_def}"))
+                        db.session.commit()
+
     except Exception as e:
         # 不阻塞应用启动，但会影响 phone 字段写入；打印出来便于排查
         print("[WARN] ensure_db_migrations failed:", type(e).__name__, str(e))
+
+
+def seed_announcements():
+    """如果公告表为空，插入默认公告（需在 app_context 内调用）"""
+    try:
+        if Announcement.query.count() == 0:
+            now = datetime.now()
+            for a_data in DEFAULT_ANNOUNCEMENTS:
+                ann = Announcement(
+                    title=a_data['title'],
+                    content=a_data['content'],
+                    announcement_type=a_data.get('announcement_type', 'normal'),
+                    priority=a_data.get('priority', 0),
+                    show_on_login=a_data.get('show_on_login', True),
+                    show_on_main=a_data.get('show_on_main', True),
+                    start_time=now,
+                    is_active=True,
+                )
+                db.session.add(ann)
+            db.session.commit()
+    except Exception as e:
+        print("[WARN] seed_announcements failed:", type(e).__name__, str(e))
+
+
+def create_main_quests(player):
+    """为玩家初始化主线任务进度"""
+    for q in MAIN_QUESTS:
+        existing = PlayerMainQuest.query.filter_by(player_id=player.id, quest_id=q['id']).first()
+        if not existing:
+            mq = PlayerMainQuest(player_id=player.id, quest_id=q['id'], progress=0)
+            db.session.add(mq)
+    db.session.commit()
 
 
 def _ensure_seven_day_goals(player: Player):
@@ -307,21 +380,18 @@ def _sync_seven_day_by_event(player: Player, event: str, payload: Optional[dict]
 
         elif event == 'summon':
             count = int(payload.get('count') or 1)
-            # 需要“累计召唤”的目标全部累加
             for gid in ('day1-summon', 'day3-summon5', 'day5-summon10'):
                 _update_goal_progress(player, gid, delta=count)
-            # 拥有角色数（绝对值）
             owned = PlayerCharacter.query.filter_by(player_id=player.id).count()
             _update_goal_progress(player, 'day3-char3', absolute=owned)
             _update_goal_progress(player, 'day5-char5', absolute=owned)
+            _update_goal_progress(player, 'day7-char8', absolute=owned)
 
         elif event == 'battle':
-            # 仅胜利计入“完成战斗/通关关卡”
             if payload.get('victory'):
                 _update_goal_progress(player, 'day1-battle', delta=1)
                 _update_goal_progress(player, 'day2-battle3', delta=1)
                 _update_goal_progress(player, 'day4-battle10', delta=1)
-                # 通关关卡数：用已通关表做绝对值
                 cleared = PlayerCompletedStage.query.filter_by(player_id=player.id).count()
                 _update_goal_progress(player, 'day3-stage5', absolute=cleared)
                 _update_goal_progress(player, 'day6-stage20', absolute=cleared)
@@ -335,8 +405,42 @@ def _sync_seven_day_by_event(player: Player, event: str, payload: Optional[dict]
         elif event == 'breakthrough':
             _update_goal_progress(player, 'day4-breakthrough', delta=1)
 
+        # Sync counters from player stats across all events
+        _update_goal_progress(player, 'day7-battle30', absolute=player.total_battle_count or 0)
+        _update_goal_progress(player, 'day4-battle10', absolute=player.total_battle_count or 0)
+        _update_goal_progress(player, 'day1-summon', absolute=player.total_summon_count or 0)
+        _update_goal_progress(player, 'day3-summon5', absolute=player.total_summon_count or 0)
+        _update_goal_progress(player, 'day5-summon10', absolute=player.total_summon_count or 0)
+
+        max_lvl_row = db.session.execute(
+            text("SELECT MAX(level) FROM player_characters WHERE player_id = :pid"),
+            {'pid': player.id}
+        ).scalar()
+        max_lvl = int(max_lvl_row or 0)
+        if max_lvl >= 10:
+            _update_goal_progress(player, 'day4-level10', absolute=max_lvl)
+        if max_lvl >= 20:
+            _update_goal_progress(player, 'day6-level20', absolute=max_lvl)
+
+        if PlayerCompletedStage.query.filter_by(player_id=player.id, stage_id='stage-2-3').first():
+            _update_goal_progress(player, 'day5-chapter2', absolute=1)
+        if PlayerCompletedStage.query.filter_by(player_id=player.id, stage_id='stage-3-3').first():
+            _update_goal_progress(player, 'day7-chapter3', absolute=1)
+
+        epic_chars = db.session.execute(
+            text("SELECT character_id FROM player_characters WHERE player_id = :pid"),
+            {'pid': player.id}
+        ).fetchall()
+        for (cid,) in epic_chars:
+            tpl = get_character_by_id(cid)
+            if tpl and tpl.get('rarity') in ('epic', 'legendary'):
+                _update_goal_progress(player, 'day6-epic', absolute=1)
+                break
+
+        owned_cnt = PlayerCharacter.query.filter_by(player_id=player.id).count()
+        _update_goal_progress(player, 'day7-char8', absolute=owned_cnt)
+
     except Exception:
-        # 不阻塞主流程
         db.session.rollback()
 
 
@@ -542,6 +646,8 @@ def register():
         
         # 创建每日任务
         create_daily_tasks(player)
+        # 创建主线任务
+        create_main_quests(player)
         # 创建七日目标并计入首次登录
         _sync_seven_day_by_event(player, 'login')
 
@@ -1051,7 +1157,11 @@ def api_talents_upgrade():
 @login_required
 def shop():
     """商会页面"""
-    return render_template('shop.html')
+    player = current_user
+    today = date.today()
+    purchases = ShopPurchase.query.filter_by(player_id=player.id, purchase_date=today).all()
+    purchase_counts = {p.item_id: p.count for p in purchases}
+    return render_template('shop.html', player=player, shop_items=SHOP_ITEMS, purchase_counts=purchase_counts)
 
 
 @app.route('/inventory')
@@ -1144,7 +1254,20 @@ def api_equipment_unequip():
 @login_required
 def arena():
     """竞技场页面"""
-    return render_template('arena.html')
+    player = current_user
+    arena_records = ArenaRecord.query.filter_by(player_id=player.id).order_by(ArenaRecord.created_at.desc()).limit(20).all()
+    arena_stats = {
+        'arena_score': player.arena_score or 1000,
+        'arena_wins': player.arena_wins or 0,
+        'arena_losses': player.arena_losses or 0,
+    }
+    return render_template(
+        'arena.html',
+        player=player,
+        arena_bots=ARENA_BOTS,
+        arena_stats=arena_stats,
+        arena_records=arena_records,
+    )
 
 
 @app.route('/stages')
@@ -1262,7 +1385,92 @@ def battle(stage_id):
     )
 
 
+# ==================== 主线任务同步 ====================
+
+def sync_main_quests(player, event_type, event_param=None):
+    """根据事件类型检查并更新主线任务进度"""
+    try:
+        quests = PlayerMainQuest.query.filter_by(player_id=player.id, claimed=False).all()
+        quest_map = {q.quest_id: q for q in quests}
+
+        for cfg in MAIN_QUESTS:
+            mq = quest_map.get(cfg['id'])
+            if not mq or mq.claimed:
+                continue
+
+            gt = cfg.get('goal_type', '')
+            target = cfg.get('goal_target', 1)
+            progress = 0
+
+            if gt == 'claim_newbie':
+                progress = 1 if player.newbie_pack_claimed else 0
+            elif gt == 'summon':
+                progress = player.total_summon_count or 0
+            elif gt == 'summon_ten':
+                progress = (player.total_summon_count or 0) // 10
+            elif gt == 'levelup':
+                max_lvl_row = db.session.execute(
+                    text("SELECT MAX(level) FROM player_characters WHERE player_id = :pid"),
+                    {'pid': player.id}
+                ).scalar()
+                progress = int(max_lvl_row or 0)
+            elif gt == 'team_set':
+                progress = player.team.count()
+            elif gt == 'clear_stage':
+                gp = cfg.get('goal_param')
+                if gp:
+                    if PlayerCompletedStage.query.filter_by(player_id=player.id, stage_id=gp).first():
+                        progress = 1
+                    elif event_param and event_param == gp:
+                        progress = 1
+            elif gt == 'breakthrough':
+                bt_row = db.session.execute(
+                    text("SELECT MAX(breakthrough) FROM player_characters WHERE player_id = :pid"),
+                    {'pid': player.id}
+                ).scalar()
+                progress = int(bt_row or 0)
+            elif gt == 'char_level':
+                max_lvl_row = db.session.execute(
+                    text("SELECT MAX(level) FROM player_characters WHERE player_id = :pid"),
+                    {'pid': player.id}
+                ).scalar()
+                progress = int(max_lvl_row or 0)
+
+            mq.progress = max(mq.progress, progress)
+            if mq.progress >= target:
+                mq.completed = True
+
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
 # ==================== API 路由 ====================
+
+@app.route('/api/newbie-pack/claim', methods=['POST'])
+@login_required
+def api_newbie_pack_claim():
+    """领取新手礼包"""
+    player = current_user
+    if player.newbie_pack_claimed:
+        return jsonify({'success': False, 'error': '已领取新手礼包'}), 400
+
+    player.gold += NEWBIE_PACK.get('gold', 0)
+    player.gems += NEWBIE_PACK.get('gems', 0)
+    player.summon_tickets += NEWBIE_PACK.get('summon_tickets', 0)
+    player.exp_books += NEWBIE_PACK.get('exp_books', 0)
+    player.energy += NEWBIE_PACK.get('energy', 0)
+    player.newbie_pack_claimed = True
+    player.tutorial_step = max(player.tutorial_step or 0, 1)
+
+    db.session.commit()
+    sync_main_quests(player, 'claim_newbie')
+
+    return jsonify({
+        'success': True,
+        'resources': NEWBIE_PACK,
+    })
+
 
 @app.route('/api/summon', methods=['POST'])
 @login_required
@@ -1393,7 +1601,45 @@ def api_summon():
             'is_new': is_new,
             'instance_id': instance_id
         })
-    
+
+    # First 10-pull guarantee: if this is a 10-pull and player's total was 0 before, ensure at least 1 epic
+    was_first_ten = (summon_type == 'ten' and (player.total_summon_count or 0) == 0)
+    if was_first_ten:
+        has_epic = any(r['rarity'] in ('epic', 'legendary') for r in results)
+        if not has_epic:
+            upgrade_idx = random.randint(0, len(results) - 1)
+            epic_chars = get_characters_by_rarity('epic')
+            if epic_chars:
+                epic_pick = random.choice(epic_chars)
+                old_result = results[upgrade_idx]
+                existing_epic = PlayerCharacter.query.filter_by(
+                    player_id=player.id, character_id=epic_pick['id']
+                ).first()
+                if existing_epic:
+                    is_new = False
+                    inst_id = existing_epic.id
+                    player.star_soul = (player.star_soul or 0) + 8
+                else:
+                    new_epic = PlayerCharacter(
+                        player_id=player.id,
+                        character_id=epic_pick['id'],
+                        stars=1,
+                    )
+                    db.session.add(new_epic)
+                    db.session.flush()
+                    is_new = True
+                    inst_id = new_epic.id
+                results[upgrade_idx] = {
+                    'character_id': epic_pick['id'],
+                    'name': epic_pick['name'],
+                    'rarity': 'epic',
+                    'avatar': epic_pick['avatar'],
+                    'is_new': is_new,
+                    'instance_id': inst_id,
+                }
+
+    player.total_summon_count = (player.total_summon_count or 0) + count
+
     # 更新每日任务
     task = PlayerDailyTask.query.filter_by(
         player_id=player.id,
@@ -1405,8 +1651,8 @@ def api_summon():
         if task.progress >= task.target:
             task.completed = True
 
-    # 七日目标：召唤/拥有角色数
     _sync_seven_day_by_event(player, 'summon', {'count': count})
+    sync_main_quests(player, 'summon')
     
     db.session.commit()
     
@@ -1638,7 +1884,9 @@ def api_battle_complete():
             if task.progress >= task.target:
                 task.completed = True
 
+        player.total_battle_count = (player.total_battle_count or 0) + 1
         _sync_seven_day_by_event(player, 'battle', {'victory': True})
+        sync_main_quests(player, 'battle', event_param=stage_id)
     
     db.session.commit()
     
@@ -1909,38 +2157,202 @@ def api_login_announcements():
     })
 
 
-# ==================== 七日目标系统 ====================
+# ==================== 主线任务API ====================
 
-DEFAULT_SEVEN_DAY_GOALS = [
-    # Day 1
-    {'day': 1, 'goal_id': 'day1-login', 'name': '初次登录', 'description': '登录游戏', 'target': 1, 'reward_gold': 500, 'reward_gems': 100},
-    {'day': 1, 'goal_id': 'day1-summon', 'name': '首次召唤', 'description': '进行1次召唤', 'target': 1, 'reward_gold': 300, 'reward_gems': 50},
-    {'day': 1, 'goal_id': 'day1-battle', 'name': '初战告捷', 'description': '完成1次战斗', 'target': 1, 'reward_gold': 400},
-    # Day 2
-    {'day': 2, 'goal_id': 'day2-levelup', 'name': '角色强化', 'description': '强化角色1次', 'target': 1, 'reward_gold': 500, 'reward_gems': 50},
-    {'day': 2, 'goal_id': 'day2-battle3', 'name': '勇者之路', 'description': '完成3次战斗', 'target': 3, 'reward_gold': 600},
-    {'day': 2, 'goal_id': 'day2-team', 'name': '组建队伍', 'description': '设置出战队伍', 'target': 1, 'reward_gold': 400, 'reward_gems': 50},
-    # Day 3
-    {'day': 3, 'goal_id': 'day3-summon5', 'name': '召唤大师', 'description': '累计召唤5次', 'target': 5, 'reward_gold': 800, 'reward_gems': 100},
-    {'day': 3, 'goal_id': 'day3-stage5', 'name': '副本探索', 'description': '通关5个关卡', 'target': 5, 'reward_gold': 1000},
-    {'day': 3, 'goal_id': 'day3-char3', 'name': '英雄集结', 'description': '拥有3名角色', 'target': 3, 'reward_gems': 150},
-    # Day 4
-    {'day': 4, 'goal_id': 'day4-level10', 'name': '实力提升', 'description': '任意角色达到10级', 'target': 1, 'reward_gold': 1000, 'reward_gems': 100},
-    {'day': 4, 'goal_id': 'day4-breakthrough', 'name': '突破极限', 'description': '进行1次突破', 'target': 1, 'reward_gold': 800, 'reward_gems': 80},
-    {'day': 4, 'goal_id': 'day4-battle10', 'name': '战斗狂人', 'description': '累计完成10次战斗', 'target': 10, 'reward_gold': 1200},
-    # Day 5
-    {'day': 5, 'goal_id': 'day5-chapter2', 'name': '章节推进', 'description': '通关第2章', 'target': 1, 'reward_gems': 200},
-    {'day': 5, 'goal_id': 'day5-char5', 'name': '英雄团', 'description': '拥有5名角色', 'target': 5, 'reward_gems': 200},
-    {'day': 5, 'goal_id': 'day5-summon10', 'name': '召唤专家', 'description': '累计召唤10次', 'target': 10, 'reward_gold': 1500, 'reward_gems': 150},
-    # Day 6
-    {'day': 6, 'goal_id': 'day6-level20', 'name': '精英养成', 'description': '任意角色达到20级', 'target': 1, 'reward_gold': 1500, 'reward_gems': 150},
-    {'day': 6, 'goal_id': 'day6-epic', 'name': '史诗英雄', 'description': '获得1名史诗或传说角色', 'target': 1, 'reward_gems': 300},
-    {'day': 6, 'goal_id': 'day6-stage20', 'name': '副本达人', 'description': '累计通关20个关卡', 'target': 20, 'reward_gold': 2000},
-    # Day 7
-    {'day': 7, 'goal_id': 'day7-chapter3', 'name': '传说之路', 'description': '通关第3章', 'target': 1, 'reward_gems': 500},
-    {'day': 7, 'goal_id': 'day7-level30', 'name': '英雄成长', 'description': '任意角色达到30级', 'target': 1, 'reward_gold': 2000, 'reward_gems': 200},
-    {'day': 7, 'goal_id': 'day7-complete', 'name': '七日毕业', 'description': '完成所有七日目标', 'target': 1, 'reward_gems': 500},
-]
+@app.route('/api/main-quests', methods=['GET'])
+@login_required
+def api_main_quests():
+    """获取主线任务列表"""
+    player = current_user
+    existing = PlayerMainQuest.query.filter_by(player_id=player.id).count()
+    if existing == 0:
+        create_main_quests(player)
+    sync_main_quests(player, 'check')
+
+    records = PlayerMainQuest.query.filter_by(player_id=player.id).all()
+    rec_map = {r.quest_id: r for r in records}
+
+    result = []
+    for cfg in MAIN_QUESTS:
+        rec = rec_map.get(cfg['id'])
+        result.append({
+            **cfg,
+            'progress': rec.progress if rec else 0,
+            'completed': rec.completed if rec else False,
+            'claimed': rec.claimed if rec else False,
+        })
+    return jsonify({'success': True, 'quests': result})
+
+
+@app.route('/api/main-quests/claim', methods=['POST'])
+@login_required
+def api_main_quest_claim():
+    """领取主线任务奖励"""
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    quest_id = data.get('quest_id')
+    if not quest_id:
+        return jsonify({'success': False, 'error': '缺少 quest_id'}), 400
+
+    mq = PlayerMainQuest.query.filter_by(player_id=player.id, quest_id=quest_id).first()
+    if not mq:
+        return jsonify({'success': False, 'error': '任务不存在'}), 404
+    if not mq.completed:
+        return jsonify({'success': False, 'error': '任务未完成'}), 400
+    if mq.claimed:
+        return jsonify({'success': False, 'error': '已领取'}), 400
+
+    cfg = next((q for q in MAIN_QUESTS if q['id'] == quest_id), None)
+    if not cfg:
+        return jsonify({'success': False, 'error': '任务配置不存在'}), 404
+
+    player.gold += cfg.get('reward_gold', 0)
+    player.gems += cfg.get('reward_gems', 0)
+    mq.claimed = True
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'rewards': {
+            'gold': cfg.get('reward_gold', 0),
+            'gems': cfg.get('reward_gems', 0),
+        }
+    })
+
+
+# ==================== 商店API ====================
+
+@app.route('/api/shop/buy', methods=['POST'])
+@login_required
+def api_shop_buy():
+    """商店购买"""
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    item_id = data.get('item_id')
+    if not item_id:
+        return jsonify({'success': False, 'error': '缺少 item_id'}), 400
+
+    item_cfg = next((i for i in SHOP_ITEMS if i['id'] == item_id), None)
+    if not item_cfg:
+        return jsonify({'success': False, 'error': '商品不存在'}), 404
+
+    today = date.today()
+    purchase = ShopPurchase.query.filter_by(
+        player_id=player.id, item_id=item_id, purchase_date=today
+    ).first()
+    bought_today = purchase.count if purchase else 0
+
+    if bought_today >= item_cfg.get('daily_limit', 99):
+        return jsonify({'success': False, 'error': '今日购买已达上限'}), 400
+
+    price_type = item_cfg['price_type']
+    price = item_cfg['price']
+    if price_type == 'gold':
+        if player.gold < price:
+            return jsonify({'success': False, 'error': '金币不足'}), 400
+        player.gold -= price
+    elif price_type == 'gems':
+        if player.gems < price:
+            return jsonify({'success': False, 'error': '钻石不足'}), 400
+        player.gems -= price
+    else:
+        return jsonify({'success': False, 'error': '未知货币类型'}), 400
+
+    reward_type = item_cfg['reward_type']
+    reward_amount = item_cfg['reward_amount']
+    if reward_type == 'gold':
+        player.gold += reward_amount
+    elif reward_type == 'gems':
+        player.gems += reward_amount
+    elif reward_type == 'exp_books':
+        player.exp_books += reward_amount
+    elif reward_type == 'summon_tickets':
+        player.summon_tickets += reward_amount
+    elif reward_type == 'star_soul':
+        player.star_soul = (player.star_soul or 0) + reward_amount
+    elif reward_type == 'energy':
+        player.energy += reward_amount
+
+    if purchase:
+        purchase.count += 1
+    else:
+        purchase = ShopPurchase(player_id=player.id, item_id=item_id, purchase_date=today, count=1)
+        db.session.add(purchase)
+
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'reward_type': reward_type,
+        'reward_amount': reward_amount,
+        'gold': player.gold,
+        'gems': player.gems,
+        'exp_books': player.exp_books,
+        'summon_tickets': player.summon_tickets,
+        'energy': player.energy,
+        'star_soul': player.star_soul or 0,
+    })
+
+
+# ==================== 竞技场API ====================
+
+@app.route('/api/arena/challenge', methods=['POST'])
+@login_required
+def api_arena_challenge():
+    """竞技场挑战"""
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    bot_index = data.get('bot_index')
+    try:
+        bot_index = int(bot_index)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+
+    if bot_index < 0 or bot_index >= len(ARENA_BOTS):
+        return jsonify({'success': False, 'error': '对手不存在'}), 404
+
+    bot = ARENA_BOTS[bot_index]
+
+    max_lvl_row = db.session.execute(
+        text("SELECT MAX(level) FROM player_characters WHERE player_id = :pid"),
+        {'pid': player.id}
+    ).scalar()
+    player_max_lvl = int(max_lvl_row or 1)
+
+    level_diff = player_max_lvl - bot['level']
+    base_rate = 0.6
+    win_rate = max(0.3, min(0.9, base_rate + level_diff * 0.02))
+    victory = random.random() < win_rate
+
+    if victory:
+        score_change = random.randint(10, 25)
+        player.arena_score = (player.arena_score or 1000) + score_change
+        player.arena_wins = (player.arena_wins or 0) + 1
+    else:
+        score_change = -random.randint(5, 15)
+        player.arena_score = max(0, (player.arena_score or 1000) + score_change)
+        player.arena_losses = (player.arena_losses or 0) + 1
+
+    record = ArenaRecord(
+        player_id=player.id,
+        opponent_name=bot['name'],
+        opponent_score=bot['rank_score'],
+        victory=victory,
+        score_change=score_change,
+    )
+    db.session.add(record)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'victory': victory,
+        'score_change': score_change,
+        'arena_score': player.arena_score,
+        'arena_wins': player.arena_wins,
+        'arena_losses': player.arena_losses,
+    })
+
+
+# ==================== 七日目标系统 ====================
 
 
 def create_seven_day_goals(player):
@@ -2071,6 +2483,7 @@ def init_db():
 
 with app.app_context():
     ensure_db_migrations()
+    seed_announcements()
 
 
 if __name__ == '__main__':
