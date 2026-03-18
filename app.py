@@ -1280,6 +1280,32 @@ def api_seven_day_claim():
     })
 
 
+@app.route('/api/player/avatar', methods=['POST'])
+@login_required
+def api_update_avatar():
+    """更新玩家头像"""
+    player = current_user
+    data = request.get_json()
+    avatar = data.get('avatar', '').strip()
+    
+    if not avatar:
+        return jsonify({'success': False, 'error': '头像不能为空'})
+    
+    # 验证头像路径是否合法（只允许选择预设头像）
+    valid_prefix = '/static/images/avatars/avatar_'
+    if not avatar.startswith(valid_prefix):
+        return jsonify({'success': False, 'error': '无效的头像路径'})
+    
+    # 更新头像
+    player.avatar = avatar
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'avatar': avatar
+    })
+
+
 # ==================== 初始化数据库 ====================
 
 @app.cli.command('init-db')
