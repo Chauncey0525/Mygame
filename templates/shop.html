@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}商会 - 巅峰对决{% endblock %}
+
+{% block back_link %}
+<div class="back-bar"><a href="{{ url_for('index') }}" class="back-btn">← 返回城镇</a></div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <!-- 商会横幅 -->
+    <div class="card" style="background: linear-gradient(135deg, #065f46 0%, #047857 100%); border-color: #10b981;">
+        <div class="card-body" style="text-align: center; padding: 2rem;">
+            <h2 style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">🏪 商会</h2>
+            <p style="color: #e2e8f0;">购买道具与资源兑换</p>
+        </div>
+    </div>
+
+    <!-- 功能预告 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🚧 功能开发中</h3>
+        </div>
+        <div class="card-body" style="text-align: center; padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
+            <h3 style="color: var(--medieval-gold-light); margin-bottom: 0.5rem;">商会即将开放</h3>
+            <p style="color: var(--medieval-text-muted);">这里将提供以下功能：</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">💎</div>
+                    <div style="font-weight: bold; color: white;">钻石商店</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">购买稀有道具</div>
+                </div>
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">💰</div>
+                    <div style="font-weight: bold; color: white;">金币商店</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">购买日常道具</div>
+                </div>
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">🔄</div>
+                    <div style="font-weight: bold; color: white;">资源兑换</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">资源互相转换</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -44,6 +44,34 @@ ELEMENT_COLORS = {
     'dark': '#7c3aed'
 }
 
+# 元素克制关系 (攻击方 -> 被克制方)
+# 攻击克制属性时造成额外伤害，被克制时减少伤害
+ELEMENT_ADVANTAGE = {
+    'fire': 'wind',     # 火克风
+    'water': 'fire',    # 水克火
+    'wind': 'earth',    # 风克土
+    'earth': 'water',   # 土克水
+    'light': 'dark',    # 光克暗
+    'dark': 'light'     # 暗克光
+}
+
+# 元素被克制关系 (反向映射)
+ELEMENT_DISADVANTAGE = {v: k for k, v in ELEMENT_ADVANTAGE.items()}
+
+# 克制伤害加成
+ELEMENT_ADVANTAGE_BONUS = 0.3  # 克制时+30%伤害
+ELEMENT_DISADVANTAGE_PENALTY = 0.2  # 被克制时-20%伤害
+
+# UP池配置
+# 当前UP角色列表，在UP池中这些角色的概率会提升
+CURRENT_UP_CHARACTERS = {
+    'legendary': ['zhuge-liang'],  # 传说UP角色
+    'epic': ['guan-yu']  # 史诗UP角色
+}
+
+# UP池概率提升倍数
+UP_RATE_MULTIPLIER = 3  # UP角色概率是普通概率的3倍
+
 # 角色类型
 ROLE_NAMES = {
     'warrior': '战士',

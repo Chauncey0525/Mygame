@@ -16,7 +16,8 @@ from game_data import (
     CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
     ELEMENT_NAMES, ELEMENT_COLORS, ROLE_NAMES, DIFFICULTY_NAMES, DIFFICULTY_COLORS,
     DEFAULT_DAILY_TASKS, get_character_by_id, get_characters_by_rarity,
-    get_all_characters, get_stage_by_id, calculate_stats
+    get_all_characters, get_stage_by_id, calculate_stats,
+    CURRENT_UP_CHARACTERS, UP_RATE_MULTIPLIER
 )
 
 # ==================== 账号工具 ====================
@@ -555,8 +556,38 @@ def summon():
     return render_template('summon.html',
         player=player,
         rarity_names=RARITY_NAMES,
-        rarity_colors=RARITY_COLORS
+        rarity_colors=RARITY_COLORS,
+        get_character_by_id=get_character_by_id,
+        RARITY_COLORS=RARITY_COLORS
     )
+
+
+@app.route('/research')
+@login_required
+def research():
+    """研究所页面"""
+    return render_template('research.html')
+
+
+@app.route('/shop')
+@login_required
+def shop():
+    """商会页面"""
+    return render_template('shop.html')
+
+
+@app.route('/inventory')
+@login_required
+def inventory():
+    """仓库页面"""
+    return render_template('inventory.html')
+
+
+@app.route('/arena')
+@login_required
+def arena():
+    """竞技场页面"""
+    return render_template('arena.html')
 
 
 @app.route('/stages')
@@ -567,6 +598,11 @@ def stages():
     
     # 获取已通关关卡
     completed = [s.stage_id for s in player.completed_stages]
+    
+    # 获取关卡星级
+    stage_stars = {}
+    for s in player.completed_stages:
+        stage_stars[s.stage_id] = s.stars if hasattr(s, 'stars') else 1
     
     # 获取队伍
     team = []
@@ -581,6 +617,7 @@ def stages():
         player=player,
         chapters=CHAPTERS,
         completed_stages=completed,
+        stage_stars=stage_stars,
         team=team,
         difficulty_names=DIFFICULTY_NAMES,
         difficulty_colors=DIFFICULTY_COLORS,
@@ -699,11 +736,33 @@ def api_summon():
             else:
                 rarity = 'common'
         
-        # 随机选择角色
-        characters = get_characters_by_rarity(rarity)
-        if not characters:
-            characters = get_all_characters()
-        char_template = random.choice(characters)
+        # UP池逻辑：如果该稀有度有UP角色，有概率抽到UP角色
+        up_chars = CURRENT_UP_CHARACTERS.get(rarity, [])
+        if up_chars:
+            # 50%概率抽到UP角色
+            if random.random() < 0.5:
+                char_template = get_character_by_id(random.choice(up_chars))
+                if char_template:
+                    # 继续处理
+                    pass
+                else:
+                    # UP角色不存在，从所有角色中随机选择
+                    characters = get_characters_by_rarity(rarity)
+                    if not characters:
+                        characters = get_all_characters()
+                    char_template = random.choice(characters)
+            else:
+                # 从所有该稀有度角色中随机选择
+                characters = get_characters_by_rarity(rarity)
+                if not characters:
+                    characters = get_all_characters()
+                char_template = random.choice(characters)
+        else:
+            # 没有UP角色，正常随机
+            characters = get_characters_by_rarity(rarity)
+            if not characters:
+                characters = get_all_characters()
+            char_template = random.choice(characters)
         
         # 检查是否已有该角色
         existing = PlayerCharacter.query.filter_by(
@@ -887,6 +946,8 @@ def api_battle_complete():
     data = request.get_json()
     stage_id = data.get('stage_id')
     victory = data.get('victory', False)
+    turns = data.get('turns', 0)  # 战斗回合数
+    casualties = data.get('casualties', 0)  # 阵亡人数
     
     stage = get_stage_by_id(stage_id)
     if not stage:
@@ -906,16 +967,30 @@ def api_battle_complete():
         if rewards.get('gems'):
             player.gems += rewards['gems']
         
+        # 计算星级
+        # 1星：通关
+        # 2星：无人阵亡
+        # 3星：5回合内通关 + 无人阵亡
+        stars = 1
+        if casualties == 0:
+            stars = 2
+        if casualties == 0 and turns <= 5:
+            stars = 3
+        
         # 记录通关
         existing = PlayerCompletedStage.query.filter_by(
             player_id=player.id,
             stage_id=stage_id
         ).first()
         
-        if not existing:
+        if existing:
+            # 更新最高星级
+            existing.stars = max(existing.stars, stars)
+        else:
             completed = PlayerCompletedStage(
                 player_id=player.id,
-                stage_id=stage_id
+                stage_id=stage_id,
+                stars=stars
             )
             db.session.add(completed)
             
@@ -941,7 +1016,62 @@ def api_battle_complete():
     return jsonify({
         'success': True,
         'victory': victory,
-        'rewards': stage['rewards'] if victory else None
+        'rewards': stage['rewards'] if victory else None,
+        'stars': stars if victory else 0
+    })
+
+
+@app.route('/api/sweep', methods=['POST'])
+@login_required
+def api_sweep():
+    """扫荡已通关关卡API"""
+    player = current_user
+    data = request.get_json()
+    stage_id = data.get('stage_id')
+    
+    stage = get_stage_by_id(stage_id)
+    if not stage:
+        return jsonify({'success': False, 'error': '关卡不存在'})
+    
+    # 检查是否已通关
+    completed = PlayerCompletedStage.query.filter_by(
+        player_id=player.id,
+        stage_id=stage_id
+    ).first()
+    
+    if not completed:
+        return jsonify({'success': False, 'error': '未通关该关卡，无法扫荡'})
+    
+    # 检查体力
+    if player.energy < stage['energy_cost']:
+        return jsonify({'success': False, 'error': '体力不足'})
+    
+    # 消耗体力
+    player.energy -= stage['energy_cost']
+    
+    # 发放奖励（与战斗相同）
+    rewards = stage['rewards']
+    player.gold += rewards.get('gold', 0)
+    player.exp += rewards.get('exp', 0)
+    if rewards.get('gems'):
+        player.gems += rewards['gems']
+    
+    # 更新每日任务
+    task = PlayerDailyTask.query.filter_by(
+        player_id=player.id,
+        task_id='daily-battle',
+        task_date=date.today()
+    ).first()
+    if task:
+        task.progress += 1
+        if task.progress >= task.target:
+            task.completed = True
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'rewards': rewards
     })
 
 

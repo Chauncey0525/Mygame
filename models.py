@@ -169,6 +169,7 @@ class PlayerCompletedStage(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
     stage_id = db.Column(db.String(64), nullable=False)
+    stars = db.Column(db.Integer, default=1)  # 关卡星级 1-3
     completed_at = db.Column(db.DateTime, default=datetime.now)
     
     __table_args__ = (

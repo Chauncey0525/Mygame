@@ -8,6 +8,16 @@
 
 {% block content %}
 <div class="space-y-4">
+    <!-- 章节控制按钮 -->
+    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="expandAllChapters()" aria-label="展开所有章节">
+            📂 全部展开
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="collapseAllChapters()" aria-label="折叠所有章节">
+            📁 全部折叠
+        </button>
+    </div>
+
     <!-- 章节列表 -->
     {% for chapter in chapters %}
     <div class="card">
@@ -28,8 +38,7 @@
         <div class="card-body" id="chapter-{{ chapter.id }}" style="display: none;">
             {% for stage in chapter.stages %}
             <div class="card stage-card {% if stage.id in completed_stages %}completed{% endif %}" 
-                 style="margin-bottom: 1rem; cursor: pointer;"
-                 onclick="startBattle('{{ stage.id }}')">
+                 style="margin-bottom: 1rem;">
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 1rem;">
@@ -40,6 +49,13 @@
                             </div>
                             <div>
                                 <h4 style="font-weight: bold; color: white;">{{ stage.name }}</h4>
+                                <!-- 星级显示 -->
+                                <div style="display: flex; gap: 0.15rem; margin-top: 0.15rem;">
+                                    {% set stars = stage_stars.get(stage.id, 0) %}
+                                    {% for i in range(3) %}
+                                    <span style="font-size: 0.9rem; color: {% if i < stars %}#fbbf24{% else %}#4b5563{% endif %};">★</span>
+                                    {% endfor %}
+                                </div>
                                 <p style="font-size: 0.75rem; color: #94a3b8;">{{ stage.description }}</p>
                             </div>
                         </div>
@@ -70,6 +86,20 @@
                         <span style="color: #22c55e;">📖 {{ stage.rewards.exp }}</span>
                         {% if stage.rewards.gems %}
                         <span style="color: #06b6d4;">💎 {{ stage.rewards.gems }}</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                        <button type="button" class="btn btn-primary" style="flex: 1;" onclick="startBattle('{{ stage.id }}')" 
+                                {% if not team %}disabled title="请先设置队伍"{% endif %}>
+                            {% if stage.id in completed_stages %}再次挑战{% else %}开始挑战{% endif %}
+                        </button>
+                        {% if stage.id in completed_stages %}
+                        <button type="button" class="btn btn-secondary" onclick="sweepStage('{{ stage.id }}', {{ stage.energy_cost }})"
+                                aria-label="扫荡关卡">
+                            ⚡ 扫荡
+                        </button>
                         {% endif %}
                     </div>
                 </div>
@@ -124,14 +154,55 @@ function toggleChapter(chapterId) {
     }
 }
 
+function expandAllChapters() {
+    if (window.AudioManager) window.AudioManager.playSfx('click');
+    const chapters = document.querySelectorAll('[id^="chapter-"]');
+    chapters.forEach(chapter => {
+        chapter.style.display = 'block';
+    });
+    ToastManager.info('已展开所有章节', 2000);
+}
+
+function collapseAllChapters() {
+    if (window.AudioManager) window.AudioManager.playSfx('click');
+    const chapters = document.querySelectorAll('[id^="chapter-"]');
+    chapters.forEach(chapter => {
+        chapter.style.display = 'none';
+    });
+    ToastManager.info('已折叠所有章节', 2000);
+}
+
 function startBattle(stageId) {
     {% if not team %}
-    alert('请先设置队伍');
+    ToastManager.warning('请先设置队伍');
     return;
     {% endif %}
     
     if (confirm('确定要开始战斗吗？')) {
         window.location.href = '/battle/' + stageId;
+    }
+}
+
+async function sweepStage(stageId, energyCost) {
+    {% if not team %}
+    ToastManager.warning('请先设置队伍');
+    return;
+    {% endif %}
+    
+    if (!confirm(`确定要扫荡吗？消耗 ${energyCost} 体力`)) {
+        return;
+    }
+    
+    if (window.AudioManager) window.AudioManager.playSfx('click');
+    
+    const result = await apiCall('/api/sweep', { stage_id: stageId });
+    
+    if (result.success) {
+        ToastManager.success(`扫荡成功！获得 💰${result.rewards.gold} 📖${result.rewards.exp}`);
+        // 刷新页面更新数据
+        setTimeout(() => location.reload(), 1500);
+    } else {
+        ToastManager.error(result.error || '扫荡失败');
     }
 }
 

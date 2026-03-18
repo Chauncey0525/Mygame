@@ -16,6 +16,37 @@
         </div>
     </div>
 
+    <!-- 战斗控制栏 -->
+    <div class="card">
+        <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <!-- 自动战斗开关 -->
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="auto-battle-toggle" style="font-size: 0.9rem; color: var(--medieval-text);">自动战斗</label>
+                    <label class="switch" style="width: 44px; height: 24px;">
+                        <input type="checkbox" id="auto-battle-toggle" aria-label="自动战斗开关">
+                        <span class="slider" style="width: 44px; height: 24px;"></span>
+                        <span class="slider:before" style="height: 18px; width: 18px;"></span>
+                    </label>
+                </div>
+                
+                <!-- 倍速控制 -->
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 0.9rem; color: var(--medieval-text);">速度</span>
+                    <div style="display: flex; gap: 0.25rem;">
+                        <button type="button" class="speed-btn active" data-speed="1" onclick="setBattleSpeed(1)" aria-label="1倍速">1x</button>
+                        <button type="button" class="speed-btn" data-speed="1.5" onclick="setBattleSpeed(1.5)" aria-label="1.5倍速">1.5x</button>
+                        <button type="button" class="speed-btn" data-speed="2" onclick="setBattleSpeed(2)" aria-label="2倍速">2x</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="battle-status" style="font-size: 0.9rem; color: var(--medieval-gold-light);">
+                等待操作...
+            </div>
+        </div>
+    </div>
+
     <!-- 战斗区域 -->
     <div class="card battle-area" style="background: url('{{ url_for('static', filename='images/backgrounds/battle.jpg') }}') center/cover; position: relative;">
         <div style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.85);"></div>
@@ -122,8 +153,59 @@ let gameState = {
     currentTurn: 0,  // 0 = ally, 1 = enemy
     currentAllyIndex: 0,
     currentEnemyIndex: 0,
-    battleEnded: false
+    battleEnded: false,
+    autoBattle: false,
+    battleSpeed: 1
 };
+
+// 自动战斗控制
+const autoBattleToggle = document.getElementById('auto-battle-toggle');
+const battleStatus = document.getElementById('battle-status');
+
+autoBattleToggle.addEventListener('change', function() {
+    gameState.autoBattle = this.checked;
+    if (gameState.autoBattle && !gameState.battleEnded) {
+        battleStatus.textContent = '自动战斗中...';
+        autoAttack();
+    } else {
+        battleStatus.textContent = '等待操作...';
+    }
+    if (window.AudioManager) window.AudioManager.playSfx('click');
+});
+
+// 设置战斗倍速
+function setBattleSpeed(speed) {
+    gameState.battleSpeed = speed;
+    
+    // 更新按钮状态
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
+    });
+    
+    if (window.AudioManager) window.AudioManager.playSfx('click');
+    ToastManager.info(`战斗速度: ${speed}x`, 1500);
+}
+
+// 获取基础延迟（根据倍速调整）
+function getDelay(baseDelay) {
+    return baseDelay / gameState.battleSpeed;
+}
+
+// 自动攻击
+async function autoAttack() {
+    if (!gameState.autoBattle || gameState.battleEnded) return;
+    
+    // 随机选择技能
+    const attacker = gameState.allies[gameState.currentAllyIndex];
+    const skillIndex = attacker.skills ? Math.floor(Math.random() * (attacker.skills.length + 1)) - 1 : -1;
+    
+    await useSkill(skillIndex);
+    
+    // 如果还在自动战斗模式且战斗未结束，继续自动攻击
+    if (gameState.autoBattle && !gameState.battleEnded) {
+        setTimeout(autoAttack, getDelay(1500));
+    }
+}
 
 // 初始化血量
 gameState.allies.forEach((ally, i) => {
@@ -176,12 +258,42 @@ function calculateDamage(attacker, defender, skill) {
     // 计算伤害：攻击力 - 防御力 * 0.5，最小为1
     let damage = Math.max(1, Math.floor(baseDamage - defenseStat * 0.5));
     
+    // 元素克制计算
+    const attackerElement = skill && skill.element ? skill.element : attacker.element;
+    const defenderElement = defender.element;
+    let elementBonus = 0;
+    let elementText = '';
+    
+    // 元素克制关系
+    const elementAdvantage = {
+        'fire': 'wind',
+        'water': 'fire',
+        'wind': 'earth',
+        'earth': 'water',
+        'light': 'dark',
+        'dark': 'light'
+    };
+    
+    if (elementAdvantage[attackerElement] === defenderElement) {
+        // 攻击方克制防守方
+        elementBonus = 0.3;
+        elementText = '【克制】';
+    } else if (elementAdvantage[defenderElement] === attackerElement) {
+        // 防守方克制攻击方
+        elementBonus = -0.2;
+        elementText = '【被克】';
+    }
+    
+    if (elementBonus !== 0) {
+        damage = Math.floor(damage * (1 + elementBonus));
+    }
+    
     // 添加少量随机波动 (±10%)
     const variance = damage * 0.1;
     damage = Math.floor(damage + (Math.random() * variance * 2 - variance));
     damage = Math.max(1, damage);
     
-    return damage;
+    return { damage, elementText, elementBonus };
 }
 
 async function useSkill(skillIndex) {
@@ -201,11 +313,16 @@ async function useSkill(skillIndex) {
     }
     
     // 玩家攻击
-    const damage = calculateDamage(attacker, target, skill);
+    const result = calculateDamage(attacker, target, skill);
+    const damage = result.damage;
     target.currentHp -= damage;
     
     const skillName = skill ? skill.name : '普通攻击';
-    addLog(`⚔️ ${attacker.name} 使用 ${skillName} 对 ${target.name} 造成 ${damage} 点伤害！`);
+    let logMessage = `⚔️ ${attacker.name} 使用 ${skillName} 对 ${target.name} 造成 ${damage} 点伤害！`;
+    if (result.elementText) {
+        logMessage += ` ${result.elementText}`;
+    }
+    addLog(logMessage);
     
     updateHpDisplay('enemy', gameState.currentEnemyIndex);
     var enemyEl = document.getElementById('enemy-' + gameState.currentEnemyIndex);
@@ -235,7 +352,7 @@ async function useSkill(skillIndex) {
     }
     
     // 敌人回合
-    setTimeout(enemyTurn, 500);
+    setTimeout(enemyTurn, getDelay(500));
 }
 
 function enemyTurn() {
@@ -258,10 +375,15 @@ function enemyTurn() {
         const target = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
         const targetIndex = gameState.allies.indexOf(target);
         
-        const damage = calculateDamage(enemy, target, null);
+        const result = calculateDamage(enemy, target, null);
+        const damage = result.damage;
         target.currentHp -= damage;
         
-        addLog(`👿 ${enemy.name} 对 ${target.name} 造成 ${damage} 点伤害！`);
+        let logMessage = `👿 ${enemy.name} 对 ${target.name} 造成 ${damage} 点伤害！`;
+        if (result.elementText) {
+            logMessage += ` ${result.elementText}`;
+        }
+        addLog(logMessage);
         updateHpDisplay('ally', targetIndex);
         var allyEl = document.getElementById('ally-' + targetIndex);
         if (allyEl) {
@@ -293,10 +415,16 @@ async function endBattle(victory) {
     // 禁用技能按钮
     document.querySelectorAll('.skill-btn').forEach(btn => btn.disabled = true);
     
+    // 计算战斗统计
+    const turns = 1; // 简化版本，实际可以跟踪回合数
+    const casualties = gameState.allies.filter(a => a.currentHp <= 0).length;
+    
     // 发送结果到服务器
     const result = await apiCall('/api/battle/complete', {
         stage_id: '{{ stage.id }}',
-        victory: victory
+        victory: victory,
+        turns: turns,
+        casualties: casualties
     });
     
     // 显示结果
@@ -307,7 +435,15 @@ async function endBattle(victory) {
     if (victory) {
         title.textContent = '🎉 胜利！';
         title.style.color = '#22c55e';
+        
+        // 星级显示
+        let starsHtml = '';
+        for (let i = 0; i < 3; i++) {
+            starsHtml += `<span style="font-size: 2rem; color: ${i < result.stars ? '#fbbf24' : '#4b5563'};">★</span>`;
+        }
+        
         content.innerHTML = `
+            <div style="margin-bottom: 1rem;">${starsHtml}</div>
             <p style="font-size: 1.25rem; color: white;">恭喜通关！</p>
             <div style="margin-top: 1rem;">
                 <p>💰 金币 +${result.rewards.gold}</p>

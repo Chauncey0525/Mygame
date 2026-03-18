@@ -62,34 +62,34 @@
                         <div class="town-building-desc">角色图鉴与筛选</div>
                     </div>
                 </button>
-                <div class="town-building disabled card" aria-disabled="true">
+                <a href="{{ url_for('research') }}" class="town-building card">
                     <div class="card-body">
                         <div class="town-building-icon">🧪</div>
                         <div class="town-building-title">研究所</div>
-                        <div class="town-building-desc">天赋/符文（开发中）</div>
+                        <div class="town-building-desc">天赋/符文配置</div>
                     </div>
-                </div>
-                <div class="town-building disabled card" aria-disabled="true">
+                </a>
+                <a href="{{ url_for('shop') }}" class="town-building card">
                     <div class="card-body">
                         <div class="town-building-icon">🛒</div>
                         <div class="town-building-title">商会</div>
-                        <div class="town-building-desc">商店/兑换（开发中）</div>
+                        <div class="town-building-desc">商店/兑换</div>
                     </div>
-                </div>
-                <div class="town-building disabled card" aria-disabled="true">
+                </a>
+                <a href="{{ url_for('inventory') }}" class="town-building card">
                     <div class="card-body">
                         <div class="town-building-icon">📦</div>
                         <div class="town-building-title">仓库</div>
-                        <div class="town-building-desc">装备/道具（开发中）</div>
+                        <div class="town-building-desc">装备/道具管理</div>
                     </div>
-                </div>
-                <div class="town-building disabled card" aria-disabled="true">
+                </a>
+                <a href="{{ url_for('arena') }}" class="town-building card">
                     <div class="card-body">
                         <div class="town-building-icon">🏆</div>
                         <div class="town-building-title">竞技场</div>
-                        <div class="town-building-desc">PVP 排位（开发中）</div>
+                        <div class="town-building-desc">PVP 排位挑战</div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="town-hint">
                 提示：后续可以给建筑加特效/动画/音乐，并逐步开放“开发中”的建筑功能。

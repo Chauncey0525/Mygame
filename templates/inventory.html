@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}仓库 - 巅峰对决{% endblock %}
+
+{% block back_link %}
+<div class="back-bar"><a href="{{ url_for('index') }}" class="back-btn">← 返回城镇</a></div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <!-- 仓库横幅 -->
+    <div class="card" style="background: linear-gradient(135deg, #78350f 0%, #92400e 100%); border-color: #d97706;">
+        <div class="card-body" style="text-align: center; padding: 2rem;">
+            <h2 style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">📦 仓库</h2>
+            <p style="color: #e2e8f0;">管理装备、材料与道具</p>
+        </div>
+    </div>
+
+    <!-- 功能预告 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🚧 功能开发中</h3>
+        </div>
+        <div class="card-body" style="text-align: center; padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎒</div>
+            <h3 style="color: var(--medieval-gold-light); margin-bottom: 0.5rem;">仓库即将开放</h3>
+            <p style="color: var(--medieval-text-muted);">这里将提供以下功能：</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">⚔️</div>
+                    <div style="font-weight: bold; color: white;">装备管理</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">查看与管理装备</div>
+                </div>
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">🧪</div>
+                    <div style="font-weight: bold; color: white;">材料仓库</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">收集升级材料</div>
+                </div>
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">🎁</div>
+                    <div style="font-weight: bold; color: white;">道具背包</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">消耗品与礼物</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

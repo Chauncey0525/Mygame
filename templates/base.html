@@ -27,42 +27,45 @@
 <body>
     <!-- 顶部导航栏 -->
     {% if player %}
-    <nav class="navbar">
+    <nav class="navbar" role="navigation" aria-label="主导航">
         <div class="navbar-content">
-            <a href="{{ url_for('index') }}" class="navbar-brand">
-                <img src="{{ url_for('static', filename='images/ui/logo.png') }}" alt="巅峰对决" style="height: 32px; margin-right: 8px;">
+            <a href="{{ url_for('index') }}" class="navbar-brand" aria-label="返回首页">
+                <img src="{{ url_for('static', filename='images/ui/logo.png') }}" alt="巅峰对决Logo" style="height: 32px; margin-right: 8px;">
                 巅峰对决
             </a>
-            <div class="navbar-resources">
-                <div class="resource-item">
-                    <span class="resource-icon">💰</span>
-                    <span class="resource-value">{{ player.gold }}</span>
+            <div class="navbar-resources" role="region" aria-label="玩家资源">
+                <div class="resource-item" aria-label="金币">
+                    <span class="resource-icon" aria-hidden="true">💰</span>
+                    <span class="resource-value" aria-label="金币数量">{{ player.gold }}</span>
                 </div>
-                <div class="resource-item">
-                    <span class="resource-icon">💎</span>
-                    <span class="resource-value">{{ player.gems }}</span>
+                <div class="resource-item" aria-label="钻石">
+                    <span class="resource-icon" aria-hidden="true">💎</span>
+                    <span class="resource-value" aria-label="钻石数量">{{ player.gems }}</span>
                 </div>
-                <div class="resource-item">
-                    <span class="resource-icon">📖</span>
-                    <span class="resource-value">{{ player.exp_books }}</span>
+                <div class="resource-item" aria-label="经验书">
+                    <span class="resource-icon" aria-hidden="true">📖</span>
+                    <span class="resource-value" aria-label="经验书数量">{{ player.exp_books }}</span>
                 </div>
-                <div class="resource-item">
-                    <span class="resource-icon">⚡</span>
-                    <span class="resource-value">{{ player.energy }}/{{ player.max_energy }}</span>
+                <div class="resource-item" aria-label="体力">
+                    <span class="resource-icon" aria-hidden="true">⚡</span>
+                    <span class="resource-value" aria-label="体力值">{{ player.energy }}/{{ player.max_energy }}</span>
                 </div>
                 <div class="resource-item audio-ctrl">
                     <button type="button" class="audio-btn" id="settings-open-btn" title="设置 (Esc)" aria-label="打开设置">⚙️</button>
                 </div>
                 <div class="resource-item user-info">
-                    <span class="user-name">{{ player.name }}</span>
+                    <span class="user-name" aria-label="当前用户">{{ player.name }}</span>
                 </div>
             </div>
         </div>
     </nav>
     {% endif %}
 
-    <!-- 主内容区 -->
-    <main class="main-content">
+        <!-- Toast 容器 -->
+        <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -78,10 +81,10 @@
     </main>
 
     <!-- 设置弹窗 -->
-    <div id="settingsModal" class="modal" aria-hidden="true">
+    <div id="settingsModal" class="modal" role="dialog" aria-labelledby="settings-title" aria-modal="true" aria-hidden="true">
         <div class="modal-content" style="max-width: 720px;">
             <div class="modal-header">
-                <h3 class="card-title">⚙️ 设置</h3>
+                <h3 class="card-title" id="settings-title">⚙️ 设置</h3>
                 <button class="modal-close" type="button" id="settings-close-btn" aria-label="关闭设置">&times;</button>
             </div>
             <div class="modal-body">
@@ -200,8 +203,8 @@
                 if (!response.ok) {
                     // 处理HTTP错误
                     if (response.status === 401 || response.status === 302) {
-                        alert('登录已过期，请重新登录');
-                        window.location.href = '/login';
+                        ToastManager.error('登录已过期，请重新登录');
+                        setTimeout(() => { window.location.href = '/login'; }, 1500);
                         return {success: false, error: '未登录'};
                     }
                     throw new Error('HTTP error: ' + response.status);
@@ -218,9 +221,85 @@
             }
         }
         
-        // 显示消息
+        // Toast 提示系统
+        const ToastManager = {
+            container: null,
+            init: function() {
+                this.container = document.getElementById('toast-container');
+            },
+            show: function(message, type = 'info', duration = 3000) {
+                if (!this.container) this.init();
+                
+                const icons = {
+                    success: '✓',
+                    error: '✕',
+                    warning: '⚠',
+                    info: 'ℹ'
+                };
+                
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                toast.setAttribute('role', 'alert');
+                toast.innerHTML = `
+                    <span class="toast-icon">${icons[type] || icons.info}</span>
+                    <div class="toast-content">
+                        <div class="toast-message">${message}</div>
+                    </div>
+                    <button class="toast-close" type="button" aria-label="关闭提示">&times;</button>
+                `;
+                
+                const closeBtn = toast.querySelector('.toast-close');
+                closeBtn.addEventListener('click', () => this.remove(toast));
+                
+                this.container.appendChild(toast);
+                
+                // 自动关闭
+                if (duration > 0) {
+                    setTimeout(() => this.remove(toast), duration);
+                }
+                
+                // 播放音效
+                if (window.AudioManager && (type === 'success' || type === 'error')) {
+                    window.AudioManager.playSfx(type === 'success' ? 'success' : 'click');
+                }
+                
+                return toast;
+            },
+            remove: function(toast) {
+                if (!toast || !toast.parentNode) return;
+                toast.classList.add('toast-out');
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 250);
+            },
+            success: function(message, duration) { return this.show(message, 'success', duration); },
+            error: function(message, duration) { return this.show(message, 'error', duration); },
+            warning: function(message, duration) { return this.show(message, 'warning', duration); },
+            info: function(message, duration) { return this.show(message, 'info', duration); }
+        };
+        
+        // 显示消息 (替代 alert)
         function showMessage(message, type = 'info') {
-            alert(message);
+            return ToastManager.show(message, type);
+        }
+        
+        // 资源飘字效果
+        function showResourceFloat(value, element, isPositive = true) {
+            const rect = element.getBoundingClientRect();
+            const floatEl = document.createElement('div');
+            floatEl.className = `resource-float ${isPositive ? 'positive' : 'negative'}`;
+            floatEl.textContent = isPositive ? `+${value}` : `-${value}`;
+            floatEl.style.left = `${rect.left + rect.width / 2}px`;
+            floatEl.style.top = `${rect.top}px`;
+            document.body.appendChild(floatEl);
+            
+            setTimeout(() => {
+                if (floatEl.parentNode) {
+                    floatEl.parentNode.removeChild(floatEl);
+                }
+            }, 1500);
         }
 
         // 设置：持久化 + ESC 关闭

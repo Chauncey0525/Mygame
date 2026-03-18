@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}竞技场 - 巅峰对决{% endblock %}
+
+{% block back_link %}
+<div class="back-bar"><a href="{{ url_for('index') }}" class="back-btn">← 返回城镇</a></div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <!-- 竞技场横幅 -->
+    <div class="card" style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); border-color: #dc2626;">
+        <div class="card-body" style="text-align: center; padding: 2rem;">
+            <h2 style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">⚔️ 竞技场</h2>
+            <p style="color: #e2e8f0;">挑战其他玩家，争夺排名</p>
+        </div>
+    </div>
+
+    <!-- 功能预告 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🚧 功能开发中</h3>
+        </div>
+        <div class="card-body" style="text-align: center; padding: 3rem;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🏆</div>
+            <h3 style="color: var(--medieval-gold-light); margin-bottom: 0.5rem;">竞技场即将开放</h3>
+            <p style="color: var(--medieval-text-muted);">这里将提供以下功能：</p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">🎯</div>
+                    <div style="font-weight: bold; color: white;">PVP对战</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">挑战其他玩家</div>
+                </div>
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">📊</div>
+                    <div style="font-weight: bold; color: white;">排名系统</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">争夺竞技排名</div>
+                </div>
+                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
+                    <div style="font-size: 2rem;">🎖️</div>
+                    <div style="font-weight: bold; color: white;">赛季奖励</div>
+                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">赛季结算奖励</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
