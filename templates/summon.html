@@ -9,8 +9,9 @@
 {% block content %}
 <div class="space-y-4">
     <!-- 召唤横幅 -->
-    <div class="card" style="background: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%); border-color: #a855f7;">
-        <div class="card-body" style="text-align: center; padding: 2rem;">
+    <div class="card summon-banner" style="background: url('{{ url_for('static', filename='images/backgrounds/summon.jpg') }}') center/cover; border-color: #a855f7; position: relative;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(124, 58, 237, 0.85) 0%, rgba(192, 38, 211, 0.85) 100%);"></div>
+        <div class="card-body" style="text-align: center; padding: 2rem; position: relative; z-index: 1;">
             <h2 style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">✨ 英雄召唤</h2>
             <p style="color: #e2e8f0;">召唤历史英雄，组建你的最强队伍</p>
         </div>
