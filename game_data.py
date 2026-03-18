@@ -830,17 +830,14 @@ NEWBIE_PACK = {
     'energy': 50,
 }
 
-# 功能解锁配置 (按主线进度/玩家等级解锁)
+# 功能解锁配置 (纯等级解锁，主线任务引导但不阻塞)
 FEATURE_UNLOCK = {
-    'summon':    {'quest': None,     'level': 1,  'name': '群英馆'},
-    'characters':{'quest': None,     'level': 1,  'name': '军营'},
-    'team':      {'quest': 'mq-1-2', 'level': 1,  'name': '队伍'},
-    'stages':    {'quest': 'mq-1-4', 'level': 1,  'name': '演武场'},
-    'tasks':     {'quest': 'mq-1-5', 'level': 3,  'name': '任务'},
-    'shop':      {'quest': 'mq-1-6', 'level': 5,  'name': '商会'},
-    'research':  {'quest': 'mq-2-2', 'level': 10, 'name': '研究所'},
-    'arena':     {'quest': 'mq-2-4', 'level': 15, 'name': '竞技场'},
-    'sweep':     {'quest': 'mq-2-4', 'level': 15, 'name': '扫荡'},
+    'summon':    {'quest': None, 'level': 1,  'name': '群英馆'},
+    'characters':{'quest': None, 'level': 1,  'name': '军营'},
+    'stages':    {'quest': None, 'level': 2,  'name': '演武场'},
+    'shop':      {'quest': None, 'level': 5,  'name': '商会'},
+    'research':  {'quest': None, 'level': 10, 'name': '研究所'},
+    'arena':     {'quest': None, 'level': 15, 'name': '竞技场'},
 }
 
 

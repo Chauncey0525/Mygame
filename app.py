@@ -877,6 +877,22 @@ def get_battle_character(character_instance):
     }
 
 
+def check_feature_unlocked(player, feature_key):
+    """检查某功能是否已解锁"""
+    cfg = FEATURE_UNLOCK.get(feature_key)
+    if not cfg:
+        return True
+    if player.level < cfg['level']:
+        return False
+    if cfg['quest']:
+        claimed = PlayerMainQuest.query.filter_by(
+            player_id=player.id, quest_id=cfg['quest'], claimed=True
+        ).first()
+        if not claimed:
+            return False
+    return True
+
+
 def seed_starter_equipment(player: Player) -> None:
     """给新号发放基础装备（避免仓库空白）"""
     existing = PlayerEquipment.query.filter_by(player_id=player.id).count()
@@ -940,6 +956,25 @@ def index():
     all_character_templates = get_all_characters()
     owned_character_ids = [c.character_id for c in player.characters]
     
+    # 计算功能解锁状态
+    claimed_quest_ids = set()
+    mq_records = PlayerMainQuest.query.filter_by(player_id=player.id, claimed=True).all()
+    for r in mq_records:
+        claimed_quest_ids.add(r.quest_id)
+
+    unlocked_features = {}
+    for feat_key, cfg in FEATURE_UNLOCK.items():
+        level_ok = player.level >= cfg['level']
+        quest_ok = cfg['quest'] is None or cfg['quest'] in claimed_quest_ids
+        unlocked_features[feat_key] = {
+            'unlocked': level_ok and quest_ok,
+            'name': cfg['name'],
+            'level': cfg['level'],
+            'quest': cfg['quest'],
+            'level_ok': level_ok,
+            'quest_ok': quest_ok,
+        }
+
     return render_template('index.html',
         player=player,
         characters=characters,
@@ -947,6 +982,7 @@ def index():
         daily_tasks=daily_tasks,
         all_character_templates=all_character_templates,
         owned_character_ids=owned_character_ids,
+        unlocked_features=unlocked_features,
         rarity_names=RARITY_NAMES,
         rarity_colors=RARITY_COLORS,
         element_names=ELEMENT_NAMES,
@@ -1046,6 +1082,9 @@ def summon():
 def research():
     """研究所页面"""
     player = current_user
+    if not check_feature_unlocked(player, 'research'):
+        flash(f'研究所需要 Lv.{FEATURE_UNLOCK["research"]["level"]} 解锁')
+        return redirect(url_for('index'))
     runes = PlayerRune.query.filter_by(player_id=player.id).order_by(PlayerRune.id.desc()).all()
     # 角色列表 + 当前天赋
     chars = []
@@ -1165,6 +1204,9 @@ def api_talents_upgrade():
 def shop():
     """商会页面"""
     player = current_user
+    if not check_feature_unlocked(player, 'shop'):
+        flash(f'商会需要 Lv.{FEATURE_UNLOCK["shop"]["level"]} 解锁')
+        return redirect(url_for('index'))
     today = date.today()
     purchases = ShopPurchase.query.filter_by(player_id=player.id, purchase_date=today).all()
     purchase_counts = {p.item_id: p.count for p in purchases}
@@ -1262,6 +1304,9 @@ def api_equipment_unequip():
 def arena():
     """竞技场页面"""
     player = current_user
+    if not check_feature_unlocked(player, 'arena'):
+        flash(f'竞技场需要 Lv.{FEATURE_UNLOCK["arena"]["level"]} 解锁')
+        return redirect(url_for('index'))
     arena_records = ArenaRecord.query.filter_by(player_id=player.id).order_by(ArenaRecord.created_at.desc()).limit(20).all()
     arena_stats = {
         'arena_score': player.arena_score or 1000,
@@ -1282,6 +1327,9 @@ def arena():
 def stages():
     """副本页面"""
     player = current_user
+    if not check_feature_unlocked(player, 'stages'):
+        flash(f'演武场需要 Lv.{FEATURE_UNLOCK["stages"]["level"]} 解锁')
+        return redirect(url_for('index'))
     
     # 获取已通关关卡
     completed = [s.stage_id for s in player.completed_stages]

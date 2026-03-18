@@ -17,12 +17,14 @@
     <div class="town-buildings">
         <!-- 第一行建筑 -->
         <div class="building-row">
-            <!-- 召唤台 -->
-            <a href="{{ url_for('summon') }}" class="building-link" data-building="summon">
+            {% set summon_u = unlocked_features.get('summon', {'unlocked':true}) %}
+            <a {% if summon_u.unlocked %}href="{{ url_for('summon') }}"{% else %}href="javascript:void(0)" onclick="showLockedTip('群英馆', {{ summon_u.level }})"{% endif %}
+               class="building-link{% if not summon_u.unlocked %} building-locked{% endif %}" data-building="summon">
                 <div class="building-item" data-name="群英馆">
                     <div class="building-glow"></div>
                     <div class="building-img-wrap">
                         <img src="{{ url_for('static', filename='images/buildings/summon.png') }}" alt="群英馆" class="building-img">
+                        {% if not summon_u.unlocked %}<div class="building-lock-overlay"><span class="lock-icon">🔒</span><span class="lock-text">Lv.{{ summon_u.level }} 解锁</span></div>{% endif %}
                     </div>
                     <div class="building-label">
                         <span class="building-name">群英馆</span>
@@ -31,13 +33,15 @@
                     <div class="building-particles"></div>
                 </div>
             </a>
-            
-            <!-- 军营 -->
-            <a href="{{ url_for('characters') }}" class="building-link" data-building="barracks">
+
+            {% set chars_u = unlocked_features.get('characters', {'unlocked':true}) %}
+            <a {% if chars_u.unlocked %}href="{{ url_for('characters') }}"{% else %}href="javascript:void(0)" onclick="showLockedTip('军营', {{ chars_u.level }})"{% endif %}
+               class="building-link{% if not chars_u.unlocked %} building-locked{% endif %}" data-building="barracks">
                 <div class="building-item" data-name="军营">
                     <div class="building-glow"></div>
                     <div class="building-img-wrap">
                         <img src="{{ url_for('static', filename='images/buildings/barracks.png') }}" alt="军营" class="building-img">
+                        {% if not chars_u.unlocked %}<div class="building-lock-overlay"><span class="lock-icon">🔒</span><span class="lock-text">Lv.{{ chars_u.level }} 解锁</span></div>{% endif %}
                     </div>
                     <div class="building-label">
                         <span class="building-name">军营</span>
@@ -46,13 +50,15 @@
                     <div class="building-particles"></div>
                 </div>
             </a>
-            
-            <!-- 副本入口 -->
-            <a href="{{ url_for('stages') }}" class="building-link" data-building="dungeon">
+
+            {% set stages_u = unlocked_features.get('stages', {'unlocked':true}) %}
+            <a {% if stages_u.unlocked %}href="{{ url_for('stages') }}"{% else %}href="javascript:void(0)" onclick="showLockedTip('演武场', {{ stages_u.level }})"{% endif %}
+               class="building-link{% if not stages_u.unlocked %} building-locked{% endif %}" data-building="dungeon">
                 <div class="building-item" data-name="演武场">
                     <div class="building-glow"></div>
                     <div class="building-img-wrap">
                         <img src="{{ url_for('static', filename='images/buildings/dungeon.png') }}" alt="演武场" class="building-img">
+                        {% if not stages_u.unlocked %}<div class="building-lock-overlay"><span class="lock-icon">🔒</span><span class="lock-text">Lv.{{ stages_u.level }} 解锁</span></div>{% endif %}
                     </div>
                     <div class="building-label">
                         <span class="building-name">演武场</span>
@@ -65,12 +71,14 @@
         
         <!-- 第二行建筑 -->
         <div class="building-row">
-            <!-- 竞技场 -->
-            <a href="{{ url_for('arena') }}" class="building-link" data-building="arena">
+            {% set arena_u = unlocked_features.get('arena', {'unlocked':true}) %}
+            <a {% if arena_u.unlocked %}href="{{ url_for('arena') }}"{% else %}href="javascript:void(0)" onclick="showLockedTip('竞技场', {{ arena_u.level }})"{% endif %}
+               class="building-link{% if not arena_u.unlocked %} building-locked{% endif %}" data-building="arena">
                 <div class="building-item" data-name="竞技场">
                     <div class="building-glow"></div>
                     <div class="building-img-wrap">
                         <img src="{{ url_for('static', filename='images/buildings/arena.png') }}" alt="竞技场" class="building-img">
+                        {% if not arena_u.unlocked %}<div class="building-lock-overlay"><span class="lock-icon">🔒</span><span class="lock-text">Lv.{{ arena_u.level }} 解锁</span></div>{% endif %}
                     </div>
                     <div class="building-label">
                         <span class="building-name">竞技场</span>
@@ -79,13 +87,15 @@
                     <div class="building-particles"></div>
                 </div>
             </a>
-            
-            <!-- 研究所 -->
-            <a href="{{ url_for('research') }}" class="building-link" data-building="research">
+
+            {% set research_u = unlocked_features.get('research', {'unlocked':true}) %}
+            <a {% if research_u.unlocked %}href="{{ url_for('research') }}"{% else %}href="javascript:void(0)" onclick="showLockedTip('研究所', {{ research_u.level }})"{% endif %}
+               class="building-link{% if not research_u.unlocked %} building-locked{% endif %}" data-building="research">
                 <div class="building-item" data-name="研究所">
                     <div class="building-glow"></div>
                     <div class="building-img-wrap">
                         <img src="{{ url_for('static', filename='images/buildings/research.png') }}" alt="研究所" class="building-img">
+                        {% if not research_u.unlocked %}<div class="building-lock-overlay"><span class="lock-icon">🔒</span><span class="lock-text">Lv.{{ research_u.level }} 解锁</span></div>{% endif %}
                     </div>
                     <div class="building-label">
                         <span class="building-name">研究所</span>
@@ -94,13 +104,15 @@
                     <div class="building-particles"></div>
                 </div>
             </a>
-            
-            <!-- 商会 -->
-            <a href="{{ url_for('shop') }}" class="building-link" data-building="shop">
+
+            {% set shop_u = unlocked_features.get('shop', {'unlocked':true}) %}
+            <a {% if shop_u.unlocked %}href="{{ url_for('shop') }}"{% else %}href="javascript:void(0)" onclick="showLockedTip('商会', {{ shop_u.level }})"{% endif %}
+               class="building-link{% if not shop_u.unlocked %} building-locked{% endif %}" data-building="shop">
                 <div class="building-item" data-name="商会">
                     <div class="building-glow"></div>
                     <div class="building-img-wrap">
                         <img src="{{ url_for('static', filename='images/buildings/shop.png') }}" alt="商会" class="building-img">
+                        {% if not shop_u.unlocked %}<div class="building-lock-overlay"><span class="lock-icon">🔒</span><span class="lock-text">Lv.{{ shop_u.level }} 解锁</span></div>{% endif %}
                     </div>
                     <div class="building-label">
                         <span class="building-name">商会</span>
@@ -109,8 +121,8 @@
                     <div class="building-particles"></div>
                 </div>
             </a>
-            
-            <!-- 仓库 -->
+
+            <!-- 仓库 (始终解锁) -->
             <a href="{{ url_for('inventory') }}" class="building-link" data-building="inventory">
                 <div class="building-item" data-name="仓库">
                     <div class="building-glow"></div>
@@ -142,6 +154,20 @@
             <span class="shortcut-label">图鉴</span>
         </button>
     </div>
+</div>
+
+<!-- 功能锁定提示 -->
+<div id="unlockToast" class="unlock-toast">
+    <div class="ut-icon">🔒</div>
+    <div class="ut-title" id="ut-title">功能未解锁</div>
+    <div class="ut-desc" id="ut-desc"></div>
+</div>
+
+<!-- 新功能解锁弹窗 -->
+<div id="unlockCelebrate" class="unlock-toast" style="display:none;">
+    <div class="ut-icon">🎉</div>
+    <div class="ut-title" style="color:#22c55e;">功能已解锁！</div>
+    <div class="ut-desc" id="uc-desc"></div>
 </div>
 
 <!-- 建筑进入遮罩动画 -->
@@ -338,6 +364,103 @@
     font-size: 0.75rem;
     color: var(--medieval-text-muted);
     margin-top: 0.15rem;
+}
+
+/* 锁定建筑 */
+.building-locked {
+    pointer-events: auto;
+}
+.building-locked .building-img {
+    filter: grayscale(0.8) brightness(0.5);
+}
+.building-locked .building-item:hover {
+    transform: none;
+}
+.building-locked .building-item:hover .building-glow {
+    opacity: 0;
+}
+.building-locked .building-item:hover .building-img-wrap {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.building-locked .building-item:hover .building-img {
+    transform: none;
+}
+.building-locked .building-name {
+    color: var(--medieval-text-muted);
+}
+.building-lock-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 12px;
+    z-index: 5;
+}
+.lock-icon {
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+}
+.lock-text {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fbbf24;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+/* 解锁提示弹窗 */
+.unlock-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    background: linear-gradient(135deg, rgba(61,52,41,0.97), rgba(44,36,28,0.97));
+    border: 2px solid var(--medieval-gold);
+    border-radius: 16px;
+    padding: 2rem 2.5rem;
+    text-align: center;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.7);
+}
+.unlock-toast.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+}
+.unlock-toast .ut-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+.unlock-toast .ut-title {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    color: var(--medieval-gold-light);
+    margin-bottom: 0.5rem;
+}
+.unlock-toast .ut-desc {
+    color: var(--medieval-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+.unlock-toast .ut-desc strong {
+    color: #fbbf24;
+}
+
+/* 新功能解锁动画 */
+@keyframes unlockPulse {
+    0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.5); }
+    70% { box-shadow: 0 0 0 15px rgba(251,191,36,0); }
+    100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+}
+.building-just-unlocked .building-img-wrap {
+    animation: unlockPulse 1.5s ease-in-out 3;
+    border: 2px solid #fbbf24;
+    border-radius: 12px;
 }
 
 /* 粒子效果容器 */
@@ -587,6 +710,7 @@
 // 建筑点击特效
 document.querySelectorAll('.building-link').forEach(link => {
     link.addEventListener('click', function(e) {
+        if (this.classList.contains('building-locked')) return;
         e.preventDefault();
         const href = this.getAttribute('href');
         const buildingName = this.querySelector('.building-item').dataset.name;
@@ -1548,6 +1672,60 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     {% endif %}
 });
+</script>
+
+<!-- 功能解锁逻辑 -->
+<script>
+var _unlockToastTimer = null;
+function showLockedTip(buildingName, requiredLevel) {
+    var el = document.getElementById('unlockToast');
+    var title = document.getElementById('ut-title');
+    var desc = document.getElementById('ut-desc');
+    title.textContent = buildingName + ' 未解锁';
+    desc.innerHTML = '需要 <strong>玩家等级 Lv.' + requiredLevel + '</strong> 才能解锁该功能<br><span style="color:#94a3b8;font-size:0.85rem;">通过战斗和完成任务提升等级</span>';
+    el.classList.add('show');
+    clearTimeout(_unlockToastTimer);
+    _unlockToastTimer = setTimeout(function() { el.classList.remove('show'); }, 2500);
+}
+
+document.addEventListener('click', function(e) {
+    var el = document.getElementById('unlockToast');
+    if (el && el.classList.contains('show') && !el.contains(e.target)) {
+        el.classList.remove('show');
+    }
+});
+
+(function checkNewUnlocks() {
+    var storageKey = 'unlocked_buildings_{{ player.id }}';
+    var prev = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    var current = {{ unlocked_features | tojson }};
+    var newlyUnlocked = [];
+    for (var key in current) {
+        if (current[key].unlocked && !prev[key]) {
+            newlyUnlocked.push(current[key].name);
+            var links = document.querySelectorAll('.building-link[data-building]');
+            links.forEach(function(link) {
+                var item = link.querySelector('.building-item');
+                if (item && item.getAttribute('data-name') === current[key].name) {
+                    link.classList.add('building-just-unlocked');
+                    setTimeout(function() { link.classList.remove('building-just-unlocked'); }, 5000);
+                }
+            });
+        }
+    }
+    var save = {};
+    for (var k in current) { if (current[k].unlocked) save[k] = true; }
+    localStorage.setItem(storageKey, JSON.stringify(save));
+
+    if (newlyUnlocked.length > 0) {
+        var cel = document.getElementById('unlockCelebrate');
+        var cdesc = document.getElementById('uc-desc');
+        cel.style.display = '';
+        cdesc.innerHTML = '<strong>' + newlyUnlocked.join('、') + '</strong> 已解锁！<br>快去探索新功能吧！';
+        setTimeout(function() { cel.classList.add('show'); }, 300);
+        setTimeout(function() { cel.classList.remove('show'); setTimeout(function(){ cel.style.display='none'; }, 400); }, 4000);
+    }
+})();
 </script>
 
 <!-- 底部快捷入口添加公告和七日目标按钮 + 红点 -->
