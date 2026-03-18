@@ -2090,13 +2090,35 @@ def api_levelup():
     player.exp_books -= exp_amount
     char.exp += exp_amount
     
+    old_level = char.level
+
     # 计算升级
     exp_needed = int(100 * (1.15 ** (char.level - 1)))
     while char.exp >= exp_needed and char.level < 100:
         char.exp -= exp_needed
         char.level += 1
         exp_needed = int(100 * (1.15 ** (char.level - 1)))
-    
+
+    new_level = char.level
+
+    # 检测新解锁的技能
+    new_skills = []
+    _tmpl = None
+    if new_level > old_level:
+        _tmpl = get_character_by_id(char.character_id)
+        if _tmpl:
+            rarity = _tmpl.get('rarity', 'common')
+            role_type = _tmpl.get('role_type', 'warrior')
+            element = _tmpl.get('element', 'earth')
+            old_skills = get_skills_for_character(
+                _tmpl['id'], old_level, rarity, role_type, element)
+            cur_skills = get_skills_for_character(
+                _tmpl['id'], new_level, rarity, role_type, element)
+            old_ids = set(s['id'] for s in old_skills)
+            for s in cur_skills:
+                if s['id'] not in old_ids and not s.get('is_passive') and s.get('type') != 'passive':
+                    new_skills.append(s)
+
     # 更新每日任务
     task = PlayerDailyTask.query.filter_by(
         player_id=player.id,
@@ -2116,14 +2138,27 @@ def api_levelup():
     
     db.session.commit()
     
-    return jsonify({
+    resp = {
         'success': True,
         'new_level': char.level,
         'exp': char.exp,
         'player_exp_gained': player_exp_gain,
         'player_level_up': lvl_result['level_ups'] > 0,
-        'player_new_level': player.level
-    })
+        'player_new_level': player.level,
+        'new_skills': new_skills,
+    }
+    if new_skills and _tmpl:
+        all_sk = get_skills_for_character(
+            _tmpl['id'], new_level,
+            _tmpl.get('rarity', 'common'),
+            _tmpl.get('role_type', 'warrior'),
+            _tmpl.get('element', 'earth'))
+        resp['all_skills'] = all_sk
+        equip_rows = CharacterEquippedSkill.query.filter_by(
+            character_instance_id=char.id
+        ).order_by(CharacterEquippedSkill.slot).all()
+        resp['equipped_skill_ids'] = [r.skill_id for r in equip_rows]
+    return jsonify(resp)
 
 
 @app.route('/api/breakthrough', methods=['POST'])

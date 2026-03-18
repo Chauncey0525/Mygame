@@ -163,6 +163,32 @@
     </button>
 </div>
 
+<!-- 升级解锁技能弹窗 -->
+<div id="skillUnlockModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:15000">
+    <div class="modal-content" style="max-width:560px;">
+        <div class="modal-header" style="background:linear-gradient(135deg,#fbbf2420,#f59e0b10);">
+            <h3 class="card-title" style="color:#fbbf24;">🎉 新技能解锁！</h3>
+            <button class="modal-close" type="button" onclick="closeSkillUnlockModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="skillUnlockBody" style="max-height:70vh;overflow-y:auto;"></div>
+    </div>
+</div>
+
+<style>
+.unlock-new{padding:.75rem;border-radius:8px;background:linear-gradient(135deg,#fbbf2410,#f59e0b08);border:2px solid #fbbf2440;margin-bottom:.5rem}
+.unlock-new .sk-name{color:#fbbf24;font-weight:700;font-size:.95rem}
+.swap-section{margin-top:1rem;padding-top:.75rem;border-top:1px solid #334155}
+.swap-title{font-size:.8rem;color:#94a3b8;margin-bottom:.5rem}
+.swap-grid{display:flex;flex-direction:column;gap:.4rem}
+.swap-row{display:flex;align-items:center;justify-content:space-between;padding:.55rem .75rem;border-radius:6px;background:#334155;cursor:pointer;transition:all .15s;border:2px solid transparent}
+.swap-row:hover{border-color:#fbbf2460;background:#1e3a5f}
+.swap-row.selected{border-color:#ef4444;background:#ef444415}
+.swap-row .sw-name{font-weight:600;color:#e2e8f0;font-size:.85rem}
+.swap-row .sw-power{font-size:.75rem;color:#94a3b8}
+.swap-actions{display:flex;gap:.5rem;margin-top:1rem}
+.swap-actions .btn{flex:1;padding:.65rem;font-size:.85rem}
+</style>
+
 <script>
 const instanceId = {{ character.instance_id }};
 let isInTeam = {{ 'true' if is_in_team else 'false' }};
@@ -313,14 +339,120 @@ renderAwakeningPanel();
 renderEquippedSlots();
 renderAllSkills();
 
+var _pendingSwapNewSkills = [];
+var _pendingSwapAllSkills = [];
+var _pendingSwapEquippedIds = [];
+var _swapSelected = null;
+
 async function levelUp() {
     const result = await apiCall('/api/levelup', { instance_id: instanceId, exp: 100 });
-    if (result.success) {
-        ToastManager.success(`升级成功！当前等级：Lv.${result.new_level}`, 1500);
-        setTimeout(() => location.reload(), 900);
+    if (!result.success) { ToastManager.error(result.error || '升级失败'); return; }
+
+    ToastManager.success('升级成功！当前等级：Lv.' + result.new_level, 1500);
+
+    if (result.new_skills && result.new_skills.length > 0) {
+        _pendingSwapNewSkills = result.new_skills;
+        _pendingSwapAllSkills = result.all_skills || [];
+        _pendingSwapEquippedIds = result.equipped_skill_ids || equippedIds.slice();
+        showSkillUnlockModal();
     } else {
-        ToastManager.error(result.error || '升级失败');
+        setTimeout(function(){ location.reload(); }, 900);
     }
+}
+
+function showSkillUnlockModal() {
+    var body = document.getElementById('skillUnlockBody');
+    var html = '';
+
+    _pendingSwapNewSkills.forEach(function(sk) {
+        var t = TYPE_LABELS[sk.type] || TYPE_LABELS.physical;
+        html += '<div class="unlock-new">';
+        html += '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem;">';
+        html += '<span class="sk-tag ' + t.cls + '">' + t.text + '</span>';
+        if (sk.is_exclusive) html += '<span class="sk-tag t-excl">专属</span>';
+        if (sk.is_awakening) html += '<span class="sk-tag t-awaken">觉醒</span>';
+        html += '<span class="sk-name">' + sk.name + '</span>';
+        html += getPowerText(sk);
+        html += '</div>';
+        html += '<p style="font-size:.78rem;color:#94a3b8;margin:0;">' + (sk.description || '') + '</p>';
+        if (sk.cooldown > 0) html += '<span style="font-size:.65rem;color:#64748b;">CD: ' + sk.cooldown + ' 回合</span>';
+
+        if (!sk.is_awakening) {
+            html += '<div class="swap-section">';
+            html += '<div class="swap-title">选择要替换的技能槽位（点击选中，再点击"替换"）：</div>';
+            html += '<div class="swap-grid">';
+            _pendingSwapEquippedIds.forEach(function(eid, slot) {
+                var eq = _pendingSwapAllSkills.find(function(s){ return s.id === eid; });
+                if (!eq) return;
+                var et = TYPE_LABELS[eq.type] || TYPE_LABELS.physical;
+                html += '<div class="swap-row" data-new-id="' + sk.id + '" data-slot="' + slot + '" onclick="selectSwapSlot(this, \'' + sk.id + '\', ' + slot + ')">';
+                html += '<div><span class="sk-tag ' + et.cls + '">' + et.text + '</span>';
+                html += '<span class="sw-name">' + eq.name + '</span></div>';
+                html += '<div class="sw-power">' + (eq.power > 0 ? '威力:' + eq.power : '') + '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            html += '<div class="swap-actions">';
+            html += '<button class="btn btn-primary" id="swapBtn-' + sk.id + '" disabled onclick="confirmSwap(\'' + sk.id + '\')">替换选中槽位</button>';
+            html += '<button class="btn" style="background:#475569;color:#e2e8f0;" onclick="skipSwap(\'' + sk.id + '\')">跳过</button>';
+            html += '</div>';
+            html += '</div>';
+        }
+        html += '</div>';
+    });
+
+    if (_pendingSwapNewSkills.every(function(s){ return s.is_awakening; })) {
+        html += '<p style="text-align:center;color:#fca5a5;font-size:.85rem;margin-top:.5rem;">觉醒技能已自动装备，战斗中独立使用！</p>';
+        html += '<div style="text-align:center;margin-top:.75rem;">';
+        html += '<button class="btn btn-primary" onclick="closeSkillUnlockModal()">确认</button>';
+        html += '</div>';
+    }
+
+    body.innerHTML = html;
+    document.getElementById('skillUnlockModal').classList.add('active');
+    _swapSelected = null;
+}
+
+function selectSwapSlot(el, newSkillId, slot) {
+    var parent = el.closest('.swap-section');
+    parent.querySelectorAll('.swap-row').forEach(function(r){ r.classList.remove('selected'); });
+    el.classList.add('selected');
+    _swapSelected = { newId: newSkillId, slot: slot };
+    var btn = document.getElementById('swapBtn-' + newSkillId);
+    if (btn) btn.disabled = false;
+}
+
+async function confirmSwap(newSkillId) {
+    if (!_swapSelected || _swapSelected.newId !== newSkillId) return;
+    var slot = _swapSelected.slot;
+    _pendingSwapEquippedIds[slot] = newSkillId;
+    equippedIds = _pendingSwapEquippedIds.slice();
+    await saveEquippedSkills();
+
+    var remain = _pendingSwapNewSkills.filter(function(s){ return s.id !== newSkillId && !s.is_awakening; });
+    if (remain.length > 0) {
+        _pendingSwapNewSkills = remain;
+        _swapSelected = null;
+        showSkillUnlockModal();
+    } else {
+        closeSkillUnlockModal();
+    }
+}
+
+function skipSwap(skillId) {
+    var remain = _pendingSwapNewSkills.filter(function(s){ return s.id !== skillId && !s.is_awakening; });
+    if (remain.length > 0) {
+        _pendingSwapNewSkills = remain;
+        _swapSelected = null;
+        showSkillUnlockModal();
+    } else {
+        closeSkillUnlockModal();
+    }
+}
+
+function closeSkillUnlockModal() {
+    document.getElementById('skillUnlockModal').classList.remove('active');
+    setTimeout(function(){ location.reload(); }, 300);
 }
 
 async function breakthrough() {

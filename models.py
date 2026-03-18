@@ -677,6 +677,7 @@ class SkillTemplate(db.Model):
             'type': self.skill_type,
             'target': self.target,
             'cooldown': self.cooldown,
+            'unlock_level': self.unlock_level,
             'description': self.description or '',
             'effects': json.loads(self.effects_json) if self.effects_json else [],
         }
