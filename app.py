@@ -11,7 +11,7 @@ import random
 from sqlalchemy import text
 
 from config import config
-from models import db, Player, PlayerCharacter, PlayerTeam, PlayerCompletedStage, PlayerDailyTask, SummonHistory, SmsVerification, CharacterTemplate
+from models import db, Player, PlayerCharacter, PlayerTeam, PlayerCompletedStage, PlayerDailyTask, SummonHistory, SmsVerification, CharacterTemplate, PlayerFavoriteCharacter
 from game_data import (
     CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
     ELEMENT_NAMES, ELEMENT_COLORS, ROLE_NAMES, DIFFICULTY_NAMES, DIFFICULTY_COLORS,
@@ -75,11 +75,44 @@ def send_sms_dev(phone: str, code: str) -> None:
     print(f"[DEV SMS] phone={phone} code={code}")
 
 
+def allocate_next_uid() -> str:
+    """
+    分配下一个 8 位 UID（00000001 起）。
+    说明：SQLite 在高并发下仍可能竞争；当前项目为单机/开发用途，已足够。
+    """
+    # max(uid) 在字符串上可能不可靠，这里转 int 再取最大
+    existing = db.session.execute(text("SELECT uid FROM players WHERE uid IS NOT NULL AND uid != ''")).fetchall()
+    max_n = 0
+    for (u,) in existing:
+        try:
+            max_n = max(max_n, int(str(u)))
+        except Exception:
+            continue
+    return f"{max_n + 1:08d}"
+
+
+from typing import Optional
+
+
+def _favorite_slots_used(player: Player) -> set:
+    return set([f.slot for f in player.favorites.all() if f.slot is not None])
+
+
+def _next_favorite_slot(player: Player, max_slots: int = 6) -> Optional[int]:
+    used = _favorite_slots_used(player)
+    for s in range(1, max_slots + 1):
+        if s not in used:
+            return s
+    return None
+
+
 def ensure_db_migrations():
     """
     轻量迁移（避免引入 Alembic）：
     - 为 players 增加 phone 列（如不存在）
-    - 创建 sms_verifications 表（由 create_all 处理）
+    - 为 players 增加 uid 列（如不存在），并回填旧数据（00000001 起）
+    - 为 player_completed_stages 增加 stars 列（如不存在）
+    - 创建 sms_verifications 等表（由 create_all 处理）
     """
     try:
         with app.app_context():
@@ -95,6 +128,35 @@ def ensure_db_migrations():
                 # SQLite 的 ALTER TABLE 不支持直接加 UNIQUE，这里用索引兜底
                 db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uix_players_phone ON players(phone)"))
                 db.session.commit()
+
+                if "uid" not in cols:
+                    db.session.execute(text("ALTER TABLE players ADD COLUMN uid VARCHAR(8)"))
+                    db.session.commit()
+                db.session.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uix_players_uid ON players(uid)"))
+                db.session.commit()
+                # 回填旧数据：按 id 从 00000001 递增
+                rows = db.session.execute(text("SELECT id, uid FROM players ORDER BY id ASC")).fetchall()
+                next_n = 1
+                for pid, puid in rows:
+                    if puid and str(puid).strip():
+                        try:
+                            next_n = max(next_n, int(str(puid)) + 1)
+                        except Exception:
+                            pass
+                for pid, puid in rows:
+                    if not puid or not str(puid).strip():
+                        db.session.execute(
+                            text("UPDATE players SET uid = :uid WHERE id = :id"),
+                            {"uid": f"{next_n:08d}", "id": pid},
+                        )
+                        next_n += 1
+                db.session.commit()
+
+                # player_completed_stages.stars（关卡星级）
+                stage_cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(player_completed_stages)")).fetchall()]
+                if "stars" not in stage_cols:
+                    db.session.execute(text("ALTER TABLE player_completed_stages ADD COLUMN stars INTEGER DEFAULT 1"))
+                    db.session.commit()
             elif dialect in ("mysql", "mariadb"):
                 # MySQL 简易检查列是否存在
                 row = db.session.execute(text(
@@ -104,6 +166,43 @@ def ensure_db_migrations():
                 if int(row or 0) == 0:
                     db.session.execute(text("ALTER TABLE players ADD COLUMN phone VARCHAR(32) NULL"))
                     db.session.execute(text("CREATE UNIQUE INDEX uix_players_phone ON players(phone)"))
+                    db.session.commit()
+
+                row = db.session.execute(text(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='players' AND COLUMN_NAME='uid'"
+                )).scalar()
+                if int(row or 0) == 0:
+                    db.session.execute(text("ALTER TABLE players ADD COLUMN uid VARCHAR(8) NULL"))
+                    db.session.commit()
+                # 唯一索引（如已存在会报错，这里用 TRY 方式；MySQL 需要显式判断）
+                idx = db.session.execute(text(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='players' AND INDEX_NAME='uix_players_uid'"
+                )).scalar()
+                if int(idx or 0) == 0:
+                    db.session.execute(text("CREATE UNIQUE INDEX uix_players_uid ON players(uid)"))
+                    db.session.commit()
+                # 回填（按 id）
+                rows = db.session.execute(text("SELECT id, uid FROM players ORDER BY id ASC")).fetchall()
+                next_n = 1
+                for pid, puid in rows:
+                    if puid and str(puid).strip():
+                        try:
+                            next_n = max(next_n, int(str(puid)) + 1)
+                        except Exception:
+                            pass
+                for pid, puid in rows:
+                    if not puid or not str(puid).strip():
+                        db.session.execute(text("UPDATE players SET uid=%s WHERE id=%s"), (f"{next_n:08d}", pid))
+                        next_n += 1
+                db.session.commit()
+                row = db.session.execute(text(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='player_completed_stages' AND COLUMN_NAME='stars'"
+                )).scalar()
+                if int(row or 0) == 0:
+                    db.session.execute(text("ALTER TABLE player_completed_stages ADD COLUMN stars INT DEFAULT 1"))
                     db.session.commit()
     except Exception as e:
         # 不阻塞应用启动，但会影响 phone 字段写入；打印出来便于排查
@@ -128,6 +227,42 @@ login_manager.session_protection = 'strong'
 @login_manager.user_loader
 def load_user(player_id):
     return Player.query.get(int(player_id))
+
+
+@app.context_processor
+def inject_template_globals():
+    """让 base.html 等模板在所有页面都能拿到 player 和 rarity_colors，避免登录/注册页报错"""
+    from game_data import RARITY_COLORS
+    return {
+        'rarity_colors': RARITY_COLORS,
+        'player': current_user if current_user.is_authenticated else None,
+        'get_character_by_id': get_character_by_id,
+    }
+
+
+# ==================== 错误处理（便于排查“打不开”） ====================
+
+@app.errorhandler(500)
+def handle_500(e):
+    """500 时在 debug 下打印并返回简单错误页"""
+    import traceback
+    traceback.print_exc()
+    if app.debug:
+        return f'<h1>服务器错误</h1><pre>{traceback.format_exc()}</pre>', 500
+    return '<h1>服务器错误</h1><p>请稍后重试。</p>', 500
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """未捕获异常时打印并返回 500（HTTPException 如 404 不处理，交给 Flask）"""
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
+    import traceback
+    traceback.print_exc()
+    if app.debug:
+        return f'<h1>异常</h1><pre>{traceback.format_exc()}</pre>', 500
+    return '<h1>服务器错误</h1><p>请稍后重试。</p>', 500
 
 
 # ==================== 认证路由 ====================
@@ -263,7 +398,8 @@ def register():
             username=username,
             email=email if email else None,
             phone=phone,
-            name=player_name if player_name else username
+            name=player_name if player_name else username,
+            uid=allocate_next_uid(),
         )
         player.set_password(password)
         
@@ -501,10 +637,14 @@ def characters():
     rarity_order = {'legendary': 0, 'epic': 1, 'rare': 2, 'common': 3}
     all_chars.sort(key=lambda x: rarity_order.get(x['rarity'], 3))
     
+    favorites = PlayerFavoriteCharacter.query.filter_by(player_id=player.id).all()
+    favorite_ids = [f.character_instance_id for f in favorites]
+
     return render_template('characters.html',
         player=player,
         characters=all_chars,
         team_ids=[t.character_instance_id for t in player.team],
+        favorite_ids=favorite_ids,
         rarity_names=RARITY_NAMES,
         rarity_colors=RARITY_COLORS,
         element_names=ELEMENT_NAMES,
@@ -1111,6 +1251,126 @@ def api_daily_claim():
             'gold': task.reward_gold or 0,
             'gems': task.reward_gems or 0
         }
+    })
+
+
+@app.route('/api/favorites/toggle', methods=['POST'])
+@login_required
+def api_favorites_toggle():
+    """常用角色：切换收藏（最多 6 个，可为空）"""
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    instance_id = data.get('instance_id')
+    try:
+        instance_id = int(instance_id)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+
+    ci = PlayerCharacter.query.get(instance_id)
+    if not ci or ci.player_id != player.id:
+        return jsonify({'success': False, 'error': '角色不存在'}), 404
+
+    existing = PlayerFavoriteCharacter.query.filter_by(player_id=player.id, character_instance_id=instance_id).first()
+    if existing:
+        db.session.delete(existing)
+        db.session.commit()
+        return jsonify({'success': True, 'favorited': False})
+
+    if player.favorites.count() >= 6:
+        return jsonify({'success': False, 'error': '常用角色最多 6 个'}), 400
+
+    slot = _next_favorite_slot(player, 6)
+    if slot is None:
+        return jsonify({'success': False, 'error': '常用角色已满'}), 400
+
+    fav = PlayerFavoriteCharacter(player_id=player.id, character_instance_id=instance_id, slot=slot)
+    db.session.add(fav)
+    db.session.commit()
+    return jsonify({'success': True, 'favorited': True, 'slot': slot})
+
+
+@app.route('/api/favorites/set', methods=['POST'])
+@login_required
+def api_favorites_set():
+    """常用角色槽位：设置/清空（固定 5 个槽位，可为空，不可重复）"""
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    slot = data.get('slot')
+    instance_id = data.get('instance_id', None)
+
+    try:
+        slot = int(slot)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+
+    if slot < 1 or slot > 5:
+        return jsonify({'success': False, 'error': '槽位范围为 1-5'}), 400
+
+    # 清空槽位
+    if instance_id in (None, '', 0, '0'):
+        existing_slot = PlayerFavoriteCharacter.query.filter_by(player_id=player.id, slot=slot).first()
+        if existing_slot:
+            db.session.delete(existing_slot)
+            db.session.commit()
+        return jsonify({'success': True, 'cleared': True, 'slot': slot})
+
+    try:
+        instance_id = int(instance_id)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+
+    ci = PlayerCharacter.query.get(instance_id)
+    if not ci or ci.player_id != player.id:
+        return jsonify({'success': False, 'error': '角色不存在'}), 404
+
+    # 不允许重复：该角色是否已被其它槽位使用
+    dup = PlayerFavoriteCharacter.query.filter_by(player_id=player.id, character_instance_id=instance_id).first()
+    if dup and dup.slot != slot:
+        return jsonify({'success': False, 'error': '该角色已放在其它槽位'}), 400
+
+    # 如果槽位已有角色，替换之
+    existing_slot = PlayerFavoriteCharacter.query.filter_by(player_id=player.id, slot=slot).first()
+    if existing_slot:
+        existing_slot.character_instance_id = instance_id
+    else:
+        db.session.add(PlayerFavoriteCharacter(player_id=player.id, character_instance_id=instance_id, slot=slot))
+    db.session.commit()
+    return jsonify({'success': True, 'slot': slot, 'instance_id': instance_id})
+
+
+@app.route('/api/characters/owned', methods=['GET'])
+@login_required
+def api_characters_owned():
+    """返回玩家已拥有角色列表（用于常用角色选择器）"""
+    player = current_user
+    items = []
+    for ci in player.characters.order_by(PlayerCharacter.id.asc()).all():
+        tpl = get_character_by_id(ci.character_id)
+        if not tpl:
+            continue
+        # 优先使用原画 illustration，其次 avatar
+        art = tpl.get('illustration') or tpl.get('avatar')
+        items.append({
+            'instance_id': ci.id,
+            'character_id': ci.character_id,
+            'name': tpl.get('name') or ci.character_id,
+            'level': ci.level,
+            'rarity': tpl.get('rarity'),
+            'art': art,
+            'avatar': tpl.get('avatar'),
+        })
+    return jsonify({'success': True, 'characters': items})
+
+
+@app.route('/api/favorites/list', methods=['GET'])
+@login_required
+def api_favorites_list():
+    """返回常用角色 instance_id 列表（按 slot 排序）"""
+    player = current_user
+    favs = PlayerFavoriteCharacter.query.filter_by(player_id=player.id).order_by(PlayerFavoriteCharacter.slot.asc()).all()
+    return jsonify({
+        'success': True,
+        'favorites': [{'instance_id': f.character_instance_id, 'slot': f.slot} for f in favs]
     })
 
 

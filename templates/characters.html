@@ -26,6 +26,8 @@
             <div style="position: absolute; top: 0.5rem; right: 0.5rem;">
                 <span class="badge" style="background: rgba(0,0,0,0.7);">Lv.{{ char.level }}</span>
             </div>
+
+            <!-- 常用角色：在左上角头像弹窗中设置（5槽位） -->
             
             <!-- 出战标签 -->
             {% if char.instance_id in team_ids %}
@@ -53,4 +55,5 @@
     </div>
     {% endif %}
 </div>
+
 {% endblock %}

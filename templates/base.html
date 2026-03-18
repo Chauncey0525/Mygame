@@ -11,50 +11,53 @@
     <script>window.__STATIC_URL__ = "{{ url_for('static', filename='') }}";</script>
     <script src="{{ url_for('static', filename='js/audio.js') }}"></script>
     <style>
-        /* 内联样式 - 稀有度颜色 */
-        .rarity-common { color: {{ rarity_colors.common if rarity_colors else '#9ca3af' }}; }
-        .rarity-rare { color: {{ rarity_colors.rare if rarity_colors else '#3b82f6' }}; }
-        .rarity-epic { color: {{ rarity_colors.epic if rarity_colors else '#a855f7' }}; }
-        .rarity-legendary { color: {{ rarity_colors.legendary if rarity_colors else '#f59e0b' }}; }
+        /* 内联样式 - 稀有度颜色（使用 default 避免未定义报错） */
+        .rarity-common { color: {{ (rarity_colors|default({})).common|default('#9ca3af') }}; }
+        .rarity-rare { color: {{ (rarity_colors|default({})).rare|default('#3b82f6') }}; }
+        .rarity-epic { color: {{ (rarity_colors|default({})).epic|default('#a855f7') }}; }
+        .rarity-legendary { color: {{ (rarity_colors|default({})).legendary|default('#f59e0b') }}; }
         
-        .bg-rarity-common { background-color: {{ rarity_colors.common if rarity_colors else '#9ca3af' }}; }
-        .bg-rarity-rare { background-color: {{ rarity_colors.rare if rarity_colors else '#3b82f6' }}; }
-        .bg-rarity-epic { background-color: {{ rarity_colors.epic if rarity_colors else '#a855f7' }}; }
-        .bg-rarity-legendary { background-color: {{ rarity_colors.legendary if rarity_colors else '#f59e0b' }}; }
+        .bg-rarity-common { background-color: {{ (rarity_colors|default({})).common|default('#9ca3af') }}; }
+        .bg-rarity-rare { background-color: {{ (rarity_colors|default({})).rare|default('#3b82f6') }}; }
+        .bg-rarity-epic { background-color: {{ (rarity_colors|default({})).epic|default('#a855f7') }}; }
+        .bg-rarity-legendary { background-color: {{ (rarity_colors|default({})).legendary|default('#f59e0b') }}; }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <style>
+        /* 顶部资源 HUD：紧凑且自适应 */
+        @media (max-width: 640px) {
+            .hud-pill { padding: 5px 8px !important; }
+            .hud-pill span { font-size: 0.9rem; }
+        }
+    </style>
     <!-- 顶部导航栏 -->
     {% if player %}
     <nav class="navbar" role="navigation" aria-label="主导航">
-        <div class="navbar-content">
-            <a href="{{ url_for('index') }}" class="navbar-brand" aria-label="返回首页">
-                <img src="{{ url_for('static', filename='images/ui/logo.png') }}" alt="巅峰对决Logo" style="height: 32px; margin-right: 8px;">
-                巅峰对决
-            </a>
-            <div class="navbar-resources" role="region" aria-label="玩家资源">
-                <div class="resource-item" aria-label="金币">
-                    <span class="resource-icon" aria-hidden="true">💰</span>
-                    <span class="resource-value" aria-label="金币数量">{{ player.gold }}</span>
+        <div class="navbar-content" style="display:flex;justify-content:space-between;align-items:center; gap:12px;">
+            <div class="navbar-left" style="display:flex;align-items:center;gap:12px;flex:0 0 auto;">
+                <button type="button" id="player-avatar-btn" class="avatar-btn" title="玩家信息" aria-label="打开玩家信息" style="width:38px;height:38px;border-radius:50%;overflow:hidden;border:2px solid var(--medieval-border);background:transparent;cursor:pointer;padding:0;">
+                    <img src="{{ url_for('static', filename='images/ui/avatar-default.png') }}" alt="玩家头像" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+                </button>
+            </div>
+            <div class="navbar-mid" role="region" aria-label="资源" style="display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:1 1 auto; flex-wrap:wrap;">
+                <div class="hud-pill" title="金币" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
+                    <span aria-hidden="true">💰</span>
+                    <span style="color:#e2e8f0;font-weight:900;letter-spacing:0.02em;">{{ player.gold }}</span>
                 </div>
-                <div class="resource-item" aria-label="钻石">
-                    <span class="resource-icon" aria-hidden="true">💎</span>
-                    <span class="resource-value" aria-label="钻石数量">{{ player.gems }}</span>
+                <div class="hud-pill" title="钻石" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
+                    <span aria-hidden="true">💎</span>
+                    <span style="color:#e2e8f0;font-weight:900;letter-spacing:0.02em;">{{ player.gems }}</span>
                 </div>
-                <div class="resource-item" aria-label="经验书">
-                    <span class="resource-icon" aria-hidden="true">📖</span>
-                    <span class="resource-value" aria-label="经验书数量">{{ player.exp_books }}</span>
+                <div class="hud-pill" title="体力" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
+                    <span aria-hidden="true">⚡</span>
+                    <span style="color:#e2e8f0;font-weight:900;letter-spacing:0.02em;">{{ player.energy }}/{{ player.max_energy }}</span>
                 </div>
-                <div class="resource-item" aria-label="体力">
-                    <span class="resource-icon" aria-hidden="true">⚡</span>
-                    <span class="resource-value" aria-label="体力值">{{ player.energy }}/{{ player.max_energy }}</span>
-                </div>
+            </div>
+            <div class="navbar-right" role="region" aria-label="设置" style="flex:0 0 auto;">
                 <div class="resource-item audio-ctrl">
                     <button type="button" class="audio-btn" id="settings-open-btn" title="设置 (Esc)" aria-label="打开设置">⚙️</button>
-                </div>
-                <div class="resource-item user-info">
-                    <span class="user-name" aria-label="当前用户">{{ player.name }}</span>
                 </div>
             </div>
         </div>
@@ -174,6 +177,108 @@
                     <button type="button" class="btn btn-danger" id="settings-reset-btn">恢复默认</button>
                     <button type="button" class="btn btn-primary" id="settings-done-btn">完成</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 玩家信息弹窗 -->
+    <div id="playerInfoModal" class="modal" role="dialog" aria-labelledby="playerinfo-title" aria-modal="true" aria-hidden="true">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3 class="card-title" id="playerinfo-title">🧑 玩家信息</h3>
+                <button class="modal-close" type="button" id="playerinfo-close-btn" aria-label="关闭玩家信息">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;gap:16px;align-items:center;">
+                    <div style="width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--medieval-border);">
+                        <img src="{{ url_for('static', filename='images/ui/avatar-default.png') }}" alt="玩家头像" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+                    </div>
+                    <div>
+                        <div style="font-weight:900;color:#fff;font-size:1.15rem;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+                            <span>{{ player.name }}</span>
+                            <span style="color:#94a3b8;font-size:0.85rem;">UID {{ player.uid or player.id }}</span>
+                        </div>
+                        <div style="color:#94a3b8;margin-top:6px;">称号：<span style="color:#e2e8f0;">（后续开放）</span></div>
+                    </div>
+                </div>
+                <div class="divider" style="margin:12px 0;"></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                    <div style="font-weight:800;color:#e2e8f0;">玩家等级 Lv.{{ player.level }}</div>
+                    <div style="color:#94a3b8;font-size:0.85rem;">
+                        EXP {{ (player.exp or 0) }} / {{ (player.exp_to_next or 0) }}
+                    </div>
+                </div>
+                <div style="margin-top:8px;">
+                    <div style="height:10px;border-radius:999px;background:rgba(148,163,184,0.25);overflow:hidden;border:1px solid rgba(148,163,184,0.35);">
+                        {% set _exp = (player.exp or 0) %}
+                        {% set _need = (player.exp_to_next or 0) %}
+                        {% set _pct = ( (_exp / _need * 100) if _need and _need > 0 else 0 ) %}
+                        <div style="height:100%;width: {{ 100 if _pct>100 else (_pct if _pct>0 else 0) }}%; background: linear-gradient(90deg, rgba(201,162,39,0.95) 0%, rgba(255,215,128,0.95) 100%);"></div>
+                    </div>
+                </div>
+
+                <div class="divider" style="margin:12px 0;"></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                    <div style="font-weight:800;color:#e2e8f0;">常用角色</div>
+                    <button type="button" class="btn" id="fav-reset-all-btn" style="padding:0.4rem 0.75rem;background:#7f1d1d;">重置</button>
+                </div>
+                <div id="fav-slots" style="margin-top:10px; display:flex; gap:10px; flex-wrap:nowrap; overflow-x:auto; padding-bottom: 6px;">
+                    {% set slot_map = {} %}
+                    {% if player.favorites %}
+                        {% for f in player.favorites.all() %}
+                            {% set _ = slot_map.update({f.slot: f.character_instance_id}) %}
+                        {% endfor %}
+                    {% endif %}
+                    {% for s in range(1, 6) %}
+                        {% set _inst = slot_map.get(s) %}
+                        {% set _ci = player.characters.filter_by(id=_inst).first() if _inst else None %}
+                        {% set _tpl = get_character_by_id(_ci.character_id) if _ci and get_character_by_id else None %}
+                        {% set _art = (_tpl.illustration if _tpl and _tpl.illustration else (_tpl.avatar if _tpl and _tpl.avatar else None)) %}
+                        <div class="fav-slot"
+                             data-slot="{{ s }}"
+                             data-instance="{{ _ci.id if _ci else '' }}"
+                             role="button"
+                             tabindex="0"
+                             aria-label="常用角色槽位 {{ s }}"
+                             style="position:relative; flex:0 0 120px; height:64px; border-radius:10px; border:2px solid rgba(148,163,184,0.35); background: rgba(15,23,42,0.35); overflow:hidden; cursor:pointer;">
+                            {% if _art %}
+                                <img src="{{ _art }}" alt="常用角色原画" style="width:100%; height:100%; object-fit:cover; object-position:center;">
+                                <div style="position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.0) 100%);"></div>
+                                <div style="position:absolute; left:8px; bottom:6px; right:8px; color:#fff; font-weight:900; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                                    {{ _tpl.name if _tpl and _tpl.name else _ci.character_id }}
+                                </div>
+                                <button type="button"
+                                        class="fav-slot-clear"
+                                        data-slot="{{ s }}"
+                                        aria-label="清空槽位 {{ s }}"
+                                        title="清空"
+                                        style="position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:999px; border:1px solid rgba(148,163,184,0.5); background: rgba(15,23,42,0.65); color:#e2e8f0; cursor:pointer;">
+                                    ↺
+                                </button>
+                            {% else %}
+                                <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:26px; font-weight:900;">+</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 常用角色选择器 -->
+    <div id="favPickerModal" class="modal" role="dialog" aria-labelledby="favpicker-title" aria-modal="true" aria-hidden="true">
+        <div class="modal-content" style="max-width: 920px;">
+            <div class="modal-header">
+                <h3 class="card-title" id="favpicker-title">⭐ 选择常用角色</h3>
+                <button class="modal-close" type="button" id="favpicker-close-btn" aria-label="关闭选择器">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <div style="color:#94a3b8;">选择要放入槽位 <span id="favpicker-slot-label" style="color:#fff;font-weight:900;">-</span></div>
+                    <input id="favpicker-search" class="input" placeholder="搜索角色名" style="max-width: 260px;">
+                </div>
+                <div id="favpicker-grid" class="grid grid-4" style="gap: 0.75rem; margin-top: 0.75rem;"></div>
+                <div id="favpicker-empty" style="display:none; color:#94a3b8; padding: 1.5rem; text-align:center;">没有可选择的角色</div>
             </div>
         </div>
     </div>
@@ -456,6 +561,173 @@
                     if (!confirm('确定要退出登录吗？')) e.preventDefault();
                 });
             }
+
+            // 玩家信息弹窗
+            (function() {
+                var infoModal = document.getElementById('playerInfoModal');
+                var openInfo = document.getElementById('player-avatar-btn');
+                var closeInfo = document.getElementById('playerinfo-close-btn');
+                function open() {
+                    if (!infoModal) return;
+                    infoModal.classList.add('active');
+                    infoModal.setAttribute('aria-hidden', 'false');
+                    if (window.AudioManager) window.AudioManager.playSfx('click');
+                }
+                function close() {
+                    if (!infoModal) return;
+                    infoModal.classList.remove('active');
+                    infoModal.setAttribute('aria-hidden', 'true');
+                    if (window.AudioManager) window.AudioManager.playSfx('click');
+                }
+                if (openInfo) openInfo.addEventListener('click', open);
+                if (closeInfo) closeInfo.addEventListener('click', close);
+                if (infoModal) infoModal.addEventListener('click', function(e) {
+                    if (e.target === infoModal) close();
+                });
+            })();
+
+            // 常用角色：5 槽位 + 选择器
+            (function() {
+                var slotsWrap = document.getElementById('fav-slots');
+                var resetAllBtn = document.getElementById('fav-reset-all-btn');
+                var picker = document.getElementById('favPickerModal');
+                var pickerClose = document.getElementById('favpicker-close-btn');
+                var pickerGrid = document.getElementById('favpicker-grid');
+                var pickerEmpty = document.getElementById('favpicker-empty');
+                var pickerSearch = document.getElementById('favpicker-search');
+                var pickerSlotLabel = document.getElementById('favpicker-slot-label');
+                if (!slotsWrap || !picker || !pickerGrid) return;
+
+                var currentSlot = null;
+                var charactersCache = null; // [{instance_id,name,art,avatar,level,rarity}]
+
+                function openPicker(slot) {
+                    currentSlot = slot;
+                    if (pickerSlotLabel) pickerSlotLabel.textContent = String(slot);
+                    picker.classList.add('active');
+                    picker.setAttribute('aria-hidden', 'false');
+                    if (window.AudioManager) window.AudioManager.playSfx('click');
+                    loadCharacters().then(renderPicker);
+                }
+                function closePicker() {
+                    picker.classList.remove('active');
+                    picker.setAttribute('aria-hidden', 'true');
+                    currentSlot = null;
+                    if (window.AudioManager) window.AudioManager.playSfx('click');
+                }
+                if (pickerClose) pickerClose.addEventListener('click', closePicker);
+                picker.addEventListener('click', function(e) { if (e.target === picker) closePicker(); });
+
+                async function loadCharacters() {
+                    if (charactersCache) return charactersCache;
+                    var r = await fetch('/api/characters/owned');
+                    var j = await r.json();
+                    if (!j || !j.success) {
+                        charactersCache = [];
+                        return charactersCache;
+                    }
+                    charactersCache = j.characters || [];
+                    return charactersCache;
+                }
+
+                function getUsedInstanceIds() {
+                    var used = new Set();
+                    slotsWrap.querySelectorAll('.fav-slot').forEach(function(el) {
+                        var inst = el.getAttribute('data-instance');
+                        if (inst) used.add(inst);
+                    });
+                    return used;
+                }
+
+                function renderPicker() {
+                    var q = (pickerSearch && pickerSearch.value ? pickerSearch.value.trim().toLowerCase() : '');
+                    var used = getUsedInstanceIds();
+                    pickerGrid.innerHTML = '';
+                    var list = (charactersCache || []).filter(function(c) {
+                        if (!q) return true;
+                        return (c.name || '').toLowerCase().indexOf(q) !== -1;
+                    });
+                    if (!list.length) {
+                        if (pickerEmpty) pickerEmpty.style.display = 'block';
+                        return;
+                    }
+                    if (pickerEmpty) pickerEmpty.style.display = 'none';
+
+                    list.forEach(function(c) {
+                        var instKey = String(c.instance_id);
+                        var disabled = used.has(instKey); // 已在其它槽位
+                        // 若该角色已在当前槽位，允许点（相当于保持）
+                        var curEl = slotsWrap.querySelector('.fav-slot[data-slot=\"' + currentSlot + '\"]');
+                        if (curEl && curEl.getAttribute('data-instance') === instKey) disabled = false;
+
+                        var card = document.createElement('button');
+                        card.type = 'button';
+                        card.className = 'card';
+                        card.style.cssText = 'text-align:left; padding:0; overflow:hidden; cursor:' + (disabled ? 'not-allowed' : 'pointer') + '; opacity:' + (disabled ? '0.45' : '1') + ';';
+                        card.innerHTML = '' +
+                            '<div style=\"position:relative; height:120px; background:#0b1220;\">' +
+                                '<img src=\"' + (c.art || c.avatar || window.__STATIC_URL__ + 'images/ui/avatar-default.png') + '\" alt=\"' + (c.name || '') + '\" style=\"width:100%;height:100%;object-fit:cover;object-position:center;\">' +
+                                '<div style=\"position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.65) 100%);\"></div>' +
+                                (disabled ? '<div style=\"position:absolute; top:8px; right:8px; background: rgba(15,23,42,0.75); border:1px solid rgba(148,163,184,0.45); color:#e2e8f0; padding:2px 8px; border-radius:999px; font-size:12px;\">已占用</div>' : '') +
+                                '<div style=\"position:absolute; left:10px; bottom:8px; right:10px; color:#fff; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;\">' + (c.name || '') + '</div>' +
+                            '</div>' +
+                            '<div class=\"card-body\" style=\"padding:0.6rem 0.75rem;\">' +
+                                '<div style=\"color:#94a3b8; font-size:0.85rem;\">Lv.' + (c.level || 1) + '</div>' +
+                            '</div>';
+
+                        card.addEventListener('click', async function() {
+                            if (disabled) {
+                                ToastManager.warning('该角色已放在其它槽位');
+                                return;
+                            }
+                            var res = await apiCall('/api/favorites/set', { slot: currentSlot, instance_id: c.instance_id });
+                            if (!res || !res.success) {
+                                ToastManager.error(res && res.error ? res.error : '设置失败');
+                                return;
+                            }
+                            ToastManager.success('已设置常用角色');
+                            location.reload(); // 简单处理：刷新让槽位图更新
+                        });
+                        pickerGrid.appendChild(card);
+                    });
+                }
+
+                if (pickerSearch) pickerSearch.addEventListener('input', function() {
+                    if (!charactersCache) return;
+                    renderPicker();
+                });
+
+                slotsWrap.addEventListener('click', function(e) {
+                    var clearBtn = e.target && e.target.closest ? e.target.closest('.fav-slot-clear') : null;
+                    if (clearBtn) {
+                        e.stopPropagation();
+                        var slot = parseInt(clearBtn.getAttribute('data-slot'), 10);
+                        apiCall('/api/favorites/set', { slot: slot, instance_id: null }).then(function(r) {
+                            if (r && r.success) {
+                                ToastManager.info('已清空槽位');
+                                location.reload();
+                            } else {
+                                ToastManager.error((r && r.error) || '清空失败');
+                            }
+                        });
+                        return;
+                    }
+                    var slotEl = e.target && e.target.closest ? e.target.closest('.fav-slot') : null;
+                    if (!slotEl) return;
+                    var slot = parseInt(slotEl.getAttribute('data-slot'), 10);
+                    openPicker(slot);
+                });
+
+                if (resetAllBtn) resetAllBtn.addEventListener('click', function() {
+                    if (!confirm('确定要重置所有常用角色槽位吗？')) return;
+                    Promise.all([1,2,3,4,5].map(function(s) {
+                        return apiCall('/api/favorites/set', { slot: s, instance_id: null });
+                    })).then(function() {
+                        ToastManager.success('已重置');
+                        location.reload();
+                    });
+                });
+            })();
 
             bindTabs();
             bindOptions();

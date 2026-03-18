@@ -14,6 +14,7 @@ class Player(db.Model, UserMixin):
     __tablename__ = 'players'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    uid = db.Column(db.String(8), unique=True, nullable=True, index=True)  # 8位UID：00000001 起
     
     # 用户认证字段
     username = db.Column(db.String(64), unique=True, nullable=True, index=True)
@@ -53,6 +54,13 @@ class Player(db.Model, UserMixin):
     completed_stages = db.relationship('PlayerCompletedStage', backref='player', lazy='dynamic')
     daily_tasks = db.relationship('PlayerDailyTask', backref='player', lazy='dynamic')
     summon_history = db.relationship('SummonHistory', backref='player', lazy='dynamic')
+    favorites = db.relationship(
+        'PlayerFavoriteCharacter',
+        backref='player',
+        lazy='dynamic',
+        cascade='all, delete-orphan',
+        order_by='PlayerFavoriteCharacter.slot',
+    )
     
     def set_password(self, password):
         """设置密码"""
@@ -67,6 +75,7 @@ class Player(db.Model, UserMixin):
     def to_dict(self):
         return {
             'id': self.id,
+            'uid': self.uid,
             'name': self.name,
             'level': self.level,
             'exp': self.exp,
@@ -143,6 +152,23 @@ class PlayerCharacter(db.Model):
             'breakthrough': self.breakthrough,
             'bond_level': self.bond_level,
         }
+
+
+class PlayerFavoriteCharacter(db.Model):
+    """玩家常用/收藏角色（可为空，最多 6 个）"""
+    __tablename__ = 'player_favorite_characters'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    character_instance_id = db.Column(db.Integer, db.ForeignKey('player_characters.id'), nullable=False, index=True)
+    slot = db.Column(db.Integer, nullable=False, default=1)  # 1-6
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    __table_args__ = (
+        db.UniqueConstraint('player_id', 'character_instance_id', name='uix_fav_player_instance'),
+        db.UniqueConstraint('player_id', 'slot', name='uix_fav_player_slot'),
+        db.Index('idx_fav_player', 'player_id'),
+    )
 
 
 class PlayerTeam(db.Model):

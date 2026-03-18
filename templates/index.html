@@ -10,13 +10,7 @@
     
     <!-- 顶部信息栏 -->
     <div class="town-header-overlay">
-        <div class="town-welcome-text">欢迎回来，<span class="player-name">{{ player.name }}</span></div>
-        <div class="town-stats-bar">
-            <span class="stat-item"><span class="stat-icon">⭐</span>Lv.{{ player.level }}</span>
-            <span class="stat-item"><span class="stat-icon">👥</span>{{ characters|length }}英雄</span>
-            <span class="stat-item"><span class="stat-icon">📅</span>第{{ player.total_play_days }}天</span>
-            <span class="stat-item"><span class="stat-icon">🏆</span>{{ player.completed_stages.count() }}关</span>
-        </div>
+        <!-- 顶部欢迎与统计已移除，信息整合到左上角头像弹窗 -->
     </div>
     
     <!-- 建筑区域 -->
