@@ -8,6 +8,35 @@
 
 {% block content %}
 <div class="space-y-4">
+    <!-- 玩家等级信息 -->
+    <div class="card">
+        <div class="card-body" style="padding: 0.75rem 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #fbbf24;">Lv.{{ player.level }}</div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">
+                            经验值: {{ player.exp }} / {{ player.exp_to_next }}
+                        </div>
+                        <div style="width: 200px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden;">
+                            <div style="width: {{ (player.exp / player.exp_to_next * 100) if player.exp_to_next > 0 else 0 }}%; height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 4px;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.75rem; color: #94a3b8;">体力</div>
+                        <div style="font-weight: bold; color: #22c55e;">⚡ {{ player.energy }}/{{ player.max_energy }}</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.75rem; color: #94a3b8;">金币</div>
+                        <div style="font-weight: bold; color: #fbbf24;">💰 {{ player.gold }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <!-- 章节控制按钮 -->
     <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
         <button type="button" class="btn btn-secondary" onclick="expandAllChapters()" aria-label="展开所有章节">
@@ -20,35 +49,53 @@
 
     <!-- 章节列表 -->
     {% for chapter in chapters %}
-    <div class="card">
-        <div class="card-header" style="cursor: pointer;" onclick="toggleChapter('{{ chapter.id }}')">
+    {% set chapter_status = chapter_unlock_status.get(chapter['id'], {'unlocked': True, 'reason': ''}) %}
+    <div class="card {% if not chapter_status.unlocked %}locked-chapter{% endif %}">
+        <div class="card-header" style="cursor: pointer;" onclick="toggleChapter('{{ chapter['id'] }}')">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h3 class="card-title">{{ chapter.name }}</h3>
-                    <p style="font-size: 0.875rem; color: #94a3b8;">{{ chapter.description }}</p>
+                    <h3 class="card-title">
+                        {% if not chapter_status.unlocked %}🔒 {% endif %}
+                        {{ chapter['name'] }}
+                    </h3>
+                    <p style="font-size: 0.875rem; color: #94a3b8;">
+                        {{ chapter['description'] }}
+                        {% if chapter.get('required_level', 1) > 1 %}
+                        <span style="color: #f59e0b; margin-left: 0.5rem;">(需要 Lv.{{ chapter['required_level'] }})</span>
+                        {% endif %}
+                    </p>
+                    {% if not chapter_status.unlocked %}
+                    <p style="font-size: 0.75rem; color: #ef4444; margin-top: 0.25rem;">
+                        ⚠️ {{ chapter_status.reason }}
+                    </p>
+                    {% endif %}
                 </div>
                 <div style="text-align: right;">
                     <div style="font-size: 0.875rem; color: #94a3b8;">进度</div>
                     <div style="font-size: 1.25rem; font-weight: bold; color: #fbbf24;">
-                        {{ chapter.stages|selectattr('id', 'in', completed_stages)|list|length }}/{{ chapter.stages|length }}
+                        {{ chapter['stages']|selectattr('id', 'in', completed_stages)|list|length }}/{{ chapter['stages']|length }}
                     </div>
                 </div>
             </div>
         </div>
-        <div class="card-body" id="chapter-{{ chapter.id }}" style="display: none;">
-            {% for stage in chapter.stages %}
-            <div class="card stage-card {% if stage.id in completed_stages %}completed{% endif %}" 
-                 style="margin-bottom: 1rem;">
+        <div class="card-body" id="chapter-{{ chapter['id'] }}" style="display: none;">
+            {% for stage in chapter['stages'] %}
+            {% set stage_status = stage_unlock_status.get(stage.id, {'unlocked': True, 'reason': ''}) %}
+            <div class="card stage-card {% if stage.id in completed_stages %}completed{% elif not stage_status.unlocked %}locked{% endif %}" 
+                 style="margin-bottom: 1rem; {% if not stage_status.unlocked %}opacity: 0.6;{% endif %}">
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 1rem;">
                             <!-- 状态图标 -->
                             <div style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-                                        background: {% if stage.id in completed_stages %}#22c55e{% else %}#334155{% endif %}; font-size: 1.25rem;">
-                                {% if stage.id in completed_stages %}✓{% else %}⚡{{ stage.energy_cost }}{% endif %}
+                                        background: {% if stage.id in completed_stages %}#22c55e{% elif not stage_status.unlocked %}#6b7280{% else %}#334155{% endif %}; font-size: 1.25rem;">
+                                {% if stage.id in completed_stages %}✓{% elif not stage_status.unlocked %}🔒{% else %}⚡{{ stage.energy_cost }}{% endif %}
                             </div>
                             <div>
-                                <h4 style="font-weight: bold; color: white;">{{ stage.name }}</h4>
+                                <h4 style="font-weight: bold; color: white;">
+                                    {% if not stage_status.unlocked %}🔒 {% endif %}
+                                    {{ stage.name }}
+                                </h4>
                                 <!-- 星级显示 -->
                                 <div style="display: flex; gap: 0.15rem; margin-top: 0.15rem;">
                                     {% set stars = stage_stars.get(stage.id, 0) %}
@@ -57,6 +104,9 @@
                                     {% endfor %}
                                 </div>
                                 <p style="font-size: 0.75rem; color: #94a3b8;">{{ stage.description }}</p>
+                                {% if not stage_status.unlocked %}
+                                <p style="font-size: 0.7rem; color: #ef4444;">{{ stage_status.reason }}</p>
+                                {% endif %}
                             </div>
                         </div>
                         <div style="text-align: right;">
@@ -83,7 +133,7 @@
                     <!-- 奖励 -->
                     <div style="display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.875rem;">
                         <span style="color: #fbbf24;">💰 {{ stage.rewards.gold }}</span>
-                        <span style="color: #22c55e;">📖 {{ stage.rewards.exp }}</span>
+                        <span style="color: #22c55e;">📖 {{ stage.rewards.exp }} EXP</span>
                         {% if stage.rewards.gems %}
                         <span style="color: #06b6d4;">💎 {{ stage.rewards.gems }}</span>
                         {% endif %}
@@ -91,6 +141,7 @@
                     
                     <!-- 操作按钮 -->
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                        {% if stage_status.unlocked %}
                         <button type="button" class="btn btn-primary" style="flex: 1;" onclick="startBattle('{{ stage.id }}')" 
                                 {% if not team %}disabled title="请先设置队伍"{% endif %}>
                             {% if stage.id in completed_stages %}再次挑战{% else %}开始挑战{% endif %}
@@ -102,6 +153,11 @@
                                 aria-label="扫荡关卡"
                                 {% if _stars < 3 %}disabled title="满星（3★）后解锁扫荡"{% endif %}>
                             ⚡ 扫荡
+                        </button>
+                        {% endif %}
+                        {% else %}
+                        <button type="button" class="btn btn-secondary" style="flex: 1;" disabled title="{{ stage_status.reason }}">
+                            🔒 需要解锁
                         </button>
                         {% endif %}
                     </div>

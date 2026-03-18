@@ -1541,3 +1541,35 @@ body {
     border-radius: 4px;
     border: 1px solid var(--medieval-border);
 }
+
+/* ---------- 锁定章节样式 ---------- */
+.locked-chapter {
+    opacity: 0.7;
+    border-color: #6b7280;
+}
+
+.locked-chapter .card-header {
+    background: linear-gradient(180deg, #4a4035 0%, #352d24 100%);
+}
+
+.locked-chapter .card-title {
+    color: #9ca3af;
+}
+
+.locked-chapter:hover {
+    opacity: 0.85;
+}
+
+.stage-card.locked {
+    background: linear-gradient(180deg, #3d3429 0%, #2c241c 100%);
+    border-color: #6b7280;
+}
+
+.stage-card.locked:hover {
+    background: linear-gradient(180deg, #4a4035 0%, #352d24 100%);
+}
+
+.stage-card.locked .enemy-avatar {
+    opacity: 0.4;
+    filter: grayscale(50%);
+}

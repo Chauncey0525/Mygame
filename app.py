@@ -33,7 +33,12 @@ from game_data import (
     ELEMENT_NAMES, ELEMENT_COLORS, ROLE_NAMES, DIFFICULTY_NAMES, DIFFICULTY_COLORS,
     DEFAULT_DAILY_TASKS, get_character_by_id, get_characters_by_rarity,
     get_all_characters, get_stage_by_id, calculate_stats,
-    CURRENT_UP_CHARACTERS, UP_RATE_MULTIPLIER
+    CURRENT_UP_CHARACTERS, UP_RATE_MULTIPLIER,
+    # 经验值升级系统
+    get_exp_to_next_level, get_total_exp_to_level, get_level_from_exp,
+    get_chapter_unlock_status, get_stage_unlock_status, get_level_reward,
+    get_chapter_by_id, get_starter_character_by_id,
+    STARTER_CHARACTERS, DEFAULT_STARTER_CHARACTER, MAX_PLAYER_LEVEL, LEVEL_REWARDS
 )
 
 # ==================== 账号工具 ====================
@@ -549,6 +554,8 @@ def register():
         seed_starter_equipment(player)
         # 新手符文
         seed_starter_research(player)
+        # 新手初始角色
+        seed_starter_character(player)
         
         # 自动登录
         login_user(player)
@@ -776,6 +783,43 @@ def seed_starter_equipment(player: Player) -> None:
     ]
     for it in items:
         db.session.add(it)
+    db.session.commit()
+
+
+def seed_starter_character(player: Player) -> None:
+    """给新号发放初始角色"""
+    # 检查是否已有角色
+    existing = PlayerCharacter.query.filter_by(player_id=player.id).count()
+    if existing > 0:
+        return
+    
+    # 获取默认初始角色
+    starter_char = get_starter_character_by_id(DEFAULT_STARTER_CHARACTER)
+    if not starter_char:
+        starter_char = STARTER_CHARACTERS[0] if STARTER_CHARACTERS else None
+    
+    if not starter_char:
+        return
+    
+    # 创建角色实例
+    char_instance = PlayerCharacter(
+        player_id=player.id,
+        character_id=starter_char['id'],
+        level=1,
+        exp=0,
+        stars=1,
+        breakthrough=0
+    )
+    db.session.add(char_instance)
+    db.session.commit()
+    
+    # 将角色加入队伍第一个位置
+    team_slot = PlayerTeam(
+        player_id=player.id,
+        slot=0,
+        character_instance_id=char_instance.id
+    )
+    db.session.add(team_slot)
     db.session.commit()
 
 
@@ -1153,6 +1197,9 @@ def stages():
     """副本页面"""
     player = current_user
     
+    # 更新玩家经验值到下一级所需经验
+    player.exp_to_next = get_exp_to_next_level(player.level)
+    
     # 获取已通关关卡
     completed = [s.stage_id for s in player.completed_stages]
     
@@ -1160,6 +1207,17 @@ def stages():
     stage_stars = {}
     for s in player.completed_stages:
         stage_stars[s.stage_id] = s.stars if hasattr(s, 'stars') else 1
+    
+    # 获取章节解锁状态
+    chapter_unlock_status = get_chapter_unlock_status(player.level, completed)
+    
+    # 获取关卡解锁状态
+    stage_unlock_status = {}
+    for chapter in CHAPTERS:
+        for stage in chapter['stages']:
+            stage_unlock_status[stage['id']] = get_stage_unlock_status(
+                player.level, completed, stage['id']
+            )
     
     # 获取队伍
     team = []
@@ -1175,6 +1233,8 @@ def stages():
         chapters=CHAPTERS,
         completed_stages=completed,
         stage_stars=stage_stars,
+        chapter_unlock_status=chapter_unlock_status,
+        stage_unlock_status=stage_unlock_status,
         team=team,
         difficulty_names=DIFFICULTY_NAMES,
         difficulty_colors=DIFFICULTY_COLORS,
@@ -1590,9 +1650,35 @@ def api_battle_complete():
         # 发放奖励
         rewards = stage['rewards']
         player.gold += rewards.get('gold', 0)
-        player.exp += rewards.get('exp', 0)
+        exp_gained = rewards.get('exp', 0)
+        player.exp += exp_gained
         if rewards.get('gems'):
             player.gems += rewards['gems']
+        
+        # 检查玩家升级
+        level_ups = 0
+        level_rewards = []
+        while player.level < MAX_PLAYER_LEVEL:
+            exp_needed = get_exp_to_next_level(player.level)
+            if player.exp >= exp_needed:
+                player.exp -= exp_needed
+                player.level += 1
+                level_ups += 1
+                
+                # 检查等级奖励
+                reward = get_level_reward(player.level)
+                if reward:
+                    player.gold += reward.get('gold', 0)
+                    player.gems += reward.get('gems', 0)
+                    level_rewards.append({
+                        'level': player.level,
+                        'reward': reward
+                    })
+            else:
+                break
+        
+        # 更新下一级所需经验
+        player.exp_to_next = get_exp_to_next_level(player.level)
         
         # 计算星级
         # 1星：通关
@@ -1646,7 +1732,11 @@ def api_battle_complete():
         'success': True,
         'victory': victory,
         'rewards': stage['rewards'] if victory else None,
-        'stars': stars if victory else 0
+        'stars': stars if victory else 0,
+        'level_up': level_ups > 0,
+        'level_ups': level_ups if victory else 0,
+        'new_level': player.level if victory else player.level,
+        'level_rewards': level_rewards if victory else []
     })
 
 
