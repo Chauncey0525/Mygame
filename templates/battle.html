@@ -77,8 +77,29 @@
         </div>
     </div>
 
-    <!-- 战斗区域 -->
-    <div class="card battle-area" style="background: url('{{ url_for('static', filename='images/backgrounds/battle.jpg') }}') center/cover; position: relative;">
+    <!-- 3D/2D战斗区域切换 -->
+    <div class="card" style="padding: 0;">
+        <!-- 切换按钮 -->
+        <div style="display: flex; justify-content: center; gap: 0.5rem; padding: 0.5rem; background: rgba(15,23,42,0.8); border-bottom: 1px solid rgba(148,163,184,0.2);">
+            <button type="button" id="toggle-3d-btn" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.25rem 0.75rem;" onclick="toggleBattleMode()">
+                🎮 切换3D模式
+            </button>
+            <span id="battle-mode-label" style="font-size: 0.8rem; color: #94a3b8; display: flex; align-items: center;">当前: 2D模式</span>
+        </div>
+        
+        <!-- 3D战斗场景容器 -->
+        <div id="battle-3d-container" style="width: 100%; height: 500px; display: none; position: relative;">
+            <!-- Three.js 将在这里渲染 -->
+            <div id="loading-3d" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #1a1a2e;">
+                <div style="text-align: center;">
+                    <div class="spinner" style="width: 40px; height: 40px; border: 3px solid rgba(251,191,36,0.3); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                    <div style="color: #94a3b8;">加载3D场景中...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 2D战斗区域 -->
+        <div id="battle-2d-container" class="battle-area" style="background: url('{{ url_for('static', filename='images/backgrounds/battle.jpg') }}') center/cover; position: relative;">
         <div style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.85);"></div>
         <div class="card-body" style="padding: 2rem; position: relative; z-index: 1;">
             <!-- 敌方 -->
@@ -197,6 +218,42 @@
 </div>
 
 <style>
+/* 3D战斗场景样式 */
+#battle-3d-container {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+    border-radius: 0 0 12px 12px;
+}
+
+#battle-3d-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* 加载动画 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+/* 3D/2D切换按钮高亮 */
+#toggle-3d-btn {
+    transition: all 0.3s ease;
+}
+
+#toggle-3d-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+}
+
+/* 战斗区域过渡效果 */
+#battle-2d-container, #battle-3d-container {
+    transition: opacity 0.3s ease;
+}
+
 /* 技能按钮样式增强 */
 .skill-btn {
     display: flex;
@@ -753,20 +810,44 @@ async function useSkill(skillIndex) {
             return;
         }
         addLog(`⚔️ ${attacker.name} 使用 ${skillName} 攻击敌方全体！`);
+        
+        // 3D动画：全体攻击
+        if (is3DMode && battle3D) {
+            const attackerPos = battle3D.config.allyPositions[gameState.currentAllyIndex] || { x: 0, z: 0 };
+            aliveEnemyItems.forEach(({ e, idx }) => {
+                const targetPos = battle3D.config.enemyPositions[idx] || { x: 0, z: 0 };
+                if (skill && skill.element) {
+                    setTimeout(() => {
+                        skillEffectFactory.create(skill.element, attackerPos, targetPos);
+                    }, idx * 100);
+                }
+            });
+        }
+        
         aliveEnemyItems.forEach(({ e, idx }) => {
             const result = calculateDamage(attacker, e, skill);
             const damage = result.damage;
             e.currentHp -= damage;
 
             updateHpDisplay('enemy', idx);
-            const enemyEl = document.getElementById('enemy-' + idx);
-            if (enemyEl) {
-                enemyEl.classList.add('hit-flash', 'shake');
-                const dmgSpan = document.createElement('span');
-                dmgSpan.className = 'float-damage';
-                dmgSpan.textContent = '-' + damage;
-                enemyEl.appendChild(dmgSpan);
-                setTimeout(function() { enemyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
+            
+            // 3D模式：显示伤害数字
+            if (is3DMode && battle3D) {
+                setTimeout(() => {
+                    battle3D.showDamageNumber('enemy', idx, damage);
+                    battle3D.hitCharacter('enemy', idx);
+                }, 300 + idx * 100);
+            } else {
+                // 2D模式动画
+                const enemyEl = document.getElementById('enemy-' + idx);
+                if (enemyEl) {
+                    enemyEl.classList.add('hit-flash', 'shake');
+                    const dmgSpan = document.createElement('span');
+                    dmgSpan.className = 'float-damage';
+                    dmgSpan.textContent = '-' + damage;
+                    enemyEl.appendChild(dmgSpan);
+                    setTimeout(function() { enemyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
+                }
             }
 
             if (result.elementText) {
@@ -778,7 +859,11 @@ async function useSkill(skillIndex) {
             checkBossPhase(e, idx);
             if (e.currentHp <= 0) {
                 addLog(`💀 ${e.name} 被击败！`);
-                enemyEl?.classList.add('dead');
+                if (is3DMode && battle3D) {
+                    setTimeout(() => battle3D.deathCharacter('enemy', idx), 500);
+                } else {
+                    document.getElementById('enemy-' + idx)?.classList.add('dead');
+                }
             }
         });
         if (window.AudioManager) window.AudioManager.playSfx('hit');
@@ -795,14 +880,38 @@ async function useSkill(skillIndex) {
         addLog(logMessage);
 
         updateHpDisplay('enemy', gameState.selectedTargetIndex);
-        var enemyEl = document.getElementById('enemy-' + gameState.selectedTargetIndex);
-        if (enemyEl) {
-            enemyEl.classList.add('hit-flash', 'shake');
-            var dmgSpan = document.createElement('span');
-            dmgSpan.className = 'float-damage';
-            dmgSpan.textContent = '-' + damage;
-            enemyEl.appendChild(dmgSpan);
-            setTimeout(function() { enemyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
+        
+        // 3D模式：攻击动画和特效
+        if (is3DMode && battle3D) {
+            const attackerPos = battle3D.config.allyPositions[gameState.currentAllyIndex] || { x: 0, z: 0 };
+            const targetPos = battle3D.config.enemyPositions[gameState.selectedTargetIndex] || { x: 0, z: 0 };
+            
+            // 攻击动画
+            battle3D.attackCharacter('ally', gameState.currentAllyIndex, gameState.selectedTargetIndex, true);
+            
+            // 技能特效
+            if (skill && skill.element) {
+                setTimeout(() => {
+                    skillEffectFactory.create(skill.element, attackerPos, targetPos);
+                }, 150);
+            }
+            
+            // 受击和伤害数字
+            setTimeout(() => {
+                battle3D.hitCharacter('enemy', gameState.selectedTargetIndex);
+                battle3D.showDamageNumber('enemy', gameState.selectedTargetIndex, damage);
+            }, 350);
+        } else {
+            // 2D模式动画
+            var enemyEl = document.getElementById('enemy-' + gameState.selectedTargetIndex);
+            if (enemyEl) {
+                enemyEl.classList.add('hit-flash', 'shake');
+                var dmgSpan = document.createElement('span');
+                dmgSpan.className = 'float-damage';
+                dmgSpan.textContent = '-' + damage;
+                enemyEl.appendChild(dmgSpan);
+                setTimeout(function() { enemyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
+            }
         }
         if (window.AudioManager) window.AudioManager.playSfx('hit');
 
@@ -812,7 +921,11 @@ async function useSkill(skillIndex) {
         // 检查敌人是否死亡
         if (target.currentHp <= 0) {
             addLog(`💀 ${target.name} 被击败！`);
-            enemyEl?.classList.add('dead');
+            if (is3DMode && battle3D) {
+                setTimeout(() => battle3D.deathCharacter('enemy', gameState.selectedTargetIndex), 500);
+            } else {
+                document.getElementById('enemy-' + gameState.selectedTargetIndex)?.classList.add('dead');
+            }
         }
     }
 
@@ -899,6 +1012,9 @@ function enemyTurn() {
         return;
     }
     
+    let delay = 0;
+    const enemyAttacks = [];
+    
     gameState.enemies.forEach((enemy, index) => {
         if (enemy.currentHp <= 0 || gameState.battleEnded) return;
         
@@ -916,61 +1032,110 @@ function enemyTurn() {
         
         const result = calculateDamage(enemy, target, enemySkill);
         const damage = result.damage;
-        target.currentHp -= damage;
         
-        const skillName = enemySkill ? enemySkill.name : '普通攻击';
-        let logMessage = `👿 ${enemy.name} 使用 ${skillName} 对 ${target.name} 造成 ${damage} 点伤害！`;
-        if (result.elementText) {
-            logMessage += ` ${result.elementText}`;
-        }
-        addLog(logMessage);
-        updateHpDisplay('ally', targetIndex);
-        
-        var allyEl = document.getElementById('ally-' + targetIndex);
-        if (allyEl) {
-            allyEl.classList.add('hit-flash', 'shake');
-            var dmgSpan = document.createElement('span');
-            dmgSpan.className = 'float-damage';
-            dmgSpan.textContent = '-' + damage;
-            allyEl.appendChild(dmgSpan);
-            setTimeout(function() { allyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
-        }
-        if (window.AudioManager) window.AudioManager.playSfx('hit');
-        
-        if (target.currentHp <= 0) {
-            addLog(`💔 ${target.name} 被击败！`);
-            allyEl?.classList.add('dead');
-        }
+        enemyAttacks.push({
+            enemyIndex: index,
+            targetIndex: targetIndex,
+            skill: enemySkill,
+            damage: damage,
+            elementText: result.elementText
+        });
     });
     
-    // 检查是否所有盟友都被击败
-    const aliveAlliesAfter = gameState.allies.filter(a => a.currentHp > 0);
-    if (aliveAlliesAfter.length === 0) {
-        setTimeout(() => endBattle(false), getDelay(500));
-        return;
-    }
+    // 按顺序执行攻击动画
+    enemyAttacks.forEach((attack, i) => {
+        const enemy = gameState.enemies[attack.enemyIndex];
+        const target = gameState.allies[attack.targetIndex];
+        
+        setTimeout(() => {
+            const skillName = attack.skill ? attack.skill.name : '普通攻击';
+            let logMessage = `👿 ${enemy.name} 使用 ${skillName} 对 ${target.name} 造成 ${attack.damage} 点伤害！`;
+            if (attack.elementText) {
+                logMessage += ` ${attack.elementText}`;
+            }
+            addLog(logMessage);
+            
+            target.currentHp -= attack.damage;
+            updateHpDisplay('ally', attack.targetIndex);
+            
+            // 3D模式动画
+            if (is3DMode && battle3D) {
+                const attackerPos = battle3D.config.enemyPositions[attack.enemyIndex] || { x: 0, z: 0 };
+                const targetPos = battle3D.config.allyPositions[attack.targetIndex] || { x: 0, z: 0 };
+                
+                // 攻击动画
+                battle3D.attackCharacter('enemy', attack.enemyIndex, attack.targetIndex, false);
+                
+                // 技能特效
+                if (attack.skill && attack.skill.element) {
+                    setTimeout(() => {
+                        skillEffectFactory.create(attack.skill.element, attackerPos, targetPos);
+                    }, 150);
+                }
+                
+                // 受击和伤害数字
+                setTimeout(() => {
+                    battle3D.hitCharacter('ally', attack.targetIndex);
+                    battle3D.showDamageNumber('ally', attack.targetIndex, attack.damage);
+                }, 350);
+            } else {
+                // 2D模式动画
+                var allyEl = document.getElementById('ally-' + attack.targetIndex);
+                if (allyEl) {
+                    allyEl.classList.add('hit-flash', 'shake');
+                    var dmgSpan = document.createElement('span');
+                    dmgSpan.className = 'float-damage';
+                    dmgSpan.textContent = '-' + attack.damage;
+                    allyEl.appendChild(dmgSpan);
+                    setTimeout(function() { allyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
+                }
+            }
+            if (window.AudioManager) window.AudioManager.playSfx('hit');
+            
+            // 检查是否死亡
+            if (target.currentHp <= 0) {
+                addLog(`💔 ${target.name} 被击败！`);
+                if (is3DMode && battle3D) {
+                    setTimeout(() => battle3D.deathCharacter('ally', attack.targetIndex), 500);
+                } else {
+                    document.getElementById('ally-' + attack.targetIndex)?.classList.add('dead');
+                }
+            }
+        }, delay);
+        
+        delay += getDelay(600);
+    });
     
-    // 新回合开始
-    gameState.turnCount++;
-    document.getElementById('turn-counter').textContent = `回合: ${gameState.turnCount}`;
-    
-    // 减少技能冷却
-    reduceCooldowns();
-    
-    // 重置盟友索引
-    gameState.currentAllyIndex = 0;
-    while (gameState.currentAllyIndex < gameState.allies.length && 
-           gameState.allies[gameState.currentAllyIndex].currentHp <= 0) {
-        gameState.currentAllyIndex++;
-    }
-    
-    addLog(`--- 回合 ${gameState.turnCount} 我方行动 ---`);
-    gameState.phase = 'ally';
-    updateCurrentActorDisplay();
-    battleStatus.textContent = '选择目标与技能';
-    
-    // 自动战斗模式
-    if (gameState.autoBattle && !gameState.battleEnded) {
+    // 敌方行动结束后检查
+    setTimeout(() => {
+        // 检查是否所有盟友都被击败
+        const aliveAlliesAfter = gameState.allies.filter(a => a.currentHp > 0);
+        if (aliveAlliesAfter.length === 0) {
+            setTimeout(() => endBattle(false), getDelay(500));
+            return;
+        }
+        
+        // 新回合开始
+        gameState.turnCount++;
+        document.getElementById('turn-counter').textContent = `回合: ${gameState.turnCount}`;
+        
+        // 减少技能冷却
+        reduceCooldowns();
+        
+        // 重置盟友索引
+        gameState.currentAllyIndex = 0;
+        while (gameState.currentAllyIndex < gameState.allies.length && 
+               gameState.allies[gameState.currentAllyIndex].currentHp <= 0) {
+            gameState.currentAllyIndex++;
+        }
+        
+        addLog(`--- 回合 ${gameState.turnCount} 我方行动 ---`);
+        gameState.phase = 'ally';
+        updateCurrentActorDisplay();
+        battleStatus.textContent = '选择目标与技能';
+        
+        // 自动战斗模式
+        if (gameState.autoBattle && !gameState.battleEnded) {
         clearAutoBattleTimer();
         gameState.autoBattleTimer = setTimeout(autoAttack, getDelay(700));
     }
@@ -1046,5 +1211,164 @@ async function endBattle(victory) {
         showResult();
     }
 }
+
+// ========== 3D战斗系统集成 ==========
+let battle3D = null;
+let skillEffectFactory = null;
+let is3DMode = false;
+
+// 切换战斗模式
+function toggleBattleMode() {
+    is3DMode = !is3DMode;
+    
+    const container3D = document.getElementById('battle-3d-container');
+    const container2D = document.getElementById('battle-2d-container');
+    const label = document.getElementById('battle-mode-label');
+    const btn = document.getElementById('toggle-3d-btn');
+    
+    if (is3DMode) {
+        container3D.style.display = 'block';
+        container2D.style.display = 'none';
+        label.textContent = '当前: 3D模式';
+        btn.textContent = '📱 切换2D模式';
+        
+        // 初始化3D场景
+        initBattle3D();
+    } else {
+        container3D.style.display = 'none';
+        container2D.style.display = 'block';
+        label.textContent = '当前: 2D模式';
+        btn.textContent = '🎮 切换3D模式';
+        
+        // 销毁3D场景释放资源
+        if (battle3D) {
+            battle3D.destroy();
+            battle3D = null;
+            skillEffectFactory = null;
+        }
+    }
+    
+    if (window.AudioManager) window.AudioManager.playSfx('click');
+}
+
+// 初始化3D战斗场景
+async function initBattle3D() {
+    const loadingEl = document.getElementById('loading-3d');
+    if (!loadingEl) return;
+    
+    loadingEl.style.display = 'flex';
+    
+    try {
+        // 动态加载脚本
+        await loadScript('{{ url_for("static", filename="js/battle3d/battle3d.js") }}');
+        await loadScript('{{ url_for("static", filename="js/battle3d/effects.js") }}');
+        
+        // 创建3D场景
+        battle3D = new Battle3D('battle-3d-container');
+        skillEffectFactory = new SkillEffectFactory(battle3D);
+        
+        // 等待初始化完成
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 创建角色模型
+        gameState.allies.forEach((ally, index) => {
+            battle3D.createCharacter(ally, 'ally', index);
+        });
+        
+        gameState.enemies.forEach((enemy, index) => {
+            battle3D.createCharacter(enemy, 'enemy', index);
+        });
+        
+        loadingEl.style.display = 'none';
+        ToastManager.success('3D战斗场景已加载', 2000);
+        
+    } catch (error) {
+        console.error('3D场景初始化失败:', error);
+        loadingEl.innerHTML = `
+            <div style="text-align: center; color: #ef4444;">
+                <div>⚠️ 3D场景加载失败</div>
+                <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #94a3b8;">请刷新页面重试</div>
+            </div>
+        `;
+    }
+}
+
+// 动态加载脚本
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        // 检查是否已加载
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing) {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+// 3D战斗动画 - 攻击
+function play3DAttack(attackerType, attackerIndex, targetType, targetIndex, skill) {
+    if (!battle3D || !is3DMode) return;
+    
+    const attacker = attackerType === 'ally' 
+        ? gameState.allies[attackerIndex] 
+        : gameState.enemies[attackerIndex];
+    const target = targetType === 'ally' 
+        ? gameState.allies[targetIndex] 
+        : gameState.enemies[targetIndex];
+    
+    // 获取位置
+    const attackerPos = battle3D.config[attackerType + 'Positions'][attackerIndex] || { x: 0, z: 0 };
+    const targetPos = battle3D.config[targetType + 'Positions'][targetIndex] || { x: 0, z: 0 };
+    
+    // 播放攻击动画
+    battle3D.attackCharacter(attackerType, attackerIndex, targetIndex, targetType === 'enemy');
+    
+    // 播放技能特效
+    if (skill && skill.element) {
+        setTimeout(() => {
+            skillEffectFactory.create(
+                skill.element,
+                { x: attackerPos.x, y: 1.5, z: attackerPos.z },
+                { x: targetPos.x, y: 1.5, z: targetPos.z }
+            );
+        }, 150);
+    }
+}
+
+// 3D受击动画
+function play3DHit(type, index, damage) {
+    if (!battle3D || !is3DMode) return;
+    
+    battle3D.hitCharacter(type, index);
+    battle3D.showDamageNumber(type, index, damage);
+}
+
+// 3D死亡动画
+function play3DDeath(type, index) {
+    if (!battle3D || !is3DMode) return;
+    
+    battle3D.deathCharacter(type, index);
+}
+
+// 3D治疗动画
+function play3DHeal(type, index, amount) {
+    if (!battle3D || !is3DMode) return;
+    
+    skillEffectFactory.createHealEffect(
+        { x: 0, y: 0, z: 0 }, // 位置会在函数内部从角色获取
+        amount
+    );
+}
 </script>
+
+{% block extra_scripts %}
+<!-- Three.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+{% endblock %}
 {% endblock %}
