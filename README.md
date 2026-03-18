@@ -21,8 +21,9 @@
 ## 📰 最近更新（自动生成）
 
 <!-- AUTO-UPDATE-START -->
-_最后生成时间：2026-03-17 18:57_
+_最后生成时间：2026-03-18 10:49_
 
+- `8276205` (2026-03-17) feat(town): add illustration book and move panels into town
 - `244d0c8` (2026-03-17) chore: unify port 5000, add docker and auto README updates
 - `9e7d6c5` (2026-03-17) feat: 属性系统重构与角色头像图片
 - `4067d3a` (2026-03-17) feat: 属性系统重构与角色头像图片
@@ -34,7 +35,6 @@ _最后生成时间：2026-03-17 18:57_
 - `1d0117f` (2026-03-17) fix: 修复登录状态无法保持的问题
 - `ca8a125` (2026-03-17) fix: 修复数据库路径配置，确保使用 instance 目录
 - `61233ca` (2026-03-17) fix: 修复数据库路径配置，确保使用 instance 目录
-- `901e188` (2026-03-17) feat: 添加用户账号注册登录系统
 <!-- AUTO-UPDATE-END -->
 
 ---

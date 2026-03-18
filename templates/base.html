@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}巅峰对决{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script>window.__STATIC_URL__ = "{{ url_for('static', filename='') }}";</script>
     <script src="{{ url_for('static', filename='js/audio.js') }}"></script>
@@ -62,7 +65,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}" style="padding: 1rem; margin-bottom: 1rem; border-radius: 8px; background: {% if category == 'error' %}#ef4444{% else %}#22c55e{% endif %};">
+                    <div class="alert alert-{{ category }}">
                         {{ message }}
                     </div>
                 {% endfor %}

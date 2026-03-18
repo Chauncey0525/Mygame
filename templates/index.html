@@ -10,90 +10,88 @@
             <h3 class="card-title">🏙️ 城镇</h3>
         </div>
         <div class="card-body">
-            <div style="display:flex; align-items:center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-                <div style="font-weight: 900; color: #f8fafc; font-size: 1.05rem;">
-                    欢迎，{{ player.name }}！
-                </div>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end;">
-                    <span class="badge bg-rarity-legendary" style="padding: 0.4rem 0.75rem;">等级: {{ player.level }}</span>
-                    <span class="badge" style="background: #475569; padding: 0.4rem 0.75rem;">角色: {{ characters|length }}</span>
-                    <span class="badge" style="background: #475569; padding: 0.4rem 0.75rem;">游戏天数: {{ player.total_play_days }}</span>
-                    <span class="badge" style="background: #334155; padding: 0.4rem 0.75rem;">通关: {{ player.completed_stages.count() }}</span>
+            <div class="town-header">
+                <div class="town-welcome">欢迎，{{ player.name }}！</div>
+                <div class="town-stats">
+                    <span class="badge bg-rarity-legendary">等级: {{ player.level }}</span>
+                    <span class="badge badge-medieval">角色: {{ characters|length }}</span>
+                    <span class="badge badge-medieval">游戏天数: {{ player.total_play_days }}</span>
+                    <span class="badge badge-medieval-dim">通关: {{ player.completed_stages.count() }}</span>
                 </div>
             </div>
-            <div class="grid grid-4" style="gap: 1rem;">
-                <a href="{{ url_for('summon') }}" class="card" style="text-decoration: none; cursor: pointer;">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🏛️</div>
-                        <div style="font-weight: 900; color: white;">群英馆</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">抽卡召唤英雄</div>
+            <div class="grid grid-4 town-grid">
+                <a href="{{ url_for('summon') }}" class="town-building card">
+                    <div class="card-body">
+                        <div class="town-building-icon">🏛️</div>
+                        <div class="town-building-title">群英馆</div>
+                        <div class="town-building-desc">抽卡召唤英雄</div>
                     </div>
                 </a>
-                <a href="{{ url_for('characters') }}" class="card" style="text-decoration: none; cursor: pointer;">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🏕️</div>
-                        <div style="font-weight: 900; color: white;">军营</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">查看/养成角色</div>
+                <a href="{{ url_for('characters') }}" class="town-building card">
+                    <div class="card-body">
+                        <div class="town-building-icon">🏕️</div>
+                        <div class="town-building-title">军营</div>
+                        <div class="town-building-desc">查看/养成角色</div>
                     </div>
                 </a>
-                <a href="{{ url_for('stages') }}" class="card" style="text-decoration: none; cursor: pointer;">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">⚔️</div>
-                        <div style="font-weight: 900; color: white;">演武场</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">副本挑战拿资源</div>
+                <a href="{{ url_for('stages') }}" class="town-building card">
+                    <div class="card-body">
+                        <div class="town-building-icon">⚔️</div>
+                        <div class="town-building-title">演武场</div>
+                        <div class="town-building-desc">副本挑战拿资源</div>
                     </div>
                 </a>
-                <button type="button" class="card" style="text-decoration: none; cursor: pointer; border: none; background: none; padding: 0;" onclick="openTownModal('tasks')">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">📜</div>
-                        <div style="font-weight: 900; color: white;">任务榜</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">每日任务与奖励</div>
+                <button type="button" class="town-building card" onclick="openTownModal('tasks')">
+                    <div class="card-body">
+                        <div class="town-building-icon">📜</div>
+                        <div class="town-building-title">任务榜</div>
+                        <div class="town-building-desc">每日任务与奖励</div>
                     </div>
                 </button>
-                <button type="button" class="card" style="text-decoration: none; cursor: pointer; border: none; background: none; padding: 0;" onclick="openTownModal('team')">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🛡️</div>
-                        <div style="font-weight: 900; color: white;">队伍府</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">查看当前出战队伍</div>
+                <button type="button" class="town-building card" onclick="openTownModal('team')">
+                    <div class="card-body">
+                        <div class="town-building-icon">🛡️</div>
+                        <div class="town-building-title">队伍府</div>
+                        <div class="town-building-desc">查看当前出战队伍</div>
                     </div>
                 </button>
-                <button type="button" class="card" style="text-decoration: none; cursor: pointer; border: none; background: none; padding: 0;" onclick="openTownModal('book')">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">📖</div>
-                        <div style="font-weight: 900; color: white;">图鉴</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">角色图鉴与筛选</div>
+                <button type="button" class="town-building card" onclick="openTownModal('book')">
+                    <div class="card-body">
+                        <div class="town-building-icon">📖</div>
+                        <div class="town-building-title">图鉴</div>
+                        <div class="town-building-desc">角色图鉴与筛选</div>
                     </div>
                 </button>
-                <div class="card" style="opacity: 0.6;">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🧪</div>
-                        <div style="font-weight: 900; color: white;">研究所</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">天赋/符文（开发中）</div>
+                <div class="town-building disabled card" aria-disabled="true">
+                    <div class="card-body">
+                        <div class="town-building-icon">🧪</div>
+                        <div class="town-building-title">研究所</div>
+                        <div class="town-building-desc">天赋/符文（开发中）</div>
                     </div>
                 </div>
-                <div class="card" style="opacity: 0.6;">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🛒</div>
-                        <div style="font-weight: 900; color: white;">商会</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">商店/兑换（开发中）</div>
+                <div class="town-building disabled card" aria-disabled="true">
+                    <div class="card-body">
+                        <div class="town-building-icon">🛒</div>
+                        <div class="town-building-title">商会</div>
+                        <div class="town-building-desc">商店/兑换（开发中）</div>
                     </div>
                 </div>
-                <div class="card" style="opacity: 0.6;">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">📦</div>
-                        <div style="font-weight: 900; color: white;">仓库</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">装备/道具（开发中）</div>
+                <div class="town-building disabled card" aria-disabled="true">
+                    <div class="card-body">
+                        <div class="town-building-icon">📦</div>
+                        <div class="town-building-title">仓库</div>
+                        <div class="town-building-desc">装备/道具（开发中）</div>
                     </div>
                 </div>
-                <div class="card" style="opacity: 0.6;">
-                    <div class="card-body" style="text-align: center; padding: 1.25rem;">
-                        <div style="font-size: 2.75rem; margin-bottom: 0.35rem;">🏆</div>
-                        <div style="font-weight: 900; color: white;">竞技场</div>
-                        <div style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.25rem;">PVP 排位（开发中）</div>
+                <div class="town-building disabled card" aria-disabled="true">
+                    <div class="card-body">
+                        <div class="town-building-icon">🏆</div>
+                        <div class="town-building-title">竞技场</div>
+                        <div class="town-building-desc">PVP 排位（开发中）</div>
                     </div>
                 </div>
             </div>
-            <div style="font-size: 0.8rem; color: #94a3b8; text-align: center; margin-top: 0.75rem;">
+            <div class="town-hint">
                 提示：后续可以给建筑加特效/动画/音乐，并逐步开放“开发中”的建筑功能。
             </div>
         </div>
@@ -173,6 +171,9 @@ async function claimTask(taskId) {
             <button class="modal-close" type="button" onclick="closeTownModal('townTasksModal')">&times;</button>
         </div>
         <div class="modal-body">
+            {% if not daily_tasks %}
+            <p style="text-align: center; color: #94a3b8; padding: 2rem;">今日暂无任务，明天再来看看吧。</p>
+            {% else %}
             {% for task in daily_tasks %}
             <div class="task-card" style="{% if task.claimed %}opacity: 0.5;{% elif task.completed %}border: 2px solid #22c55e;{% endif %}">
                 <div class="task-info">
@@ -198,6 +199,7 @@ async function claimTask(taskId) {
                 </div>
             </div>
             {% endfor %}
+            {% endif %}
         </div>
     </div>
 </div>
@@ -250,6 +252,7 @@ async function claimTask(taskId) {
             <div class="book-stats" style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.75rem;">
                 已收集 {{ owned_character_ids|length }} / {{ all_character_templates|length }}
             </div>
+            <p id="book-no-results" class="book-no-results" style="display: none;">没有匹配的角色，试试调整筛选条件。</p>
             <div id="book-grid" class="book-grid">
                 {% for c in all_character_templates %}
                 <div class="book-card" data-owned="{{ '1' if c.id in owned_character_ids else '0' }}" data-element="{{ c.element }}" data-rarity="{{ c.rarity }}" data-role="{{ c.role_type }}">
@@ -281,11 +284,13 @@ async function claimTask(taskId) {
     var filterRole = document.getElementById('book-filter-role');
     if (!grid) return;
     var cards = grid.querySelectorAll('.book-card');
+    var noResultsEl = document.getElementById('book-no-results');
     function applyBookFilters() {
         var owned = (filterOwned && filterOwned.value) || '';
         var el = (filterElement && filterElement.value) || '';
         var r = (filterRarity && filterRarity.value) || '';
         var role = (filterRole && filterRole.value) || '';
+        var visibleCount = 0;
         cards.forEach(function(card) {
             var show = true;
             if (owned && card.getAttribute('data-owned') !== owned) show = false;
@@ -293,7 +298,9 @@ async function claimTask(taskId) {
             if (r && card.getAttribute('data-rarity') !== r) show = false;
             if (role && card.getAttribute('data-role') !== role) show = false;
             card.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
         });
+        if (noResultsEl) noResultsEl.style.display = visibleCount === 0 ? 'block' : 'none';
     }
     [filterOwned, filterElement, filterRarity, filterRole].forEach(function(el) {
         if (el) el.addEventListener('change', applyBookFilters);

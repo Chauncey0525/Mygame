@@ -1,4 +1,35 @@
-/* 巅峰对决 - 主样式 */
+/* 巅峰对决 - 主样式（中世纪主题） */
+
+/* ---------- 中世纪主题变量 ---------- */
+:root {
+    /* 背景：石墙/城堡深处 */
+    --medieval-bg-dark: #1a1612;
+    --medieval-bg-mid: #252019;
+    --medieval-bg-surface: #2c241c;
+    --medieval-bg-panel: #352d24;
+    /* 羊皮纸/木板 */
+    --medieval-parchment: #3d3429;
+    --medieval-parchment-light: #4a4035;
+    /* 边框：金属/皮革 */
+    --medieval-border: #5c4e3d;
+    --medieval-border-light: #6b5d4a;
+    --medieval-metal: #7d6e5c;
+    --medieval-brass: #8b7355;
+    /* 强调：金/铜 */
+    --medieval-gold: #c9a227;
+    --medieval-gold-light: #d4af37;
+    --medieval-gold-dim: #a68b2a;
+    /* 文字 */
+    --medieval-text: #e8dcc8;
+    --medieval-text-dim: #c4b8a4;
+    --medieval-text-muted: #9c8b6e;
+    /* 装饰阴影 */
+    --medieval-shadow: rgba(0, 0, 0, 0.4);
+    --medieval-glow: rgba(201, 162, 39, 0.25);
+    /* 字体 */
+    --font-heading: 'Cinzel', 'Noto Serif SC', Georgia, serif;
+    --font-body: 'Noto Serif SC', 'Segoe UI', serif;
+}
 
 * {
     margin: 0;
@@ -7,21 +38,22 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #0f172a;
-    color: #e2e8f0;
+    font-family: var(--font-body);
+    background: linear-gradient(160deg, var(--medieval-bg-dark) 0%, var(--medieval-bg-mid) 50%, #1f1a14 100%);
+    color: var(--medieval-text);
     min-height: 100vh;
+    background-attachment: fixed;
 }
 
-/* 导航栏 */
+/* 导航栏 - 皮革/木条 */
 .navbar {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    padding: 1rem;
+    background: linear-gradient(180deg, var(--medieval-bg-panel) 0%, var(--medieval-bg-surface) 100%);
+    padding: 0.85rem 1rem;
     position: sticky;
     top: 0;
     z-index: 100;
-    border-bottom: 2px solid #475569;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    border-bottom: 3px solid var(--medieval-border);
+    box-shadow: 0 4px 12px var(--medieval-shadow), inset 0 1px 0 rgba(201, 162, 39, 0.08);
 }
 
 .navbar-content {
@@ -33,36 +65,46 @@ body {
 }
 
 .navbar-brand {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #fbbf24;
+    font-family: var(--font-heading);
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--medieval-gold-light);
     text-decoration: none;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 2px var(--medieval-shadow);
+}
+
+.navbar-brand:hover {
+    color: var(--medieval-gold);
 }
 
 .navbar-resources {
     display: flex;
-    gap: 1.5rem;
+    gap: 0.75rem;
 }
 
 .resource-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    background: #334155;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
+    gap: 0.4rem;
+    background: var(--medieval-parchment);
+    padding: 0.4rem 0.85rem;
+    border-radius: 4px;
+    border: 1px solid var(--medieval-border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .resource-icon {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
 }
 
 .resource-value {
-    font-weight: bold;
-    color: #fbbf24;
+    font-weight: 700;
+    color: var(--medieval-gold-light);
+    font-size: 0.9rem;
 }
 
 /* 用户信息和登出按钮 */
@@ -75,16 +117,17 @@ body {
 }
 
 .user-name {
-    color: #e2e8f0;
+    color: var(--medieval-text);
     font-weight: 600;
     font-size: 0.9rem;
 }
 
 .logout-btn {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
+    background: linear-gradient(180deg, #8b3a3a 0%, #6b2a2a 100%);
+    color: #f0e0d8;
     padding: 0.35rem 0.75rem;
-    border-radius: 6px;
+    border-radius: 4px;
+    border: 1px solid #5c2828;
     text-decoration: none;
     font-size: 0.8rem;
     font-weight: 600;
@@ -92,18 +135,18 @@ body {
 }
 
 .logout-btn:hover {
-    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    background: linear-gradient(180deg, #9b4444 0%, #7b3232 100%);
     transform: translateY(-1px);
 }
 
-/* 底部导航 */
+/* 底部导航（已移除入口，样式保留便于复用） */
 .bottom-nav {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    border-top: 2px solid #475569;
+    background: linear-gradient(0deg, var(--medieval-bg-panel) 0%, var(--medieval-bg-surface) 100%);
+    border-top: 2px solid var(--medieval-border);
     display: flex;
     justify-content: space-around;
     padding: 0.5rem 0;
@@ -116,15 +159,15 @@ body {
     align-items: center;
     padding: 0.5rem 1rem;
     text-decoration: none;
-    color: #94a3b8;
+    color: var(--medieval-text-muted);
     transition: all 0.3s;
 }
 
 .nav-item:hover,
 .nav-item.active {
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.1);
-    border-radius: 8px;
+    color: var(--medieval-gold-light);
+    background: rgba(201, 162, 39, 0.12);
+    border-radius: 6px;
 }
 
 .nav-icon {
@@ -144,7 +187,36 @@ body {
     padding-bottom: 1rem;
 }
 
-/* 返回上一级 */
+/* 子元素垂直间距（Tailwind 风格） */
+.space-y-4 > * + * {
+    margin-top: 1rem;
+}
+
+/* 提示/公告条 */
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.2);
+}
+.alert-error {
+    background: linear-gradient(180deg, #6b2a2a 0%, #4a1a1a 100%);
+    color: #f0e0d8;
+    border-color: #5c2828;
+}
+.alert-success {
+    background: linear-gradient(180deg, #2d4a2d 0%, #1e3a1e 100%);
+    color: #d8f0d8;
+    border-color: #2a4a2a;
+}
+.town-hint {
+    font-size: 0.8rem;
+    color: var(--medieval-text-muted);
+    text-align: center;
+    margin-top: 0.75rem;
+}
+
+/* 返回上一级 - 皮质/木钮 */
 .back-bar {
     margin-bottom: 1rem;
 }
@@ -153,18 +225,18 @@ body {
     align-items: center;
     gap: 0.35rem;
     padding: 0.5rem 1rem;
-    background: #334155;
-    border: 1px solid #475569;
-    border-radius: 8px;
-    color: #e2e8f0;
+    background: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
+    border-radius: 4px;
+    color: var(--medieval-text);
     text-decoration: none;
     font-size: 0.9rem;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 .back-bar .back-btn:hover {
-    background: #475569;
-    border-color: #64748b;
-    color: white;
+    background: var(--medieval-parchment-light);
+    border-color: var(--medieval-brass);
+    color: var(--medieval-gold-light);
 }
 
 /* 图鉴弹窗 */
@@ -180,14 +252,14 @@ body {
     gap: 0.5rem;
 }
 .book-filter-label {
-    color: #94a3b8;
+    color: var(--medieval-text-muted);
     font-size: 0.875rem;
 }
 .book-select {
-    background: #334155;
-    border: 1px solid #475569;
-    border-radius: 6px;
-    color: #e2e8f0;
+    background: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
+    border-radius: 4px;
+    color: var(--medieval-text);
     padding: 0.35rem 0.6rem;
     font-size: 0.875rem;
 }
@@ -197,11 +269,12 @@ body {
     gap: 0.75rem;
 }
 .book-card {
-    background: rgba(51, 65, 85, 0.5);
-    border-radius: 10px;
+    background: var(--medieval-parchment);
+    border-radius: 8px;
     padding: 0.5rem;
     text-align: center;
-    border: 1px solid #475569;
+    border: 1px solid var(--medieval-border);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .book-card-avatar {
     position: relative;
@@ -210,7 +283,8 @@ body {
     margin: 0 auto 0.35rem;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid #475569;
+    border: 3px solid var(--medieval-brass);
+    box-shadow: 0 2px 8px var(--medieval-shadow);
 }
 .book-card-avatar img {
     width: 100%;
@@ -222,7 +296,7 @@ body {
     position: absolute;
     inset: 0;
     background: rgba(0,0,0,0.75);
-    color: #94a3b8;
+    color: var(--medieval-text-muted);
     font-size: 0.65rem;
     display: flex;
     align-items: center;
@@ -230,7 +304,7 @@ body {
 }
 .book-card-name {
     font-weight: 700;
-    color: #f8fafc;
+    color: var(--medieval-text);
     font-size: 0.8rem;
     margin-bottom: 0.25rem;
 }
@@ -241,37 +315,122 @@ body {
     justify-content: center;
 }
 
-/* 卡片 */
+.book-no-results {
+    text-align: center;
+    color: var(--medieval-text-muted);
+    padding: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* 城镇建筑卡片（可点击） */
+.town-building {
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+    display: block;
+    width: 100%;
+    text-align: center;
+}
+.town-building .card-body {
+    padding: 1.25rem;
+}
+.town-building .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px var(--medieval-shadow), 0 0 0 1px var(--medieval-brass);
+}
+.town-building.disabled,
+.town-building.disabled .card:hover {
+    cursor: not-allowed;
+    transform: none;
+}
+.town-building.disabled .card {
+    opacity: 0.6;
+}
+.town-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+.town-welcome {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--medieval-text);
+    font-size: 1.05rem;
+}
+.town-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+.town-stats .badge {
+    padding: 0.4rem 0.75rem;
+}
+.badge-medieval {
+    background: var(--medieval-parchment-light) !important;
+    border-color: var(--medieval-border);
+    color: var(--medieval-text-dim);
+}
+.badge-medieval-dim {
+    background: var(--medieval-bg-panel) !important;
+    border-color: var(--medieval-border);
+    color: var(--medieval-text-muted);
+}
+.town-building-icon {
+    font-size: 2.75rem;
+    margin-bottom: 0.35rem;
+}
+.town-building-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--medieval-text);
+    letter-spacing: 0.02em;
+}
+.town-building-desc {
+    font-size: 0.875rem;
+    color: var(--medieval-text-muted);
+    margin-top: 0.25rem;
+}
+
+/* 卡片 - 羊皮纸/木板 */
 .card {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    border: 2px solid #475569;
-    border-radius: 12px;
+    background: linear-gradient(180deg, var(--medieval-parchment-light) 0%, var(--medieval-parchment) 50%, var(--medieval-bg-panel) 100%);
+    border: 2px solid var(--medieval-border);
+    border-radius: 8px;
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 12px var(--medieval-shadow);
 }
 
 .card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 24px var(--medieval-shadow), 0 0 0 1px var(--medieval-brass);
 }
 
 .card-header {
-    padding: 1rem;
-    border-bottom: 1px solid #475569;
-    background: rgba(0, 0, 0, 0.2);
+    padding: 0.9rem 1rem;
+    border-bottom: 2px solid var(--medieval-border);
+    background: linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.12) 100%);
 }
 
 .card-title {
-    font-size: 1.25rem;
-    font-weight: bold;
-    color: #f8fafc;
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--medieval-gold-light);
+    letter-spacing: 0.02em;
 }
 
 .card-body {
     padding: 1rem;
 }
 
-/* 按钮 */
+/* 按钮 - 金属/皮革 */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -279,40 +438,62 @@ body {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
     font-weight: 600;
-    border: none;
-    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.3);
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s;
     text-decoration: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), 0 2px 4px var(--medieval-shadow);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
+    background: linear-gradient(180deg, #5c6b7d 0%, #3d4a5c 50%, #2d3848 100%);
+    color: var(--medieval-text);
+    border-color: #4a5568;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: linear-gradient(180deg, #6c7b8d 0%, #4d5a6c 50%, #3d4858 100%);
+    border-color: var(--medieval-brass);
+    color: var(--medieval-gold-light);
 }
 
 .btn-success {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: white;
+    background: linear-gradient(180deg, #4a6b4a 0%, #2d4a2d 50%, #1e3a1e 100%);
+    color: #e0f0d8;
+    border-color: #3a5a3a;
+}
+
+.btn-success:hover {
+    background: linear-gradient(180deg, #5a7b5a 0%, #3d5a3d 50%, #2e4a2e 100%);
+    border-color: #5a7a5a;
 }
 
 .btn-danger {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    color: white;
+    background: linear-gradient(180deg, #8b3a3a 0%, #6b2a2a 50%, #4a1a1a 100%);
+    color: #f0e0d8;
+    border-color: #5c2828;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(180deg, #9b4a4a 0%, #7b3a3a 50%, #5a2a2a 100%);
 }
 
 .btn-warning {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    color: #1e293b;
+    background: linear-gradient(180deg, #b8860b 0%, #8b6910 50%, #6b5010 100%);
+    color: #1a1612;
+    border-color: #8b6910;
+}
+
+.btn-warning:hover {
+    background: linear-gradient(180deg, #c9961a 0%, #9b7910 50%, #7b6010 100%);
+    color: var(--medieval-text);
 }
 
 .btn-purple {
-    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
-    color: white;
+    background: linear-gradient(180deg, #5c4a6b 0%, #3d2d4a 50%, #2d1e3a 100%);
+    color: #e8dce8;
+    border-color: #4a3a5a;
 }
 
 .btn:disabled {
@@ -324,27 +505,32 @@ body {
     width: 100%;
 }
 
-/* 徽章 */
+/* 徽章 - 皮质/金属扣 */
 .badge {
     display: inline-block;
     padding: 0.25rem 0.75rem;
     font-size: 0.75rem;
     font-weight: 600;
-    border-radius: 9999px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
 }
 
-/* 进度条 */
+/* 进度条 - 刻槽 */
 .progress {
-    height: 8px;
-    background: #334155;
+    height: 10px;
+    background: var(--medieval-bg-panel);
     border-radius: 4px;
     overflow: hidden;
+    border: 1px solid var(--medieval-border);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, #3b82f6 0%, #22c55e 100%);
+    background: linear-gradient(90deg, var(--medieval-gold-dim) 0%, var(--medieval-gold) 100%);
     transition: width 0.3s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
 /* 网格布局 */
@@ -386,22 +572,23 @@ body {
     left: 0;
     right: 0;
     padding: 0.75rem;
-    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+    background: linear-gradient(to top, rgba(0,0,0,0.88), transparent);
 }
 
 .character-name {
-    font-weight: bold;
+    font-family: var(--font-heading);
+    font-weight: 700;
     font-size: 1rem;
-    color: white;
+    color: var(--medieval-text);
 }
 
 .character-level {
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--medieval-text-muted);
 }
 
 .character-stars {
-    color: #fbbf24;
+    color: var(--medieval-gold);
     font-size: 0.875rem;
 }
 
@@ -449,8 +636,10 @@ body {
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: rgba(0,0,0,0.3);
-    border-radius: 8px;
+    background: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
+    border-radius: 6px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .battle-avatar {
@@ -463,15 +652,18 @@ body {
 .hp-bar {
     width: 150px;
     height: 12px;
-    background: #334155;
-    border-radius: 6px;
+    background: var(--medieval-bg-panel);
+    border: 1px solid var(--medieval-border);
+    border-radius: 4px;
     overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .hp-fill {
     height: 100%;
-    background: linear-gradient(90deg, #ef4444, #f87171);
+    background: linear-gradient(90deg, #8b3a3a, #a84a4a);
     transition: width 0.3s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
 }
 
 /* 技能按钮 */
@@ -485,17 +677,20 @@ body {
 
 .skill-btn {
     padding: 1rem 2rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    border: none;
-    border-radius: 8px;
-    color: white;
+    background: linear-gradient(180deg, var(--medieval-parchment-light) 0%, var(--medieval-parchment) 100%);
+    border: 1px solid var(--medieval-border);
+    border-radius: 4px;
+    color: var(--medieval-text);
     font-weight: bold;
     cursor: pointer;
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px var(--medieval-shadow);
 }
 
 .skill-btn:hover {
     transform: scale(1.05);
+    border-color: var(--medieval-brass);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 12px var(--medieval-shadow);
 }
 
 .skill-btn:disabled {
@@ -503,20 +698,23 @@ body {
     cursor: not-allowed;
 }
 
-/* 战斗日志 */
+/* 战斗日志 - 羊皮卷 */
 .battle-log {
-    background: rgba(0,0,0,0.5);
-    border-radius: 8px;
+    background: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
+    border-radius: 6px;
     padding: 1rem;
     max-height: 200px;
     overflow-y: auto;
     margin-top: 1rem;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .log-entry {
     padding: 0.25rem 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid var(--medieval-border);
     font-size: 0.875rem;
+    color: var(--medieval-text-dim);
 }
 
 /* 响应式 */
@@ -539,7 +737,7 @@ body {
     }
 }
 
-/* 模态框 */
+/* 模态框 - 羊皮纸/木框 */
 .modal {
     display: none;
     position: fixed;
@@ -547,7 +745,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.75);
     z-index: 200;
     justify-content: center;
     align-items: center;
@@ -558,21 +756,23 @@ body {
 }
 
 .modal-content {
-    background: #1e293b;
-    border: 2px solid #475569;
-    border-radius: 12px;
+    background: linear-gradient(180deg, var(--medieval-parchment-light) 0%, var(--medieval-parchment) 30%, var(--medieval-bg-panel) 100%);
+    border: 3px solid var(--medieval-border);
+    border-radius: 8px;
     max-width: 500px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 12px 40px var(--medieval-shadow);
 }
 
 .modal-header {
-    padding: 1rem;
-    border-bottom: 1px solid #475569;
+    padding: 0.9rem 1rem;
+    border-bottom: 2px solid var(--medieval-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 100%);
 }
 
 .modal-body {
@@ -580,11 +780,24 @@ body {
 }
 
 .modal-close {
-    background: none;
-    border: none;
-    color: #94a3b8;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--medieval-text-muted);
     font-size: 1.5rem;
     cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+.modal-close:hover {
+    color: var(--medieval-gold-light);
+    background: var(--medieval-parchment);
+    border-color: var(--medieval-border);
+}
+.modal-close:focus-visible {
+    outline: 2px solid var(--medieval-gold);
+    outline-offset: 2px;
 }
 
 /* 闪烁动画 */
@@ -603,18 +816,20 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
-    background: #334155;
-    border-radius: 8px;
+    background: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
+    border-radius: 6px;
     margin-bottom: 0.5rem;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .task-info h4 {
-    color: white;
+    color: var(--medieval-text);
     margin-bottom: 0.25rem;
 }
 
 .task-info p {
-    color: #94a3b8;
+    color: var(--medieval-text-muted);
     font-size: 0.875rem;
 }
 
@@ -631,8 +846,9 @@ body {
 }
 
 .stage-card.completed {
-    border-color: #22c55e;
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, #1e293b 100%);
+    border-color: var(--medieval-gold);
+    background: linear-gradient(180deg, rgba(201, 162, 39, 0.12) 0%, var(--medieval-parchment) 100%);
+    box-shadow: inset 0 0 0 1px rgba(201, 162, 39, 0.2);
 }
 
 .stage-enemies {
@@ -649,10 +865,10 @@ body {
     border: 2px solid;
 }
 
-/* 标签页 */
+/* 标签页 - 卷轴/签条 */
 .tabs {
     display: flex;
-    border-bottom: 2px solid #475569;
+    border-bottom: 2px solid var(--medieval-border);
     margin-bottom: 1rem;
 }
 
@@ -660,7 +876,7 @@ body {
     padding: 1rem 2rem;
     background: none;
     border: none;
-    color: #94a3b8;
+    color: var(--medieval-text-muted);
     cursor: pointer;
     font-size: 1rem;
     transition: all 0.3s;
@@ -668,8 +884,8 @@ body {
 
 .tab:hover,
 .tab.active {
-    color: #fbbf24;
-    border-bottom: 2px solid #fbbf24;
+    color: var(--medieval-gold-light);
+    border-bottom: 2px solid var(--medieval-gold);
     margin-bottom: -2px;
 }
 
@@ -683,24 +899,24 @@ body {
 .help-btn {
     width: 28px;
     height: 28px;
-    border-radius: 9999px;
-    border: 1px solid rgba(148, 163, 184, 0.6);
-    background: rgba(15, 23, 42, 0.35);
-    color: #e2e8f0;
+    border-radius: 4px;
+    border: 1px solid var(--medieval-border);
+    background: var(--medieval-parchment);
+    color: var(--medieval-text);
     font-weight: 800;
     line-height: 1;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    transition: transform 0.15s, border-color 0.15s, background 0.15s, color 0.15s;
 }
 
 .help-btn:hover {
     transform: translateY(-1px);
-    border-color: rgba(251, 191, 36, 0.9);
-    background: rgba(251, 191, 36, 0.12);
-    color: #fbbf24;
+    border-color: var(--medieval-brass);
+    background: var(--medieval-parchment-light);
+    color: var(--medieval-gold-light);
 }
 
 .help-btn:focus-visible {
@@ -713,10 +929,10 @@ body {
     top: calc(100% + 10px);
     right: 0;
     width: min(360px, calc(100vw - 2rem));
-    background: rgba(30, 41, 59, 0.98);
-    border: 1px solid rgba(71, 85, 105, 0.9);
-    border-radius: 12px;
-    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+    background: var(--medieval-parchment);
+    border: 2px solid var(--medieval-border);
+    border-radius: 6px;
+    box-shadow: 0 12px 40px var(--medieval-shadow), inset 0 1px 0 rgba(255,255,255,0.06);
     padding: 0.85rem;
     z-index: 300;
     opacity: 0;
@@ -733,9 +949,9 @@ body {
     right: 10px;
     width: 12px;
     height: 12px;
-    background: rgba(30, 41, 59, 0.98);
-    border-left: 1px solid rgba(71, 85, 105, 0.9);
-    border-top: 1px solid rgba(71, 85, 105, 0.9);
+    background: var(--medieval-parchment);
+    border-left: 2px solid var(--medieval-border);
+    border-top: 2px solid var(--medieval-border);
     transform: rotate(45deg);
 }
 
@@ -748,8 +964,9 @@ body {
 }
 
 .help-tooltip-title {
-    font-weight: 800;
-    color: #f8fafc;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--medieval-gold-light);
     margin-bottom: 0.5rem;
 }
 
@@ -764,13 +981,13 @@ body {
     font-size: 1.05rem;
     font-weight: 800;
     margin-top: 0.25rem;
-    color: #e2e8f0;
+    color: var(--medieval-text);
 }
 
 .help-tooltip-note {
     margin-top: 0.75rem;
     font-size: 0.75rem;
-    color: #94a3b8;
+    color: var(--medieval-text-muted);
     text-align: center;
 }
 
@@ -848,7 +1065,7 @@ body {
     animation: float-up 0.8s ease-out forwards;
 }
 .float-damage.crit {
-    color: #fbbf24;
+    color: var(--medieval-gold-light);
     font-size: 1.5rem;
     animation: float-up 0.9s ease-out forwards;
 }
@@ -866,19 +1083,20 @@ body {
 .audio-ctrl .audio-btn {
     width: 36px;
     height: 36px;
-    border-radius: 8px;
-    border: 1px solid #475569;
-    background: #334155;
-    color: #e2e8f0;
+    border-radius: 4px;
+    border: 1px solid var(--medieval-border);
+    background: var(--medieval-parchment);
+    color: var(--medieval-text);
     cursor: pointer;
     font-size: 1.1rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, transform 0.2s;
+    transition: background 0.2s, transform 0.2s, border-color 0.2s;
 }
 .audio-ctrl .audio-btn:hover {
-    background: #475569;
+    background: var(--medieval-parchment-light);
+    border-color: var(--medieval-brass);
     transform: scale(1.05);
 }
 .audio-ctrl .audio-btn.muted {
@@ -886,15 +1104,16 @@ body {
 }
 .audio-ctrl input[type="range"] {
     width: 60px;
-    accent-color: #fbbf24;
+    accent-color: var(--medieval-gold);
 }
 
 /* ========== 设置面板（Settings） ========== */
 .settings-group {
-    background: rgba(0,0,0,0.18);
-    border: 1px solid #475569;
-    border-radius: 12px;
+    background: var(--medieval-bg-panel);
+    border: 1px solid var(--medieval-border);
+    border-radius: 6px;
     padding: 0.75rem;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.2);
 }
 
 .settings-row {
@@ -903,7 +1122,7 @@ body {
     justify-content: space-between;
     gap: 1rem;
     padding: 0.75rem 0.25rem;
-    border-bottom: 1px solid rgba(71, 85, 105, 0.6);
+    border-bottom: 1px solid var(--medieval-border);
 }
 .settings-row:last-child {
     border-bottom: none;
@@ -915,13 +1134,13 @@ body {
 }
 
 .settings-title {
-    font-weight: 800;
-    color: #f8fafc;
+    font-weight: 700;
+    color: var(--medieval-text);
 }
 
 .settings-desc {
     font-size: 0.85rem;
-    color: #94a3b8;
+    color: var(--medieval-text-muted);
     margin-top: 0.25rem;
     line-height: 1.35;
 }
@@ -929,7 +1148,7 @@ body {
 .settings-panel input[type="range"] {
     width: 220px;
     max-width: 45vw;
-    accent-color: #fbbf24;
+    accent-color: var(--medieval-gold);
 }
 
 /* 开关 Switch */
@@ -952,8 +1171,8 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #334155;
-    border: 1px solid #475569;
+    background-color: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
     transition: 0.2s;
     border-radius: 9999px;
 }
@@ -973,7 +1192,7 @@ body {
     border-color: rgba(34, 197, 94, 0.9);
 }
 .switch input:focus-visible + .slider {
-    outline: 2px solid rgba(251, 191, 36, 0.9);
+    outline: 2px solid var(--medieval-gold);
     outline-offset: 2px;
 }
 .switch input:checked + .slider:before {
