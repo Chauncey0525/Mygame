@@ -124,11 +124,11 @@ ALL_CHARACTERS = [
             'speed': 90
         },
         'skills': [
-            {'id': 'skill-1', 'name': '八阵图', 'type': 'magic', 'power': 120, 'element': 'water', 'cooldown': 2,
+            {'id': 'skill-1', 'name': '八阵图', 'type': 'magic', 'power': 120, 'element': 'water', 'cooldown': 2, 'target': 'single',
              'description': '布下八卦阵，对敌方造成水属性魔法伤害'},
-            {'id': 'skill-2', 'name': '火烧连营', 'type': 'magic', 'power': 100, 'element': 'fire', 'cooldown': 3,
+            {'id': 'skill-2', 'name': '火烧连营', 'type': 'magic', 'power': 100, 'element': 'fire', 'cooldown': 3, 'target': 'all',
              'description': '施展火攻计策，对敌方全体造成火焰魔法伤害'},
-            {'id': 'skill-3', 'name': '空城计', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4,
+            {'id': 'skill-3', 'name': '空城计', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4, 'target': 'self',
              'description': '虚张声势，提升自身物防和魔防'},
         ]
     },
@@ -154,11 +154,11 @@ ALL_CHARACTERS = [
             'speed': 85
         },
         'skills': [
-            {'id': 'skill-1', 'name': '青龙偃月', 'type': 'physical', 'power': 140, 'element': 'fire', 'cooldown': 2,
+            {'id': 'skill-1', 'name': '青龙偃月', 'type': 'physical', 'power': 140, 'element': 'fire', 'cooldown': 2, 'target': 'single',
              'description': '挥舞青龙偃月刀，对敌方造成大量物理伤害'},
-            {'id': 'skill-2', 'name': '过五关斩六将', 'type': 'physical', 'power': 100, 'element': 'fire', 'cooldown': 1,
+            {'id': 'skill-2', 'name': '过五关斩六将', 'type': 'physical', 'power': 100, 'element': 'fire', 'cooldown': 1, 'target': 'single',
              'description': '连续攻击，对敌方造成物理伤害'},
-            {'id': 'skill-3', 'name': '武圣之威', 'type': 'buff', 'power': 0, 'element': 'fire', 'cooldown': 4,
+            {'id': 'skill-3', 'name': '武圣之威', 'type': 'buff', 'power': 0, 'element': 'fire', 'cooldown': 4, 'target': 'self',
              'description': '提升自身物攻和物防'},
         ]
     },
@@ -184,11 +184,11 @@ ALL_CHARACTERS = [
             'speed': 110
         },
         'skills': [
-            {'id': 'skill-1', 'name': '破阵斩将', 'type': 'physical', 'power': 120, 'element': 'wind', 'cooldown': 2,
+            {'id': 'skill-1', 'name': '破阵斩将', 'type': 'physical', 'power': 120, 'element': 'wind', 'cooldown': 2, 'target': 'single',
              'description': '冲锋陷阵，对敌方造成风属性物理伤害'},
-            {'id': 'skill-2', 'name': '木兰从军', 'type': 'physical', 'power': 90, 'element': 'wind', 'cooldown': 1,
+            {'id': 'skill-2', 'name': '木兰从军', 'type': 'physical', 'power': 90, 'element': 'wind', 'cooldown': 1, 'target': 'single',
              'description': '快速连击，降低敌方物防'},
-            {'id': 'skill-3', 'name': '代父从军', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 3,
+            {'id': 'skill-3', 'name': '代父从军', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 3, 'target': 'self',
              'description': '提升自身速度和物防'},
         ]
     },
@@ -214,11 +214,11 @@ ALL_CHARACTERS = [
             'speed': 80
         },
         'skills': [
-            {'id': 'skill-1', 'name': '圣剑斩击', 'type': 'physical', 'power': 130, 'element': 'light', 'cooldown': 2,
+            {'id': 'skill-1', 'name': '圣剑斩击', 'type': 'physical', 'power': 130, 'element': 'light', 'cooldown': 2, 'target': 'single',
              'description': '挥舞圣剑，对敌方造成光属性物理伤害'},
-            {'id': 'skill-2', 'name': '王者之剑', 'type': 'magic', 'power': 110, 'element': 'light', 'cooldown': 3,
+            {'id': 'skill-2', 'name': '王者之剑', 'type': 'magic', 'power': 110, 'element': 'light', 'cooldown': 3, 'target': 'single',
              'description': '释放圣剑之力，对敌方造成光属性魔法伤害'},
-            {'id': 'skill-3', 'name': '骑士荣耀', 'type': 'buff', 'power': 0, 'element': 'light', 'cooldown': 4,
+            {'id': 'skill-3', 'name': '骑士荣耀', 'type': 'buff', 'power': 0, 'element': 'light', 'cooldown': 4, 'target': 'allies',
              'description': '提升全队物攻和物防'},
         ]
     },
@@ -244,11 +244,11 @@ ALL_CHARACTERS = [
             'speed': 95
         },
         'skills': [
-            {'id': 'skill-1', 'name': '霸业之剑', 'type': 'physical', 'power': 110, 'element': 'dark', 'cooldown': 2,
+            {'id': 'skill-1', 'name': '霸业之剑', 'type': 'physical', 'power': 110, 'element': 'dark', 'cooldown': 2, 'target': 'single',
              'description': '霸王之剑，对敌方造成暗属性物理伤害'},
-            {'id': 'skill-2', 'name': '奸雄之计', 'type': 'magic', 'power': 90, 'element': 'dark', 'cooldown': 3,
+            {'id': 'skill-2', 'name': '奸雄之计', 'type': 'magic', 'power': 90, 'element': 'dark', 'cooldown': 3, 'target': 'single',
              'description': '阴险计谋，降低敌方物攻和物防'},
-            {'id': 'skill-3', 'name': '唯才是举', 'type': 'buff', 'power': 0, 'element': 'dark', 'cooldown': 4,
+            {'id': 'skill-3', 'name': '唯才是举', 'type': 'buff', 'power': 0, 'element': 'dark', 'cooldown': 4, 'target': 'self',
              'description': '提升自身所有属性'},
         ]
     },
@@ -274,11 +274,11 @@ ALL_CHARACTERS = [
             'speed': 130
         },
         'skills': [
-            {'id': 'skill-1', 'name': '二天一流', 'type': 'physical', 'power': 150, 'element': 'wind', 'cooldown': 3,
+            {'id': 'skill-1', 'name': '二天一流', 'type': 'physical', 'power': 150, 'element': 'wind', 'cooldown': 3, 'target': 'single',
              'description': '双刀流必杀技，对敌方造成大量物理伤害'},
-            {'id': 'skill-2', 'name': '燕返', 'type': 'physical', 'power': 80, 'element': 'wind', 'cooldown': 1,
+            {'id': 'skill-2', 'name': '燕返', 'type': 'physical', 'power': 80, 'element': 'wind', 'cooldown': 1, 'target': 'single',
              'description': '快速三连斩，必定先手'},
-            {'id': 'skill-3', 'name': '剑道极意', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4,
+            {'id': 'skill-3', 'name': '剑道极意', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4, 'target': 'self',
              'description': '大幅提升物攻和速度'},
         ]
     },
@@ -290,6 +290,16 @@ CHAPTERS = [
         'id': 'chapter-1',
         'name': '初入战场',
         'description': '新手村，开始你的冒险之旅',
+        # 轻量剧情：关卡前/后对话（支持跳过；前端展示）
+        'dialogue': {
+            'pre': [
+                {'speaker': '旁白', 'text': '号角响起，你踏入演武场。真正的考验，从现在开始。'},
+                {'speaker': '教官', 'text': '先从基础开始——稳住阵脚，瞄准目标。'},
+            ],
+            'post': [
+                {'speaker': '教官', 'text': '不错。记住：胜利不是运气，是选择与节奏。'},
+            ],
+        },
         'stages': [
             {
                 'id': 'stage-1-1',
@@ -333,6 +343,15 @@ CHAPTERS = [
         'id': 'chapter-2',
         'name': '名将云集',
         'description': '各路名将齐聚，展现你的真正实力',
+        'dialogue': {
+            'pre': [
+                {'speaker': '旁白', 'text': '名将的气息在场中交错，你能听见刀锋与誓言的回响。'},
+                {'speaker': '神秘使者', 'text': '想走得更远？就拿下他们的认可。'},
+            ],
+            'post': [
+                {'speaker': '神秘使者', 'text': '很好。你的名字，开始被人记住了。'},
+            ],
+        },
         'stages': [
             {
                 'id': 'stage-2-1',
@@ -376,6 +395,15 @@ CHAPTERS = [
         'id': 'chapter-3',
         'name': '传说之战',
         'description': '传说级英雄的挑战，证明你是真正的英雄',
+        'dialogue': {
+            'pre': [
+                {'speaker': '旁白', 'text': '传说站在你面前。你能做的，只有向前。'},
+                {'speaker': '诸葛亮', 'text': '胜负不在刀剑，在你心中那一念取舍。'},
+            ],
+            'post': [
+                {'speaker': '诸葛亮', 'text': '棋局已开。下一步，就看你如何落子。'},
+            ],
+        },
         'stages': [
             {
                 'id': 'stage-3-1',
@@ -412,6 +440,59 @@ CHAPTERS = [
                 'recommended_level': 25,
                 'rewards': {'gold': 1000, 'exp': 500, 'gems': 100},
                 'first_clear_rewards': {'gold': 5000, 'gems': 500}
+            }
+        ]
+    }
+    ,
+    {
+        'id': 'chapter-4',
+        'name': '暗潮涌动',
+        'description': '暗影势力浮出水面，战场规则开始改变',
+        'dialogue': {
+            'pre': [
+                {'speaker': '旁白', 'text': '胜利带来的喧嚣尚未散去，新的阴影已在城外蔓延。'},
+                {'speaker': '神秘使者', 'text': '别被掌声迷了眼——真正的敌人，才刚刚入局。'},
+            ],
+            'post': [
+                {'speaker': '神秘使者', 'text': '你已触到暗潮的边缘。下一战，不再只是较量。'},
+            ],
+        },
+        'stages': [
+            {
+                'id': 'stage-4-1',
+                'name': '夜行斥候',
+                'description': '击退潜入的暗影斥候',
+                'difficulty': 'normal',
+                'enemy_ids': ['miyamoto', 'archer'],
+                'enemy_levels': [26, 26],
+                'energy_cost': 18,
+                'recommended_level': 26,
+                'rewards': {'gold': 900, 'exp': 450, 'gems': 40},
+                'first_clear_rewards': {'gold': 2800, 'gems': 200}
+            },
+            {
+                'id': 'stage-4-2',
+                'name': '破阵之谋',
+                'description': '识破敌方诡计，守住阵线',
+                'difficulty': 'hard',
+                'enemy_ids': ['cao-cao', 'mage-apprentice'],
+                'enemy_levels': [28, 27],
+                'energy_cost': 20,
+                'recommended_level': 28,
+                'rewards': {'gold': 1100, 'exp': 520, 'gems': 50},
+                'first_clear_rewards': {'gold': 3200, 'gems': 250}
+            },
+            {
+                'id': 'stage-4-3',
+                'name': '暗影统领',
+                'description': '击败暗影统领，阻止其召集援军',
+                'difficulty': 'hell',
+                'enemy_ids': ['cao-cao', 'guan-yu', 'arthur'],
+                'enemy_levels': [30, 29, 29],
+                'energy_cost': 22,
+                'recommended_level': 30,
+                'rewards': {'gold': 1500, 'exp': 650, 'gems': 80},
+                'first_clear_rewards': {'gold': 4200, 'gems': 350}
             }
         ]
     }

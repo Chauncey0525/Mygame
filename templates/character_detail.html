@@ -33,6 +33,14 @@
                     <div style="color: #fbbf24; margin-bottom: 0.5rem;">
                         {% for i in range(character.stars) %}★{% endfor %}
                     </div>
+
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom: 0.25rem;">
+                        <span style="color:#94a3b8;">星魂：</span>
+                        <span style="color:#e2e8f0; font-weight:900;">{{ player.star_soul or 0 }}</span>
+                        <span style="color:#94a3b8; font-size:0.85rem;">
+                            （升星消耗：随稀有度与当前星级递增）
+                        </span>
+                    </div>
                     
                     <div style="display: flex; gap: 0.5rem;">
                         <span class="badge" style="background: {{ element_colors[character.element] }};">
@@ -115,6 +123,12 @@
             <br><small style="opacity: 0.8;">当前: {{ player.gold }} 金币</small>
         </button>
     </div>
+
+    <button onclick="starUp()" class="btn btn-warning btn-block" style="margin-top: 1rem;"
+            {% if character.stars >= 6 %}disabled{% endif %}>
+        升星（当前 {{ character.stars }}★）
+        <br><small style="opacity: 0.8;">消耗：见上方星魂提示</small>
+    </button>
     
     <button onclick="toggleTeam()" class="btn btn-block {% if is_in_team %}btn-danger{% else %}btn-success{% endif %}" style="margin-top: 1rem;">
         {% if is_in_team %}移出队伍{% else %}加入队伍{% endif %}
@@ -130,20 +144,35 @@ let currentTeamIds = {{ team_ids | tojson if team_ids else '[]' }};
 async function levelUp() {
     const result = await apiCall('/api/levelup', { instance_id: instanceId, exp: 100 });
     if (result.success) {
-        alert('升级成功！当前等级: ' + result.new_level);
-        location.reload();
+        ToastManager.success(`升级成功！当前等级：Lv.${result.new_level}`, 1500);
+        setTimeout(() => location.reload(), 900);
     } else {
-        alert(result.error || '升级失败');
+        ToastManager.error(result.error || '升级失败');
     }
 }
 
 async function breakthrough() {
     const result = await apiCall('/api/breakthrough', { instance_id: instanceId });
     if (result.success) {
-        alert('突破成功！当前突破: ' + result.breakthrough);
-        location.reload();
+        ToastManager.success(`突破成功！当前突破：+${result.breakthrough}`, 1500);
+        setTimeout(() => location.reload(), 900);
     } else {
-        alert(result.error || '突破失败');
+        ToastManager.error(result.error || '突破失败');
+    }
+}
+
+async function starUp() {
+    const result = await apiCall('/api/starup', { instance_id: instanceId });
+    if (result.success) {
+        ToastManager.success(`升星成功！当前：${result.stars}★`, 1500);
+        // 资源栏反馈（星魂消耗用 -N）
+        try {
+            const hud = document.getElementById('hud-gold'); // 没有星魂 HUD，用金币栏位置飘字提示
+            if (hud) showResourceFloat(result.cost, hud, false);
+        } catch (e) {}
+        setTimeout(() => location.reload(), 900);
+    } else {
+        ToastManager.error(result.error || '升星失败');
     }
 }
 
@@ -155,24 +184,24 @@ async function toggleTeam() {
         newTeam = currentTeamIds.filter(id => id !== instanceId);
         const result = await apiCall('/api/team', { team: newTeam });
         if (result.success) {
-            alert('已移出队伍');
-            location.reload();
+            ToastManager.info('已移出队伍', 1200);
+            setTimeout(() => location.reload(), 700);
         } else {
-            alert(result.error || '操作失败');
+            ToastManager.error(result.error || '操作失败');
         }
     } else {
         // 添加到队伍
         if (currentTeamIds.length >= 4) {
-            alert('队伍已满（最多4人），请先移除其他角色');
+            ToastManager.warning('队伍已满（最多 4 人），请先移除其他角色');
             return;
         }
         newTeam = [...currentTeamIds, instanceId];
         const result = await apiCall('/api/team', { team: newTeam });
         if (result.success) {
-            alert('已加入队伍');
-            location.reload();
+            ToastManager.success('已加入队伍', 1200);
+            setTimeout(() => location.reload(), 700);
         } else {
-            alert(result.error || '操作失败');
+            ToastManager.error(result.error || '操作失败');
         }
     }
 }

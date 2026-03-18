@@ -86,6 +86,42 @@
             .hud-pill { padding: 5px 8px !important; }
             .hud-pill span { font-size: 0.9rem; }
         }
+        /* 玩家信息：头像悬浮提示 */
+        .avatar-tip-wrap { position: relative; display: inline-block; }
+        .avatar-tip {
+            position: absolute;
+            left: 50%;
+            top: -10px;
+            transform: translate(-50%, -100%);
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.45);
+            color: #e2e8f0;
+            font-size: 12px;
+            padding: 6px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s ease, transform .15s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            z-index: 1;
+        }
+        .avatar-tip::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: -6px;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid rgba(15, 23, 42, 0.92);
+        }
+        .avatar-tip-wrap:hover .avatar-tip,
+        .avatar-tip-wrap:focus-within .avatar-tip {
+            opacity: 1;
+            transform: translate(-50%, -110%);
+        }
     </style>
     <!-- 顶部导航栏 -->
     {% if player %}
@@ -93,19 +129,19 @@
         <div class="navbar-content" style="display:flex;justify-content:space-between;align-items:center; gap:12px;">
             <div class="navbar-left" style="display:flex;align-items:center;gap:12px;flex:0 0 auto;">
                 <button type="button" id="player-avatar-btn" class="avatar-btn" title="玩家信息" aria-label="打开玩家信息" style="width:38px;height:38px;border-radius:50%;overflow:hidden;border:2px solid var(--medieval-border);background:transparent;cursor:pointer;padding:0;">
-                    <img src="{{ player.avatar or url_for('static', filename='images/ui/avatar-default.png') }}" alt="玩家头像" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+                    <img id="navbar-avatar-img" src="{{ player.avatar or url_for('static', filename='images/ui/avatar-default.png') }}" alt="玩家头像" style="width:100%;height:100%;object-fit:cover;object-position:center;">
                 </button>
             </div>
             <div class="navbar-mid" role="region" aria-label="资源" style="display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:1 1 auto; flex-wrap:wrap;">
-                <div class="hud-pill" title="金币" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
+                <div class="hud-pill" id="hud-gold" title="金币" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
                     <span aria-hidden="true">💰</span>
                     <span style="color:#e2e8f0;font-weight:900;letter-spacing:0.02em;">{{ player.gold }}</span>
                 </div>
-                <div class="hud-pill" title="钻石" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
+                <div class="hud-pill" id="hud-gems" title="钻石" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
                     <span aria-hidden="true">💎</span>
                     <span style="color:#e2e8f0;font-weight:900;letter-spacing:0.02em;">{{ player.gems }}</span>
                 </div>
-                <div class="hud-pill" title="体力" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
+                <div class="hud-pill" id="hud-energy" title="体力" style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(148,163,184,0.35);background:rgba(15,23,42,0.45);backdrop-filter: blur(6px);">
                     <span aria-hidden="true">⚡</span>
                     <span style="color:#e2e8f0;font-weight:900;letter-spacing:0.02em;">{{ player.energy }}/{{ player.max_energy }}</span>
                 </div>
@@ -121,7 +157,7 @@
 
     <!-- 头像选择弹窗 -->
     {% if player %}
-    <div id="avatarModal" class="modal" role="dialog" aria-labelledby="avatar-title" aria-modal="true" aria-hidden="true">
+    <div id="avatarModal" class="modal" role="dialog" aria-labelledby="avatar-title" aria-modal="true" aria-hidden="true" style="z-index: 20000;">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 class="card-title" id="avatar-title">🖼️ 选择头像</h3>
@@ -267,8 +303,12 @@
             </div>
             <div class="modal-body">
                 <div style="display:flex;gap:16px;align-items:center;">
-                    <div style="width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--medieval-border);">
-                        <img src="{{ url_for('static', filename='images/ui/avatar-default.png') }}" alt="玩家头像" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+                    <div class="avatar-tip-wrap">
+                        <button type="button" id="playerinfo-avatar-btn" aria-label="更换头像"
+                                style="width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--medieval-border); background:transparent; padding:0; cursor:pointer;">
+                            <img id="playerinfo-avatar-img" src="{{ player.avatar or url_for('static', filename='images/ui/avatar-default.png') }}" alt="玩家头像" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+                        </button>
+                        <div class="avatar-tip">更换头像</div>
                     </div>
                     <div>
                         <div style="font-weight:900;color:#fff;font-size:1.15rem;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
@@ -279,27 +319,30 @@
                     </div>
                 </div>
                 <div class="divider" style="margin:12px 0;"></div>
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-                    <div style="font-weight:800;color:#e2e8f0;">玩家等级 Lv.{{ player.level }}</div>
-                    <div style="color:#94a3b8;font-size:0.85rem;">
-                        EXP {{ (player.exp or 0) }} / {{ (player.exp_to_next or 0) }}
+                <div style="padding: 8px 10px; border-radius: 12px; background: rgba(15, 23, 42, 0.25); border: 1px solid rgba(148,163,184,0.22);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+                        <div style="font-weight:800;color:#e2e8f0;">玩家等级 Lv.{{ player.level }}</div>
+                        <div style="color:#94a3b8;font-size:0.85rem;">
+                            EXP {{ (player.exp or 0) }} / {{ (player.exp_to_next or 0) }}
+                        </div>
                     </div>
-                </div>
-                <div style="margin-top:8px;">
-                    <div style="height:10px;border-radius:999px;background:rgba(148,163,184,0.25);overflow:hidden;border:1px solid rgba(148,163,184,0.35);">
+                    <div style="margin-top:8px;">
+                        <div style="height:10px;border-radius:999px;background:rgba(148,163,184,0.25);overflow:hidden;border:1px solid rgba(148,163,184,0.35);">
                         {% set _exp = (player.exp or 0) %}
                         {% set _need = (player.exp_to_next or 0) %}
                         {% set _pct = ( (_exp / _need * 100) if _need and _need > 0 else 0 ) %}
                         <div style="height:100%;width: {{ 100 if _pct>100 else (_pct if _pct>0 else 0) }}%; background: linear-gradient(90deg, rgba(201,162,39,0.95) 0%, rgba(255,215,128,0.95) 100%);"></div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="divider" style="margin:12px 0;"></div>
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-                    <div style="font-weight:800;color:#e2e8f0;">常用角色</div>
-                    <button type="button" class="btn" id="fav-reset-all-btn" style="padding:0.4rem 0.75rem;background:#7f1d1d;">重置</button>
-                </div>
-                <div id="fav-slots" style="margin-top:10px; display:flex; gap:10px; flex-wrap:nowrap; overflow-x:auto; padding-bottom: 6px;">
+                <div style="padding: 10px; border-radius: 12px; background: rgba(15, 23, 42, 0.25); border: 1px solid rgba(148,163,184,0.22);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                        <div style="font-weight:800;color:#e2e8f0;">常用角色</div>
+                        <button type="button" class="btn" id="fav-reset-all-btn" style="padding:0.4rem 0.75rem;background:#7f1d1d;">重置</button>
+                    </div>
+                    <div id="fav-slots" style="margin-top:10px; display:flex; gap:10px; flex-wrap:nowrap; overflow-x:auto; padding-bottom: 6px;">
                     {% set slot_map = {} %}
                     {% if player.favorites %}
                         {% for f in player.favorites.all() %}
@@ -317,19 +360,17 @@
                              role="button"
                              tabindex="0"
                              aria-label="常用角色槽位 {{ s }}"
-                             style="position:relative; flex:0 0 120px; height:64px; border-radius:10px; border:2px solid rgba(148,163,184,0.35); background: rgba(15,23,42,0.35); overflow:hidden; cursor:pointer;">
+                             style="position:relative; flex:0 0 220px; height:130px; border-radius:12px; border:2px solid rgba(148,163,184,0.35); background: rgba(15,23,42,0.35); overflow:hidden; cursor:pointer;">
                             {% if _art %}
-                                <img src="{{ _art }}" alt="常用角色原画" style="width:100%; height:100%; object-fit:cover; object-position:center;">
-                                <div style="position:absolute; inset:0; background: linear-gradient(90deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.0) 100%);"></div>
-                                <div style="position:absolute; left:8px; bottom:6px; right:8px; color:#fff; font-weight:900; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                    {{ _tpl.name if _tpl and _tpl.name else _ci.character_id }}
-                                </div>
+                                <!-- 尽量展示整张原画：contain，不裁切 -->
+                                <div style="position:absolute; inset:0; background: rgba(2, 6, 23, 0.35);"></div>
+                                <img src="{{ _art }}" alt="常用角色原画" style="width:100%; height:100%; object-fit:contain; object-position:center; background: rgba(2, 6, 23, 0.35);">
                                 <button type="button"
                                         class="fav-slot-clear"
                                         data-slot="{{ s }}"
                                         aria-label="清空槽位 {{ s }}"
                                         title="清空"
-                                        style="position:absolute; top:6px; right:6px; width:26px; height:26px; border-radius:999px; border:1px solid rgba(148,163,184,0.5); background: rgba(15,23,42,0.65); color:#e2e8f0; cursor:pointer;">
+                                        style="position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:999px; border:1px solid rgba(148,163,184,0.5); background: rgba(15,23,42,0.75); color:#e2e8f0; cursor:pointer;">
                                     ↺
                                 </button>
                             {% else %}
@@ -337,6 +378,7 @@
                             {% endif %}
                         </div>
                     {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -372,16 +414,31 @@
             document.body.style.cursor = 'default';
         }
         
-        // API请求封装
-        async function apiCall(url, data = {}) {
+        // API请求封装（支持 GET/POST；GET 时会拼 querystring）
+        async function apiCall(url, data = {}, method = 'POST') {
             showLoading();
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
+                method = (method || 'POST').toUpperCase();
+                const opts = {
+                    method: method,
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                
+                };
+                let finalUrl = url;
+                if (method === 'GET') {
+                    const params = new URLSearchParams();
+                    Object.keys(data || {}).forEach((k) => {
+                        const v = data[k];
+                        if (v === undefined || v === null || v === '') return;
+                        params.append(k, String(v));
+                    });
+                    const qs = params.toString();
+                    if (qs) finalUrl = url + (url.includes('?') ? '&' : '?') + qs;
+                } else {
+                    opts.body = JSON.stringify(data || {});
+                }
+                const response = await fetch(finalUrl, opts);
+                const isJson = (response.headers.get('content-type') || '').includes('application/json');
+
                 if (!response.ok) {
                     // 处理HTTP错误
                     if (response.status === 401 || response.status === 302) {
@@ -389,14 +446,23 @@
                         setTimeout(() => { window.location.href = '/login'; }, 1500);
                         return {success: false, error: '未登录'};
                     }
+                    if (isJson) {
+                        try {
+                            const body = await response.json();
+                            return { success: false, error: body && body.error ? body.error : ('HTTP error: ' + response.status) };
+                        } catch (e) {}
+                    }
                     throw new Error('HTTP error: ' + response.status);
                 }
-                
+
+                if (!isJson) {
+                    return { success: false, error: '响应不是JSON' };
+                }
                 const result = await response.json();
                 return result;
             } catch (error) {
                 console.error('API调用失败:', error);
-                alert('请求失败: ' + error.message);
+                ToastManager.error('请求失败：' + (error && error.message ? error.message : '请稍后重试'));
                 return {success: false, error: error.message};
             } finally {
                 hideLoading();
@@ -678,6 +744,23 @@
                 var currentSlot = null;
                 var charactersCache = null; // [{instance_id,name,art,avatar,level,rarity}]
 
+                function renderSlotEmpty(slotEl) {
+                    slotEl.setAttribute('data-instance', '');
+                    slotEl.innerHTML = '<div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:34px; font-weight:900;">+</div>';
+                }
+
+                function renderSlotFilled(slotEl, c) {
+                    // c: {instance_id, name, art, avatar, level}
+                    slotEl.setAttribute('data-instance', String(c.instance_id));
+                    var art = (c.art || c.avatar || (window.__STATIC_URL__ + 'images/ui/avatar-default.png'));
+                    slotEl.innerHTML =
+                        '<div style="position:absolute; inset:0; background: rgba(2, 6, 23, 0.35);"></div>' +
+                        '<img src="' + art + '" alt="常用角色原画" style="width:100%; height:100%; object-fit:contain; object-position:center; background: rgba(2, 6, 23, 0.35);">' +
+                        '<button type="button" class="fav-slot-clear" data-slot="' + slotEl.getAttribute('data-slot') + '" ' +
+                            'aria-label="清空槽位 ' + slotEl.getAttribute('data-slot') + '" title="清空" ' +
+                            'style="position:absolute; top:8px; right:8px; width:30px; height:30px; border-radius:999px; border:1px solid rgba(148,163,184,0.5); background: rgba(15,23,42,0.75); color:#e2e8f0; cursor:pointer;">↺</button>';
+                }
+
                 function openPicker(slot) {
                     currentSlot = slot;
                     if (pickerSlotLabel) pickerSlotLabel.textContent = String(slot);
@@ -742,9 +825,9 @@
                         card.className = 'card';
                         card.style.cssText = 'text-align:left; padding:0; overflow:hidden; cursor:' + (disabled ? 'not-allowed' : 'pointer') + '; opacity:' + (disabled ? '0.45' : '1') + ';';
                         card.innerHTML = '' +
-                            '<div style=\"position:relative; height:120px; background:#0b1220;\">' +
-                                '<img src=\"' + (c.art || c.avatar || window.__STATIC_URL__ + 'images/ui/avatar-default.png') + '\" alt=\"' + (c.name || '') + '\" style=\"width:100%;height:100%;object-fit:cover;object-position:center;\">' +
-                                '<div style=\"position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.65) 100%);\"></div>' +
+                            '<div style=\"position:relative; height:180px; background:#0b1220;\">' +
+                                '<img src=\"' + (c.art || c.avatar || window.__STATIC_URL__ + 'images/ui/avatar-default.png') + '\" alt=\"' + (c.name || '') + '\" style=\"width:100%;height:100%;object-fit:contain;object-position:center; background:#0b1220;\">' +
+                                '<div style=\"position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.55) 100%);\"></div>' +
                                 (disabled ? '<div style=\"position:absolute; top:8px; right:8px; background: rgba(15,23,42,0.75); border:1px solid rgba(148,163,184,0.45); color:#e2e8f0; padding:2px 8px; border-radius:999px; font-size:12px;\">已占用</div>' : '') +
                                 '<div style=\"position:absolute; left:10px; bottom:8px; right:10px; color:#fff; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;\">' + (c.name || '') + '</div>' +
                             '</div>' +
@@ -763,7 +846,11 @@
                                 return;
                             }
                             ToastManager.success('已设置常用角色');
-                            location.reload(); // 简单处理：刷新让槽位图更新
+                            // 局部更新槽位，不刷新页面，避免退出玩家信息弹窗
+                            var slotEl = slotsWrap.querySelector('.fav-slot[data-slot=\"' + currentSlot + '\"]');
+                            if (slotEl) renderSlotFilled(slotEl, c);
+                            closePicker();
+                            renderPicker();
                         });
                         pickerGrid.appendChild(card);
                     });
@@ -782,7 +869,9 @@
                         apiCall('/api/favorites/set', { slot: slot, instance_id: null }).then(function(r) {
                             if (r && r.success) {
                                 ToastManager.info('已清空槽位');
-                                location.reload();
+                                var slotEl = slotsWrap.querySelector('.fav-slot[data-slot=\"' + slot + '\"]');
+                                if (slotEl) renderSlotEmpty(slotEl);
+                                renderPicker();
                             } else {
                                 ToastManager.error((r && r.error) || '清空失败');
                             }
@@ -801,7 +890,11 @@
                         return apiCall('/api/favorites/set', { slot: s, instance_id: null });
                     })).then(function() {
                         ToastManager.success('已重置');
-                        location.reload();
+                        [1,2,3,4,5].forEach(function(s) {
+                            var slotEl = slotsWrap.querySelector('.fav-slot[data-slot=\"' + s + '\"]');
+                            if (slotEl) renderSlotEmpty(slotEl);
+                        });
+                        renderPicker();
                     });
                 });
             })();
@@ -820,11 +913,13 @@
         // 头像选择器
         (function() {
             var avatarModal = document.getElementById('avatarModal');
-            var navbarAvatar = document.getElementById('navbar-avatar');
+            var navbarAvatarImg = document.getElementById('navbar-avatar-img');
+            var playerInfoAvatarBtn = document.getElementById('playerinfo-avatar-btn');
+            var playerInfoAvatarImg = document.getElementById('playerinfo-avatar-img');
             var avatarCloseBtn = document.getElementById('avatar-close-btn');
             var maleAvatarsModal = document.getElementById('male-avatars-modal');
             var femaleAvatarsModal = document.getElementById('female-avatars-modal');
-            var currentAvatar = navbarAvatar ? navbarAvatar.src : '';
+            var currentAvatar = navbarAvatarImg ? navbarAvatarImg.src : (playerInfoAvatarImg ? playerInfoAvatarImg.src : '');
             
             // 头像列表
             var maleAvatarPaths = [
@@ -917,9 +1012,8 @@
                 .then(function(data) {
                     if (data.success) {
                         // 更新导航栏头像
-                        if (navbarAvatar) {
-                            navbarAvatar.src = path;
-                        }
+                        if (navbarAvatarImg) navbarAvatarImg.src = path;
+                        if (playerInfoAvatarImg) playerInfoAvatarImg.src = path;
                         currentAvatar = path;
                         ToastManager.success('头像更换成功！');
                         closeAvatarModal();
@@ -933,9 +1027,8 @@
             }
             
             // 绑定事件
-            if (navbarAvatar) {
-                navbarAvatar.onclick = openAvatarModal;
-            }
+            // 只允许在“玩家信息弹窗”内更换头像；左上角头像仅用于打开玩家信息
+            if (playerInfoAvatarBtn) playerInfoAvatarBtn.onclick = openAvatarModal;
             if (avatarCloseBtn) {
                 avatarCloseBtn.onclick = closeAvatarModal;
             }

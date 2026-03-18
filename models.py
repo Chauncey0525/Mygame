@@ -34,6 +34,7 @@ class Player(db.Model, UserMixin):
     gems = db.Column(db.Integer, nullable=False, default=1000)
     exp_books = db.Column(db.Integer, nullable=False, default=100)
     summon_tickets = db.Column(db.Integer, nullable=False, default=10)
+    star_soul = db.Column(db.Integer, nullable=False, default=0)  # 星魂：用于升星
     energy = db.Column(db.Integer, nullable=False, default=100)
     max_energy = db.Column(db.Integer, nullable=False, default=100)
     last_energy_update = db.Column(db.DateTime, default=datetime.now)
@@ -86,6 +87,7 @@ class Player(db.Model, UserMixin):
             'gems': self.gems,
             'exp_books': self.exp_books,
             'summon_tickets': self.summon_tickets,
+            'star_soul': self.star_soul,
             'energy': self.energy,
             'max_energy': self.max_energy,
             'pity_count': self.pity_count,
@@ -250,6 +252,124 @@ class PlayerDailyTask(db.Model):
             },
             'completed': self.completed,
             'claimed': self.claimed,
+        }
+
+
+class PlayerEquipment(db.Model):
+    """玩家装备（最小可用版本：武器/防具/饰品）"""
+    __tablename__ = 'player_equipment'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+
+    name = db.Column(db.String(128), nullable=False)
+    slot_type = db.Column(db.String(32), nullable=False)  # weapon/armor/accessory
+    rarity = db.Column(db.String(16), nullable=False, default='common')
+
+    bonus_hp = db.Column(db.Integer, nullable=False, default=0)
+    bonus_attack = db.Column(db.Integer, nullable=False, default=0)
+    bonus_defense = db.Column(db.Integer, nullable=False, default=0)
+    bonus_magic_attack = db.Column(db.Integer, nullable=False, default=0)
+    bonus_magic_defense = db.Column(db.Integer, nullable=False, default=0)
+    bonus_speed = db.Column(db.Integer, nullable=False, default=0)
+
+    equipped_character_instance_id = db.Column(db.Integer, db.ForeignKey('player_characters.id'), nullable=True, index=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    __table_args__ = (
+        db.Index('idx_player_equipment_player', 'player_id'),
+        db.Index('idx_player_equipment_equipped', 'equipped_character_instance_id'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'slot_type': self.slot_type,
+            'rarity': self.rarity,
+            'bonuses': {
+                'hp': self.bonus_hp,
+                'attack': self.bonus_attack,
+                'defense': self.bonus_defense,
+                'magic_attack': self.bonus_magic_attack,
+                'magic_defense': self.bonus_magic_defense,
+                'speed': self.bonus_speed,
+            },
+            'equipped_character_instance_id': self.equipped_character_instance_id,
+        }
+
+
+class PlayerRune(db.Model):
+    """玩家符文（最小版：每角色 2 个槽位）"""
+    __tablename__ = 'player_runes'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+
+    name = db.Column(db.String(128), nullable=False)
+    rarity = db.Column(db.String(16), nullable=False, default='common')
+
+    bonus_hp = db.Column(db.Integer, nullable=False, default=0)
+    bonus_attack = db.Column(db.Integer, nullable=False, default=0)
+    bonus_defense = db.Column(db.Integer, nullable=False, default=0)
+    bonus_magic_attack = db.Column(db.Integer, nullable=False, default=0)
+    bonus_magic_defense = db.Column(db.Integer, nullable=False, default=0)
+    bonus_speed = db.Column(db.Integer, nullable=False, default=0)
+
+    equipped_character_instance_id = db.Column(db.Integer, db.ForeignKey('player_characters.id'), nullable=True, index=True)
+    equipped_slot = db.Column(db.Integer, nullable=True)  # 1/2
+
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    __table_args__ = (
+        db.Index('idx_player_runes_player', 'player_id'),
+        db.Index('idx_player_runes_equipped', 'equipped_character_instance_id'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'rarity': self.rarity,
+            'bonuses': {
+                'hp': self.bonus_hp,
+                'attack': self.bonus_attack,
+                'defense': self.bonus_defense,
+                'magic_attack': self.bonus_magic_attack,
+                'magic_defense': self.bonus_magic_defense,
+                'speed': self.bonus_speed,
+            },
+            'equipped_character_instance_id': self.equipped_character_instance_id,
+            'equipped_slot': self.equipped_slot,
+        }
+
+
+class PlayerTalent(db.Model):
+    """角色天赋（最小版：3 个节点，可升级）"""
+    __tablename__ = 'player_talents'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    character_instance_id = db.Column(db.Integer, db.ForeignKey('player_characters.id'), nullable=False, index=True)
+
+    node_id = db.Column(db.String(32), nullable=False)  # atk/def/hp
+    level = db.Column(db.Integer, nullable=False, default=0)  # 0-10
+
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    __table_args__ = (
+        db.UniqueConstraint('player_id', 'character_instance_id', 'node_id', name='uix_player_talent_node'),
+        db.Index('idx_player_talents_char', 'character_instance_id'),
+    )
+
+    def to_dict(self):
+        return {
+            'node_id': self.node_id,
+            'level': self.level,
         }
 
 

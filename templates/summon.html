@@ -24,28 +24,25 @@
         </div>
         <div class="card-body">
             <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
-                {% set zhuge_liang = get_character_by_id('zhuge-liang') %}
-                {% if zhuge_liang %}
-                <div style="text-align: center; padding: 1rem; background: var(--medieval-parchment); border-radius: 8px; border: 2px solid {{ RARITY_COLORS['legendary'] }};">
-                    <div style="width: 64px; height: 64px; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px solid {{ RARITY_COLORS['legendary'] }};">
-                        <img src="{{ zhuge_liang.avatar }}" alt="{{ zhuge_liang.name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                    <div style="font-weight: bold; color: white; margin-top: 0.5rem;">{{ zhuge_liang.name }}</div>
-                    <span class="badge" style="background: {{ RARITY_COLORS['legendary'] }};">传说</span>
-                    <div style="font-size: 0.75rem; color: var(--medieval-gold-light); margin-top: 0.25rem;">UP概率 50%</div>
-                </div>
-                {% endif %}
-                {% set guan_yu = get_character_by_id('guan-yu') %}
-                {% if guan_yu %}
-                <div style="text-align: center; padding: 1rem; background: var(--medieval-parchment); border-radius: 8px; border: 2px solid {{ RARITY_COLORS['epic'] }};">
-                    <div style="width: 64px; height: 64px; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px solid {{ RARITY_COLORS['epic'] }};">
-                        <img src="{{ guan_yu.avatar }}" alt="{{ guan_yu.name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                    </div>
-                    <div style="font-weight: bold; color: white; margin-top: 0.5rem;">{{ guan_yu.name }}</div>
-                    <span class="badge" style="background: {{ RARITY_COLORS['epic'] }};">史诗</span>
-                    <div style="font-size: 0.75rem; color: var(--medieval-gold-light); margin-top: 0.25rem;">UP概率 50%</div>
-                </div>
-                {% endif %}
+                {% for rarity, ids in (current_up_characters or {}).items() %}
+                    {% for cid in ids %}
+                        {% set c = get_character_by_id(cid) %}
+                        {% if c %}
+                        {% set border = RARITY_COLORS.get(rarity, '#94a3b8') %}
+                        <div style="text-align: center; padding: 1rem; background: var(--medieval-parchment); border-radius: 8px; border: 2px solid {{ border }}; min-width: 140px;">
+                            <div style="width: 64px; height: 64px; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px solid {{ border }};">
+                                <img src="{{ c.avatar }}" alt="{{ c.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <div style="font-weight: bold; color: white; margin-top: 0.5rem;">{{ c.name }}</div>
+                            <span class="badge" style="background: {{ border }};">{{ rarity_names.get(rarity, rarity) }}</span>
+                            <div style="font-size: 0.75rem; color: var(--medieval-gold-light); margin-top: 0.25rem;">UP概率提升 ×{{ up_rate_multiplier or 1 }}</div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            <div style="margin-top: 0.75rem; font-size: 0.8rem; color: #94a3b8; text-align:center;">
+                说明：UP为“同稀有度内加权提升”，实际概率随该稀有度角色数量变化。
             </div>
         </div>
     </div>

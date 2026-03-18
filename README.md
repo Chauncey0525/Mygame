@@ -21,20 +21,20 @@
 ## 📰 最近更新（自动生成）
 
 <!-- AUTO-UPDATE-START -->
-_最后生成时间：2026-03-18 10:49_
+_最后生成时间：2026-03-18 16:11_
 
-- `8276205` (2026-03-17) feat(town): add illustration book and move panels into town
-- `244d0c8` (2026-03-17) chore: unify port 5000, add docker and auto README updates
-- `9e7d6c5` (2026-03-17) feat: 属性系统重构与角色头像图片
-- `4067d3a` (2026-03-17) feat: 属性系统重构与角色头像图片
-- `dc6ba84` (2026-03-17) chore: 提交本地 sqlite 数据库
-- `1f268b2` (2026-03-17) feat: 手机号验证码注册与密码规则校验
-- `be073e5` (2026-03-17) fix: 统一所有用户密码为123456，便于登录测试
-- `a53c3a7` (2026-03-17) chore: 提供浏览器缓存清除说明
-- `5b2a375` (2026-03-17) fix: 修复登录问题并添加记住我功能
-- `1d0117f` (2026-03-17) fix: 修复登录状态无法保持的问题
-- `ca8a125` (2026-03-17) fix: 修复数据库路径配置，确保使用 instance 目录
-- `61233ca` (2026-03-17) fix: 修复数据库路径配置，确保使用 instance 目录
+- `57cf6ce` (2026-03-18) feat: 合并上游并完善玩家信息UI
+- `ec4c678` (2026-03-18) WIP: ui+uid+favorites
+- `3291694` (2026-03-18) chore: 准备推送11个commit到远程main分支
+- `59e53ba` (2026-03-18) feat: 添加头像更换功能
+- `6d8fe56` (2026-03-18) feat: 添加20个中世纪魔幻风格默认头像供玩家选择
+- `c382478` (2026-03-18) feat: 实现策划需求清单核心功能
+- `5d3045f` (2026-03-18) feat: 主界面建筑风格重构
+- `f7c7ba9` (2026-03-18) feat: 大规模功能更新 - Toast系统/自动战斗/UP池/星级系统/系统页面
+- `b745ea6` (2026-03-18) feat: 大规模功能更新 - Toast系统/自动战斗/UP池/星级系统/系统页面
+- `8d90a01` (2026-03-18) docs: 更新TODO清单 - 标记已完成的美术资源项
+- `8d427d6` (2026-03-18) Merge pull request #6 from Chauncey0525/coze
+- `e5b1245` (2026-03-18) Merge pull request #5 from Chauncey0525/main
 <!-- AUTO-UPDATE-END -->
 
 ---
@@ -185,31 +185,55 @@ SECRET_KEY=your-secret-key
 
 ```
 Mygame/
-├── app.py                 # Flask 主应用
+├── app.py                 # Flask 主应用（路由 + API + 迁移）
 ├── run.py                 # 启动入口
 ├── config.py              # 配置文件
-├── models.py              # 数据库模型
-├── game_data.py           # 游戏静态数据
+├── models.py              # SQLAlchemy 数据模型
+├── game_data.py           # 游戏静态数据（角色/关卡/技能）
 ├── requirements.txt       # Python 依赖
+├── Dockerfile             # Docker 镜像
+├── docker-compose.yml     # Docker Compose 编排
 ├── .env.example           # 环境变量示例
 │
+├── docs/                  # 项目文档
+│   ├── 策划需求清单.md        # 需求总表（统一推进）
+│   └── 美术资源清单.md        # 美术资源清单与规范
+│
+├── scripts/               # 工具脚本
+│   └── update_readme.py       # README 自动更新（pre-commit）
+│
 ├── templates/             # Jinja2 模板
-│   ├── base.html              # 基础布局
-│   ├── index.html             # 首页
-│   ├── characters.html        # 角色列表
+│   ├── base.html              # 基础布局（导航栏/HUD/模态框）
+│   ├── index.html             # 主城（城镇）
+│   ├── login.html             # 登录
+│   ├── register.html          # 注册
+│   ├── characters.html        # 角色列表（军营）
 │   ├── character_detail.html  # 角色详情
-│   ├── summon.html            # 召唤页面
-│   ├── stages.html            # 副本选择
-│   └── battle.html            # 战斗界面
+│   ├── summon.html            # 召唤（群英馆）
+│   ├── stages.html            # 副本选择（演武场）
+│   ├── battle.html            # 战斗界面
+│   ├── inventory.html         # 仓库
+│   ├── shop.html              # 商会
+│   ├── research.html          # 研究所
+│   └── arena.html             # 竞技场
 │
 ├── static/                # 静态资源
-│   ├── css/
-│   │   └── style.css          # 样式文件
-│   └── images/
-│       └── characters/        # 角色图片
+│   ├── css/                   # 样式
+│   ├── js/                    # 前端脚本（音频等）
+│   ├── images/                # 图片资源
+│   │   ├── avatars/           # 玩家头像
+│   │   ├── backgrounds/       # 场景背景
+│   │   ├── buildings/         # 建筑图标
+│   │   ├── characters/        # 角色头像 & 立绘
+│   │   ├── effects/           # 元素特效
+│   │   ├── skills/            # 技能图标
+│   │   └── ui/                # UI 素材
+│   └── audio/                 # 音频资源
+│       ├── bgm/               # 背景音乐
+│       └── sfx/               # 音效
 │
-└── instance/              # 实例数据
-    └── history_heroes.db       # SQLite 数据库
+└── instance/              # 运行时数据（git 忽略）
+    └── history_heroes.db      # SQLite 数据库
 ```
 
 ---
@@ -220,12 +244,15 @@ Mygame/
 
 | 表名 | 说明 |
 |------|------|
-| `players` | 玩家信息、资源、保底计数 |
+| `players` | 玩家信息（UID/头像/资源/保底计数） |
 | `player_characters` | 玩家角色、等级、星级、突破 |
 | `player_team` | 队伍配置 |
-| `player_completed_stages` | 通关记录 |
+| `player_completed_stages` | 通关记录（含星级） |
 | `player_daily_tasks` | 每日任务 |
+| `player_favorite_characters` | 常用角色（5 槽位） |
 | `summon_history` | 抽卡历史 |
+| `announcements` | 公告（登录/主城展示） |
+| `seven_day_goals` | 七日目标 |
 
 ### ER 图
 
@@ -482,53 +509,22 @@ CHAPTERS = [
 
 ## 📝 更新日志
 
-### v2.0.1（未发布）
-- ❔ 召唤页“概率说明”收起到问号提示中，页面更清爽
+### v2.1.0（当前版本）
+- 玩家 UID（8 位自动生成）、可更换头像、常用角色 5 槽位
+- 资源栏 HUD 优化（金币/钻石/体力）
+- 公告系统 & 七日目标后端（模型 + API）
+- 中世纪深色 UI 主题统一
+- 战斗系统：自动战斗、倍速、属性克制、星级评价
+- UP 池、扫荡、Toast 提示系统
+- Docker / docker-compose 部署支持
 
-### v2.0.0 (当前版本)
-- 🔄 重构为 Flask + MySQL 架构
-- 🎨 使用 Jinja2 模板渲染
-- 🗄️ 支持 MySQL / SQLite 双数据库
-- 🎮 完整的游戏功能实现
+### v2.0.0
+- 重构为 Flask + SQLAlchemy 架构
+- 支持 MySQL / SQLite 双数据库
+- Jinja2 模板渲染、完整游戏功能
 
 ### v1.0.0
-- ✨ Next.js + React 初始版本
-- 🎭 角色养成系统
-- ⚔️ 回合制战斗系统
-
----
-
-## 🧠 后续更新 Brainstorm（可选 Roadmap）
-
-下面是一些“按收益优先”的可迭代方向，后续可以逐步挑选落地（不要求一次做完）。
-
-### 玩法与数值
-- **更完整的抽卡机制**：UP卡池/限定池、概率展示与历史统计、保底继承规则与可视化
-- **战斗策略深化**：速度轴/行动条、属性克制更明确、技能冷却/能量系统、异常状态（中毒/眩晕/护盾等）
-- **养成深度**：装备/符文、天赋树、羁绊加成、同名升星材料与分解回收
-- **平衡与可调参**：把关键倍率/掉落/关卡难度集中配置，支持热更新或管理后台调参
-
-### 内容扩展
-- **更多章节/关卡**：分支路线、精英/首领关、事件关、每周轮换挑战
-- **角色内容**：新角色、新技能组合、角色语音/立绘、角色背景故事页面完善
-- **日常与活动**：周常任务、签到/月卡、活动副本与兑换商店
-
-### UI/UX
-- **移动端体验**：tooltip 改为“点击展开/再次点击收起”、按钮更大、底部导航更顺手
-- **统一组件风格**：卡片/弹窗/提示（toast）/表单校验统一；加载态/空状态更友好
-- **可访问性**：键盘可操作、focus 样式、对比度优化、ARIA 标注
-
-### 工程化与质量
-- **测试体系**：核心逻辑单元测试（数值/掉落/战斗结算）、接口测试（Flask test client）
-- **日志与监控**：关键行为埋点（召唤/战斗/资源变动）、错误日志与慢请求定位
-- **CI/CD**：GitHub Actions 跑 lint/test；打包发布（Docker）与一键部署
-- **代码结构演进**：按模块拆分 `app.py`（blueprints/services/repositories），减少单文件复杂度
-
-### 安全与账号体系
-- **鉴权与安全加固**：CSRF、防暴力登录、密码策略、敏感配置与密钥管理
-- **数据一致性**：关键写操作事务化、并发安全（资源扣减/抽卡写入）
-
-> 如果你想把它变成真正的 Roadmap，我也可以把上面内容拆成里程碑（M1/M2/M3）并附上更具体的交付清单与验收标准。
+- Next.js + React 初始版本
 
 ---
 
@@ -542,122 +538,4 @@ MIT License
 
 欢迎提交 Issue 和 Pull Request！
 
----
-
-## 🔄 Cursor + Coze 协作工作流
-
-本项目采用 **Cursor（代码开发）+ Coze（资源生成）** 的协作模式进行开发。
-
-### 分工原则
-
-| 工具 | 擅长领域 | 适用场景 |
-|------|----------|----------|
-| **Cursor** | 代码逻辑、架构设计、Bug修复、重构 | 编程核心开发 |
-| **Coze** | 美术资源、UI设计、音效、创意内容 | 资产生成 |
-
-### 工作流程图
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Cursor (主力开发)                         │
-│  • 编写游戏逻辑代码                                          │
-│  • 设计数据库架构                                            │
-│  • 实现API接口                                               │
-│  • Bug修复和优化                                             │
-│  • 推送到 GitHub main 分支                                   │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ git push
-                       ▼
-              ┌────────────────┐
-              │   GitHub       │
-              │  (代码仓库)     │
-              └────────┬───────┘
-                       │ git pull
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Coze (资源生成)                           │
-│  • 拉取最新代码: git pull origin main                        │
-│  • 生成角色头像/立绘                                         │
-│  • 生成UI素材/背景图                                         │
-│  • 生成音效/BGM                                              │
-│  • 提交到 coze 分支: git push origin coze                    │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ PR / Merge
-                       ▼
-              ┌────────────────┐
-              │   GitHub       │
-              │  (合并资源)     │
-              └────────────────┘
-```
-
-### 具体操作步骤
-
-#### 1️⃣ Cursor 端（日常开发）
-```bash
-# 在 Cursor 中正常开发
-git add .
-git commit -m "feat: 添加新功能"
-git push origin main
-```
-
-#### 2️⃣ Coze 端（资源生成）
-```bash
-# 拉取最新代码
-git fetch origin
-git checkout coze
-git merge main  # 同步主分支代码
-
-# 生成资源后提交
-git add static/images/ static/audio/
-git commit -m "assets: 添加角色头像"
-git push origin coze
-```
-
-#### 3️⃣ 合并到主分支
-在 GitHub 上创建 Pull Request: `coze → main`，审核后合并
-
-### 使用示例
-
-#### 场景1: 需要生成角色头像
-```
-用户: "帮我生成 5 个新角色的头像，风格要和现有角色一致"
-Coze: 
-  1. 分析现有角色风格
-  2. 调用图片生成工具
-  3. 保存到 static/images/characters/
-  4. 更新 game_data.py 中的角色数据
-  5. 提交到 coze 分支
-```
-
-#### 场景2: 需要设计新UI
-```
-用户: "帮我设计一个竞技场页面，风格要暗黑风"
-Coze:
-  1. 生成背景图
-  2. 设计 UI 布局
-  3. 生成按钮/图标素材
-  4. 编写 HTML/CSS 模板
-  5. 提交到 coze 分支
-```
-
-#### 场景3: 需要音效
-```
-用户: "帮我生成战斗胜利的音效"
-Coze:
-  1. 调用音频生成
-  2. 保存到 static/audio/sfx/
-  3. 更新音频配置
-  4. 提交到 coze 分支
-```
-
-### 可生成资源类型
-
-| 类型 | 说明 | 存放路径 |
-|------|------|----------|
-| 🖼️ 角色头像 | 游戏角色头像图片 | `static/images/characters/` |
-| 🎨 角色立绘 | 角色全身立绘 | `static/images/characters/` |
-| 🌄 背景图 | 场景/界面背景 | `static/images/backgrounds/` |
-| 🎯 UI素材 | 按钮/图标/装饰 | `static/images/ui/` |
-| 🔊 音效 | 战斗/UI音效 | `static/audio/sfx/` |
-| 🎵 BGM | 背景音乐 | `static/audio/bgm/` |
-| 📝 剧情文本 | 故事/技能描述 | `game_data.py` |
+> 详细需求规划见 [`docs/策划需求清单.md`](docs/策划需求清单.md)，美术资源规范见 [`docs/美术资源清单.md`](docs/美术资源清单.md)。

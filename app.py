@@ -24,6 +24,9 @@ from models import (
     PlayerFavoriteCharacter,
     Announcement,
     SevenDayGoal,
+    PlayerEquipment,
+    PlayerRune,
+    PlayerTalent,
 )
 from game_data import (
     CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
@@ -124,6 +127,7 @@ def ensure_db_migrations():
     轻量迁移（避免引入 Alembic）：
     - 为 players 增加 phone 列（如不存在）
     - 为 players 增加 uid 列（如不存在），并回填旧数据（00000001 起）
+    - 为 players 增加 avatar 列（如不存在），并回填默认头像
     - 为 player_completed_stages 增加 stars 列（如不存在）
     - 创建 sms_verifications 等表（由 create_all 处理）
     """
@@ -165,10 +169,29 @@ def ensure_db_migrations():
                         next_n += 1
                 db.session.commit()
 
+                # players.avatar（头像）
+                if "avatar" not in cols:
+                    db.session.execute(text("ALTER TABLE players ADD COLUMN avatar VARCHAR(256)"))
+                    db.session.commit()
+                db.session.execute(
+                    text(
+                        "UPDATE players SET avatar = :a "
+                        "WHERE (avatar IS NULL OR avatar = '')"
+                    ),
+                    {"a": "/static/images/avatars/avatar_male_01.jpg"},
+                )
+                db.session.commit()
+
                 # player_completed_stages.stars（关卡星级）
                 stage_cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(player_completed_stages)")).fetchall()]
                 if "stars" not in stage_cols:
                     db.session.execute(text("ALTER TABLE player_completed_stages ADD COLUMN stars INTEGER DEFAULT 1"))
+                    db.session.commit()
+
+                # players.star_soul（升星材料）
+                cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(players)")).fetchall()]
+                if "star_soul" not in cols:
+                    db.session.execute(text("ALTER TABLE players ADD COLUMN star_soul INTEGER DEFAULT 0"))
                     db.session.commit()
             elif dialect in ("mysql", "mariadb"):
                 # MySQL 简易检查列是否存在
@@ -212,6 +235,25 @@ def ensure_db_migrations():
                 db.session.commit()
                 row = db.session.execute(text(
                     "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='players' AND COLUMN_NAME='star_soul'"
+                )).scalar()
+                if int(row or 0) == 0:
+                    db.session.execute(text("ALTER TABLE players ADD COLUMN star_soul INT NOT NULL DEFAULT 0"))
+                    db.session.commit()
+
+                row = db.session.execute(text(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='players' AND COLUMN_NAME='avatar'"
+                )).scalar()
+                if int(row or 0) == 0:
+                    db.session.execute(text("ALTER TABLE players ADD COLUMN avatar VARCHAR(256) NULL"))
+                    db.session.commit()
+                db.session.execute(text(
+                    "UPDATE players SET avatar=%s WHERE avatar IS NULL OR avatar=''"
+                ), ("/static/images/avatars/avatar_male_01.jpg",))
+                db.session.commit()
+                row = db.session.execute(text(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
                     "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='player_completed_stages' AND COLUMN_NAME='stars'"
                 )).scalar()
                 if int(row or 0) == 0:
@@ -220,6 +262,82 @@ def ensure_db_migrations():
     except Exception as e:
         # 不阻塞应用启动，但会影响 phone 字段写入；打印出来便于排查
         print("[WARN] ensure_db_migrations failed:", type(e).__name__, str(e))
+
+
+def _ensure_seven_day_goals(player: Player):
+    try:
+        cnt = SevenDayGoal.query.filter_by(player_id=player.id).count()
+        if cnt == 0:
+            create_seven_day_goals(player)
+    except Exception:
+        # 不阻塞主流程
+        pass
+
+
+def _update_goal_progress(player: Player, goal_id: str, delta: int = 1, absolute: Optional[int] = None):
+    """
+    七日目标进度：既支持累加，也支持按绝对值写入（例如拥有角色数/通关关卡数）。
+    """
+    try:
+        g = SevenDayGoal.query.filter_by(player_id=player.id, goal_id=goal_id).first()
+        if not g:
+            return
+        if absolute is not None:
+            g.progress = max(g.progress or 0, int(absolute))
+        else:
+            g.progress = int(g.progress or 0) + int(delta or 0)
+        if g.progress >= g.target:
+            g.completed = True
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
+def _sync_seven_day_by_event(player: Player, event: str, payload: Optional[dict] = None):
+    """
+    用最小实现把关键事件映射到七日目标：
+    - login, summon(count,new_char), battle(victory,stage_completed_total), levelup, team_set, breakthrough
+    """
+    payload = payload or {}
+    _ensure_seven_day_goals(player)
+
+    try:
+        if event == 'login':
+            _update_goal_progress(player, 'day1-login', absolute=1)
+
+        elif event == 'summon':
+            count = int(payload.get('count') or 1)
+            # 需要“累计召唤”的目标全部累加
+            for gid in ('day1-summon', 'day3-summon5', 'day5-summon10'):
+                _update_goal_progress(player, gid, delta=count)
+            # 拥有角色数（绝对值）
+            owned = PlayerCharacter.query.filter_by(player_id=player.id).count()
+            _update_goal_progress(player, 'day3-char3', absolute=owned)
+            _update_goal_progress(player, 'day5-char5', absolute=owned)
+
+        elif event == 'battle':
+            # 仅胜利计入“完成战斗/通关关卡”
+            if payload.get('victory'):
+                _update_goal_progress(player, 'day1-battle', delta=1)
+                _update_goal_progress(player, 'day2-battle3', delta=1)
+                _update_goal_progress(player, 'day4-battle10', delta=1)
+                # 通关关卡数：用已通关表做绝对值
+                cleared = PlayerCompletedStage.query.filter_by(player_id=player.id).count()
+                _update_goal_progress(player, 'day3-stage5', absolute=cleared)
+                _update_goal_progress(player, 'day6-stage20', absolute=cleared)
+
+        elif event == 'levelup':
+            _update_goal_progress(player, 'day2-levelup', delta=1)
+
+        elif event == 'team_set':
+            _update_goal_progress(player, 'day2-team', absolute=1)
+
+        elif event == 'breakthrough':
+            _update_goal_progress(player, 'day4-breakthrough', delta=1)
+
+    except Exception:
+        # 不阻塞主流程
+        db.session.rollback()
 
 
 # 创建应用
@@ -307,6 +425,7 @@ def login():
             
             # 更新登录信息
             check_daily_reset(player)
+            _sync_seven_day_by_event(player, 'login')
             
             # 跳转到之前访问的页面
             next_page = request.args.get('next')
@@ -423,6 +542,13 @@ def register():
         
         # 创建每日任务
         create_daily_tasks(player)
+        # 创建七日目标并计入首次登录
+        _sync_seven_day_by_event(player, 'login')
+
+        # 新手装备
+        seed_starter_equipment(player)
+        # 新手符文
+        seed_starter_research(player)
         
         # 自动登录
         login_user(player)
@@ -567,6 +693,59 @@ def get_battle_character(character_instance):
         character_instance.stars,
         character_instance.breakthrough
     )
+
+    # 装备加成（最小版：按装备表叠加属性）
+    try:
+        eqs = PlayerEquipment.query.filter_by(
+            player_id=character_instance.player_id,
+            equipped_character_instance_id=character_instance.id
+        ).all()
+        for e in eqs:
+            stats['hp'] += e.bonus_hp
+            stats['max_hp'] += e.bonus_hp
+            stats['attack'] += e.bonus_attack
+            stats['defense'] += e.bonus_defense
+            stats['magic_attack'] += e.bonus_magic_attack
+            stats['magic_defense'] += e.bonus_magic_defense
+            stats['speed'] += e.bonus_speed
+    except Exception:
+        pass
+
+    # 符文加成（最小版）
+    try:
+        runes = PlayerRune.query.filter_by(
+            player_id=character_instance.player_id,
+            equipped_character_instance_id=character_instance.id
+        ).all()
+        for r in runes:
+            stats['hp'] += r.bonus_hp
+            stats['max_hp'] += r.bonus_hp
+            stats['attack'] += r.bonus_attack
+            stats['defense'] += r.bonus_defense
+            stats['magic_attack'] += r.bonus_magic_attack
+            stats['magic_defense'] += r.bonus_magic_defense
+            stats['speed'] += r.bonus_speed
+    except Exception:
+        pass
+
+    # 天赋加成（最小版）
+    try:
+        talents = PlayerTalent.query.filter_by(
+            player_id=character_instance.player_id,
+            character_instance_id=character_instance.id
+        ).all()
+        for t in talents:
+            if t.node_id == 'atk':
+                stats['attack'] += 5 * (t.level or 0)
+                stats['magic_attack'] += 5 * (t.level or 0)
+            elif t.node_id == 'def':
+                stats['defense'] += 4 * (t.level or 0)
+                stats['magic_defense'] += 4 * (t.level or 0)
+            elif t.node_id == 'hp':
+                stats['hp'] += 40 * (t.level or 0)
+                stats['max_hp'] += 40 * (t.level or 0)
+    except Exception:
+        pass
     
     return {
         'id': character_instance.id,
@@ -583,6 +762,36 @@ def get_battle_character(character_instance):
         'current_stats': stats.copy(),
         'skills': template['skills']
     }
+
+
+def seed_starter_equipment(player: Player) -> None:
+    """给新号发放基础装备（避免仓库空白）"""
+    existing = PlayerEquipment.query.filter_by(player_id=player.id).count()
+    if existing:
+        return
+    items = [
+        PlayerEquipment(player_id=player.id, name='新手铁剑', slot_type='weapon', rarity='common', bonus_attack=12),
+        PlayerEquipment(player_id=player.id, name='学徒护甲', slot_type='armor', rarity='common', bonus_defense=10, bonus_hp=60),
+        PlayerEquipment(player_id=player.id, name='训练护符', slot_type='accessory', rarity='common', bonus_speed=6),
+    ]
+    for it in items:
+        db.session.add(it)
+    db.session.commit()
+
+
+def seed_starter_research(player: Player) -> None:
+    """给新号发放基础符文（天赋默认 0 级无需发放）"""
+    existing = PlayerRune.query.filter_by(player_id=player.id).count()
+    if existing:
+        return
+    items = [
+        PlayerRune(player_id=player.id, name='微光符文·攻', rarity='common', bonus_attack=8),
+        PlayerRune(player_id=player.id, name='微光符文·守', rarity='common', bonus_defense=8),
+        PlayerRune(player_id=player.id, name='微光符文·生', rarity='common', bonus_hp=80),
+    ]
+    for it in items:
+        db.session.add(it)
+    db.session.commit()
 
 
 # ==================== 路由 ====================
@@ -713,7 +922,9 @@ def summon():
         rarity_names=RARITY_NAMES,
         rarity_colors=RARITY_COLORS,
         get_character_by_id=get_character_by_id,
-        RARITY_COLORS=RARITY_COLORS
+        RARITY_COLORS=RARITY_COLORS,
+        current_up_characters=CURRENT_UP_CHARACTERS,
+        up_rate_multiplier=UP_RATE_MULTIPLIER,
     )
 
 
@@ -721,7 +932,119 @@ def summon():
 @login_required
 def research():
     """研究所页面"""
-    return render_template('research.html')
+    player = current_user
+    runes = PlayerRune.query.filter_by(player_id=player.id).order_by(PlayerRune.id.desc()).all()
+    # 角色列表 + 当前天赋
+    chars = []
+    for ci in player.characters.order_by(PlayerCharacter.id.asc()).all():
+        tpl = get_character_by_id(ci.character_id)
+        trows = PlayerTalent.query.filter_by(player_id=player.id, character_instance_id=ci.id).all()
+        tmap = {t.node_id: (t.level or 0) for t in trows}
+        chars.append({
+            'instance_id': ci.id,
+            'name': tpl.get('name') if tpl else ci.character_id,
+            'avatar': tpl.get('avatar') if tpl else None,
+            'level': ci.level,
+            'talents': {
+                'atk': tmap.get('atk', 0),
+                'def': tmap.get('def', 0),
+                'hp': tmap.get('hp', 0),
+            }
+        })
+    return render_template('research.html', player=player, runes=runes, owned_chars=chars, rarity_names=RARITY_NAMES, rarity_colors=RARITY_COLORS)
+
+
+@app.route('/api/runes/equip', methods=['POST'])
+@login_required
+def api_runes_equip():
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    rune_id = data.get('rune_id')
+    instance_id = data.get('instance_id')
+    slot = data.get('slot')
+    try:
+        rune_id = int(rune_id)
+        instance_id = int(instance_id)
+        slot = int(slot)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+    if slot not in (1, 2):
+        return jsonify({'success': False, 'error': '槽位范围为 1-2'}), 400
+
+    r = PlayerRune.query.get(rune_id)
+    if not r or r.player_id != player.id:
+        return jsonify({'success': False, 'error': '符文不存在'}), 404
+
+    ci = PlayerCharacter.query.get(instance_id)
+    if not ci or ci.player_id != player.id:
+        return jsonify({'success': False, 'error': '角色不存在'}), 404
+
+    # 同角色同槽位只能装一个：卸下旧的
+    PlayerRune.query.filter_by(player_id=player.id, equipped_character_instance_id=instance_id, equipped_slot=slot).update({
+        'equipped_character_instance_id': None,
+        'equipped_slot': None,
+    })
+    r.equipped_character_instance_id = instance_id
+    r.equipped_slot = slot
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/runes/unequip', methods=['POST'])
+@login_required
+def api_runes_unequip():
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    rune_id = data.get('rune_id')
+    try:
+        rune_id = int(rune_id)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+    r = PlayerRune.query.get(rune_id)
+    if not r or r.player_id != player.id:
+        return jsonify({'success': False, 'error': '符文不存在'}), 404
+    r.equipped_character_instance_id = None
+    r.equipped_slot = None
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/talents/upgrade', methods=['POST'])
+@login_required
+def api_talents_upgrade():
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    instance_id = data.get('instance_id')
+    node_id = (data.get('node_id') or '').strip()
+    try:
+        instance_id = int(instance_id)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+    if node_id not in ('atk', 'def', 'hp'):
+        return jsonify({'success': False, 'error': '无效天赋'}), 400
+
+    ci = PlayerCharacter.query.get(instance_id)
+    if not ci or ci.player_id != player.id:
+        return jsonify({'success': False, 'error': '角色不存在'}), 404
+
+    t = PlayerTalent.query.filter_by(player_id=player.id, character_instance_id=instance_id, node_id=node_id).first()
+    if not t:
+        t = PlayerTalent(player_id=player.id, character_instance_id=instance_id, node_id=node_id, level=0)
+        db.session.add(t)
+        db.session.flush()
+
+    if t.level >= 10:
+        return jsonify({'success': False, 'error': '已达最大等级'}), 400
+
+    # 简易升级消耗：金币 = (当前等级+1)*800
+    cost = (t.level + 1) * 800
+    if player.gold < cost:
+        return jsonify({'success': False, 'error': '金币不足'}), 400
+
+    player.gold -= cost
+    t.level += 1
+    db.session.commit()
+    return jsonify({'success': True, 'new_level': t.level, 'cost': cost})
 
 
 @app.route('/shop')
@@ -735,7 +1058,86 @@ def shop():
 @login_required
 def inventory():
     """仓库页面"""
-    return render_template('inventory.html')
+    player = current_user
+    equipment = PlayerEquipment.query.filter_by(player_id=player.id).order_by(PlayerEquipment.id.desc()).all()
+    owned_chars = []
+    for ci in player.characters.order_by(PlayerCharacter.id.asc()).all():
+        tpl = get_character_by_id(ci.character_id)
+        owned_chars.append({
+            'instance_id': ci.id,
+            'name': tpl.get('name') if tpl else ci.character_id,
+            'avatar': tpl.get('avatar') if tpl else None,
+            'level': ci.level,
+        })
+    return render_template(
+        'inventory.html',
+        player=player,
+        equipment=equipment,
+        owned_chars=owned_chars,
+        rarity_names=RARITY_NAMES,
+        rarity_colors=RARITY_COLORS,
+    )
+
+
+@app.route('/api/equipment/list')
+@login_required
+def api_equipment_list():
+    player = current_user
+    items = PlayerEquipment.query.filter_by(player_id=player.id).order_by(PlayerEquipment.id.desc()).all()
+    return jsonify({'success': True, 'equipment': [e.to_dict() for e in items]})
+
+
+@app.route('/api/equipment/equip', methods=['POST'])
+@login_required
+def api_equipment_equip():
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    eq_id = data.get('equipment_id')
+    instance_id = data.get('instance_id')
+    try:
+        eq_id = int(eq_id)
+        instance_id = int(instance_id)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+
+    eq = PlayerEquipment.query.get(eq_id)
+    if not eq or eq.player_id != player.id:
+        return jsonify({'success': False, 'error': '装备不存在'}), 404
+
+    ci = PlayerCharacter.query.get(instance_id)
+    if not ci or ci.player_id != player.id:
+        return jsonify({'success': False, 'error': '角色不存在'}), 404
+
+    # 同角色同槽位只能穿一件：先卸下旧的
+    PlayerEquipment.query.filter_by(
+        player_id=player.id,
+        equipped_character_instance_id=instance_id,
+        slot_type=eq.slot_type
+    ).update({'equipped_character_instance_id': None})
+
+    eq.equipped_character_instance_id = instance_id
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/equipment/unequip', methods=['POST'])
+@login_required
+def api_equipment_unequip():
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    eq_id = data.get('equipment_id')
+    try:
+        eq_id = int(eq_id)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+
+    eq = PlayerEquipment.query.get(eq_id)
+    if not eq or eq.player_id != player.id:
+        return jsonify({'success': False, 'error': '装备不存在'}), 404
+
+    eq.equipped_character_instance_id = None
+    db.session.commit()
+    return jsonify({'success': True})
 
 
 @app.route('/arena')
@@ -812,6 +1214,16 @@ def battle(stage_id):
     if not team:
         flash('请先设置队伍', 'error')
         return redirect(url_for('stages'))
+
+    # 章节轻剧情：按关卡归属章节注入（关卡前/后对话）
+    chapter_dialogue = {'pre': [], 'post': []}
+    try:
+        for ch in CHAPTERS:
+            if any(s.get('id') == stage_id for s in (ch.get('stages') or [])):
+                chapter_dialogue = ch.get('dialogue') or chapter_dialogue
+                break
+    except Exception:
+        chapter_dialogue = {'pre': [], 'post': []}
     
     # 生成敌人
     enemies = []
@@ -820,6 +1232,10 @@ def battle(stage_id):
         if template:
             level = stage['enemy_levels'][i] if i < len(stage['enemy_levels']) else 1
             stats = calculate_stats(template['stats'], level, 1, 0)
+            # 简易 Boss 判定：每章最后一关的第一个敌人视为 Boss（用于阶段机制演示）
+            is_boss = bool(
+                str(stage.get('id', '')).endswith('-3') and i == 0
+            )
             enemies.append({
                 'id': f'enemy-{i}',
                 'character_id': template['id'],
@@ -829,12 +1245,14 @@ def battle(stage_id):
                 'level': level,
                 'stats': stats,
                 'current_stats': stats.copy(),
-                'skills': template['skills']
+                'skills': template['skills'],
+                'is_boss': is_boss,
             })
     
     return render_template('battle.html',
         player=player,
         stage=stage,
+        chapter_dialogue=chapter_dialogue,
         team=team,
         enemies=enemies,
         rarity_names=RARITY_NAMES,
@@ -857,18 +1275,18 @@ def api_summon():
     # 计算消耗
     if summon_type == 'once':
         if player.gems < 100:
-            return jsonify({'success': False, 'error': '钻石不足'})
+            return jsonify({'success': False, 'error': '钻石不足'}), 400
         player.gems -= 100
     elif summon_type == 'ten':
         if player.gems < 900:
-            return jsonify({'success': False, 'error': '钻石不足'})
+            return jsonify({'success': False, 'error': '钻石不足'}), 400
         player.gems -= 900
     elif summon_type == 'ticket':
         if player.summon_tickets < 1:
-            return jsonify({'success': False, 'error': '召唤券不足'})
+            return jsonify({'success': False, 'error': '召唤券不足'}), 400
         player.summon_tickets -= 1
     else:
-        return jsonify({'success': False, 'error': '无效的召唤类型'})
+        return jsonify({'success': False, 'error': '无效的召唤类型'}), 400
     
     results = []
     count = 10 if summon_type == 'ten' else 1
@@ -926,8 +1344,14 @@ def api_summon():
         ).first()
         
         if existing:
-            # 增加星级
-            existing.stars = min(6, existing.stars + 1)
+            # 重复获得：转化为星魂（用于升星），避免“自动升星”跳过系统
+            ss_gain = {
+                'common': 1,
+                'rare': 3,
+                'epic': 8,
+                'legendary': 15,
+            }.get(rarity, 1)
+            player.star_soul = (player.star_soul or 0) + ss_gain
             is_new = False
             instance_id = existing.id
         else:
@@ -980,6 +1404,9 @@ def api_summon():
         task.progress += 1
         if task.progress >= task.target:
             task.completed = True
+
+    # 七日目标：召唤/拥有角色数
+    _sync_seven_day_by_event(player, 'summon', {'count': count})
     
     db.session.commit()
     
@@ -988,6 +1415,47 @@ def api_summon():
         'results': results,
         'pity': player.pity_count,
         'legendary_pity': player.legendary_pity_count
+    })
+
+
+@app.route('/api/starup', methods=['POST'])
+@login_required
+def api_starup():
+    """升星角色：消耗星魂材料，提升星级"""
+    player = current_user
+    data = request.get_json(silent=True) or {}
+    instance_id = data.get('instance_id')
+    try:
+        instance_id = int(instance_id)
+    except Exception:
+        return jsonify({'success': False, 'error': '参数错误'}), 400
+
+    char = PlayerCharacter.query.get_or_404(instance_id)
+    if char.player_id != player.id:
+        return jsonify({'success': False, 'error': '无权操作'}), 403
+
+    tpl = get_character_by_id(char.character_id) or {}
+    rarity = tpl.get('rarity') or 'common'
+
+    if char.stars >= 6:
+        return jsonify({'success': False, 'error': '已达最大星级'}), 400
+
+    # 成本：随稀有度与当前星级递增
+    base = {'common': 5, 'rare': 10, 'epic': 18, 'legendary': 30}.get(rarity, 5)
+    cost = base * char.stars  # 1->2：base*1，2->3：base*2...
+
+    if (player.star_soul or 0) < cost:
+        return jsonify({'success': False, 'error': f'星魂不足（需要 {cost}）'}), 400
+
+    player.star_soul -= cost
+    char.stars += 1
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'stars': char.stars,
+        'star_soul': player.star_soul,
+        'cost': cost,
     })
 
 
@@ -1002,10 +1470,10 @@ def api_levelup():
     
     char = PlayerCharacter.query.get_or_404(instance_id)
     if char.player_id != player.id:
-        return jsonify({'success': False, 'error': '无权操作'})
+        return jsonify({'success': False, 'error': '无权操作'}), 403
     
     if player.exp_books < exp_amount:
-        return jsonify({'success': False, 'error': '经验书不足'})
+        return jsonify({'success': False, 'error': '经验书不足'}), 400
     
     player.exp_books -= exp_amount
     char.exp += exp_amount
@@ -1027,6 +1495,8 @@ def api_levelup():
         task.progress += 1
         if task.progress >= task.target:
             task.completed = True
+
+    _sync_seven_day_by_event(player, 'levelup')
     
     db.session.commit()
     
@@ -1047,18 +1517,19 @@ def api_breakthrough():
     
     char = PlayerCharacter.query.get_or_404(instance_id)
     if char.player_id != player.id:
-        return jsonify({'success': False, 'error': '无权操作'})
+        return jsonify({'success': False, 'error': '无权操作'}), 403
     
     if char.breakthrough >= 5:
-        return jsonify({'success': False, 'error': '已达最大突破次数'})
+        return jsonify({'success': False, 'error': '已达最大突破次数'}), 400
     
     cost = (char.breakthrough + 1) * 1000
     if player.gold < cost:
-        return jsonify({'success': False, 'error': '金币不足'})
+        return jsonify({'success': False, 'error': '金币不足'}), 400
     
     player.gold -= cost
     char.breakthrough += 1
     
+    _sync_seven_day_by_event(player, 'breakthrough')
     db.session.commit()
     
     return jsonify({
@@ -1088,6 +1559,7 @@ def api_team():
             )
             db.session.add(team_member)
     
+    _sync_seven_day_by_event(player, 'team_set')
     db.session.commit()
     
     return jsonify({'success': True})
@@ -1106,11 +1578,11 @@ def api_battle_complete():
     
     stage = get_stage_by_id(stage_id)
     if not stage:
-        return jsonify({'success': False, 'error': '关卡不存在'})
+        return jsonify({'success': False, 'error': '关卡不存在'}), 404
     
     # 消耗体力
     if player.energy < stage['energy_cost']:
-        return jsonify({'success': False, 'error': '体力不足'})
+        return jsonify({'success': False, 'error': '体力不足'}), 400
     
     player.energy -= stage['energy_cost']
     
@@ -1165,6 +1637,8 @@ def api_battle_complete():
             task.progress += 1
             if task.progress >= task.target:
                 task.completed = True
+
+        _sync_seven_day_by_event(player, 'battle', {'victory': True})
     
     db.session.commit()
     
@@ -1186,7 +1660,7 @@ def api_sweep():
     
     stage = get_stage_by_id(stage_id)
     if not stage:
-        return jsonify({'success': False, 'error': '关卡不存在'})
+        return jsonify({'success': False, 'error': '关卡不存在'}), 404
     
     # 检查是否已通关
     completed = PlayerCompletedStage.query.filter_by(
@@ -1195,11 +1669,15 @@ def api_sweep():
     ).first()
     
     if not completed:
-        return jsonify({'success': False, 'error': '未通关该关卡，无法扫荡'})
+        return jsonify({'success': False, 'error': '未通关该关卡，无法扫荡'}), 400
+
+    # 满星解锁扫荡：需达到 3 星
+    if (completed.stars or 0) < 3:
+        return jsonify({'success': False, 'error': '扫荡需该关卡满星（3★）'}), 400
     
     # 检查体力
     if player.energy < stage['energy_cost']:
-        return jsonify({'success': False, 'error': '体力不足'})
+        return jsonify({'success': False, 'error': '体力不足'}), 400
     
     # 消耗体力
     player.energy -= stage['energy_cost']
@@ -1221,6 +1699,9 @@ def api_sweep():
         task.progress += 1
         if task.progress >= task.target:
             task.completed = True
+
+    # 七日目标：扫荡等同于胜利完成战斗（计入累计）
+    _sync_seven_day_by_event(player, 'battle', {'victory': True})
     
     db.session.commit()
     
@@ -1245,13 +1726,13 @@ def api_daily_claim():
     ).first()
     
     if not task:
-        return jsonify({'success': False, 'error': '任务不存在'})
+        return jsonify({'success': False, 'error': '任务不存在'}), 404
     
     if not task.completed:
-        return jsonify({'success': False, 'error': '任务未完成'})
+        return jsonify({'success': False, 'error': '任务未完成'}), 400
     
     if task.claimed:
-        return jsonify({'success': False, 'error': '已领取'})
+        return jsonify({'success': False, 'error': '已领取'}), 400
     
     # 发放奖励
     player.gold += task.reward_gold or 0
@@ -1529,13 +2010,13 @@ def api_seven_day_claim():
     ).first()
     
     if not goal:
-        return jsonify({'success': False, 'error': '目标不存在'})
+        return jsonify({'success': False, 'error': '目标不存在'}), 404
     
     if not goal.completed:
-        return jsonify({'success': False, 'error': '目标未完成'})
+        return jsonify({'success': False, 'error': '目标未完成'}), 400
     
     if goal.claimed:
-        return jsonify({'success': False, 'error': '已领取'})
+        return jsonify({'success': False, 'error': '已领取'}), 400
     
     # 发放奖励
     player.gold += goal.reward_gold or 0
@@ -1562,12 +2043,12 @@ def api_update_avatar():
     avatar = data.get('avatar', '').strip()
     
     if not avatar:
-        return jsonify({'success': False, 'error': '头像不能为空'})
+        return jsonify({'success': False, 'error': '头像不能为空'}), 400
     
     # 验证头像路径是否合法（只允许选择预设头像）
     valid_prefix = '/static/images/avatars/avatar_'
     if not avatar.startswith(valid_prefix):
-        return jsonify({'success': False, 'error': '无效的头像路径'})
+        return jsonify({'success': False, 'error': '无效的头像路径'}), 400
     
     # 更新头像
     player.avatar = avatar

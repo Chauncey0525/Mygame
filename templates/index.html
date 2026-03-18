@@ -625,9 +625,17 @@ document.querySelectorAll('.building-link').forEach(link => {
 
 // 弹窗功能
 function openTownModal(which) {
-    var map = { team: 'townTeamModal', tasks: 'townTasksModal', book: 'townBookModal' };
-    var id = map[which];
-    if (!id) return;
+    // 兼容旧调用：which 可以是逻辑名（team/tasks/book...）或直接传 modal 的 id
+    var map = {
+        team: 'townTeamModal',
+        tasks: 'townTasksModal',
+        book: 'townBookModal',
+        announcements: 'announcementModal',
+        sevenDay: 'sevenDayModal',
+        announcementModal: 'announcementModal',
+        sevenDayModal: 'sevenDayModal',
+    };
+    var id = map[which] || which;
     var modal = document.getElementById(id);
     if (!modal) return;
     modal.classList.add('active');
@@ -644,10 +652,21 @@ function closeTownModal(id) {
 async function claimTask(taskId) {
     const result = await apiCall('/api/daily/claim', { task_id: taskId });
     if (result.success) {
-        showToast('success', '领取成功', '金币 +' + result.rewards.gold + ', 钻石 +' + result.rewards.gems);
+        ToastManager.success('领取成功：金币 +' + result.rewards.gold + '，钻石 +' + result.rewards.gems);
+        // 资源栏反馈（+N 飘字）
+        try {
+            if (result.rewards && result.rewards.gold) {
+                const el = document.getElementById('hud-gold');
+                if (el) showResourceFloat(result.rewards.gold, el, true);
+            }
+            if (result.rewards && result.rewards.gems) {
+                const el = document.getElementById('hud-gems');
+                if (el) showResourceFloat(result.rewards.gems, el, true);
+            }
+        } catch (e) {}
         setTimeout(() => location.reload(), 1500);
     } else {
-        showToast('error', '领取失败', result.error || '请稍后重试');
+        ToastManager.error('领取失败：' + (result.error || '请稍后重试'));
     }
 }
 </script>
@@ -968,7 +987,7 @@ async function claimTask(taskId) {
 // 加载公告
 async function loadAnnouncements() {
     try {
-        const result = await apiCall('/api/announcements', {});
+        const result = await apiCall('/api/announcements', {}, 'GET');
         if (result.success && result.announcements.length > 0) {
             const content = document.getElementById('announcement-content');
             content.innerHTML = result.announcements.map(a => `
@@ -998,7 +1017,7 @@ async function loadAnnouncements() {
 // 加载七日目标
 async function loadSevenDayGoals() {
     try {
-        const result = await apiCall('/api/seven-day-goals', {});
+        const result = await apiCall('/api/seven-day-goals', {}, 'GET');
         if (result.success) {
             const tabsContainer = document.getElementById('seven-day-tabs');
             const contentContainer = document.getElementById('seven-day-content');
@@ -1068,10 +1087,21 @@ async function loadSevenDayGoals() {
 async function claimSevenDayGoal(goalId) {
     const result = await apiCall('/api/seven-day-goals/claim', { goal_id: goalId });
     if (result.success) {
-        showToast('success', '领取成功', `金币 +${result.rewards.gold}, 钻石 +${result.rewards.gems}`);
+        ToastManager.success(`领取成功：金币 +${result.rewards.gold}，钻石 +${result.rewards.gems}`);
+        // 资源栏反馈（+N 飘字）
+        try {
+            if (result.rewards && result.rewards.gold) {
+                const el = document.getElementById('hud-gold');
+                if (el) showResourceFloat(result.rewards.gold, el, true);
+            }
+            if (result.rewards && result.rewards.gems) {
+                const el = document.getElementById('hud-gems');
+                if (el) showResourceFloat(result.rewards.gems, el, true);
+            }
+        } catch (e) {}
         setTimeout(() => loadSevenDayGoals(), 1000);
     } else {
-        showToast('error', '领取失败', result.error);
+        ToastManager.error('领取失败：' + (result.error || '请稍后重试'));
     }
 }
 

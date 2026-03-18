@@ -16,33 +16,91 @@
         </div>
     </div>
 
-    <!-- 功能预告 -->
+    <!-- 装备管理（最小版） -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">🚧 功能开发中</h3>
+            <h3 class="card-title">⚔️ 装备管理</h3>
         </div>
-        <div class="card-body" style="text-align: center; padding: 3rem;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🎒</div>
-            <h3 style="color: var(--medieval-gold-light); margin-bottom: 0.5rem;">仓库即将开放</h3>
-            <p style="color: var(--medieval-text-muted);">这里将提供以下功能：</p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">⚔️</div>
-                    <div style="font-weight: bold; color: white;">装备管理</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">查看与管理装备</div>
+        <div class="card-body">
+            {% if not equipment %}
+                <div style="text-align:center; color:#94a3b8; padding: 2rem;">暂无装备。</div>
+            {% else %}
+                <div class="grid grid-2" style="gap: 0.75rem;">
+                    {% for e in equipment %}
+                    {% set _bon = {'hp': e.bonus_hp, 'attack': e.bonus_attack, 'defense': e.bonus_defense, 'magic_attack': e.bonus_magic_attack, 'magic_defense': e.bonus_magic_defense, 'speed': e.bonus_speed} %}
+                    <div class="card" style="background: rgba(51, 65, 85, 0.45);">
+                        <div class="card-body" style="display:flex; gap: 12px; align-items:flex-start; justify-content: space-between;">
+                            <div style="min-width: 0;">
+                                <div style="display:flex; gap: 8px; align-items:center; flex-wrap: wrap;">
+                                    <div style="font-weight: 900; color: #fff;">{{ e.name }}</div>
+                                    <span class="badge" style="background: {{ rarity_colors.get(e.rarity, '#64748b') }};">{{ rarity_names.get(e.rarity, e.rarity) }}</span>
+                                    <span class="badge" style="background: #475569;">
+                                        {% if e.slot_type == 'weapon' %}武器{% elif e.slot_type == 'armor' %}防具{% else %}饰品{% endif %}
+                                    </span>
+                                </div>
+                                <div style="margin-top: 6px; color:#cbd5e1; font-size: 0.85rem; line-height: 1.5;">
+                                    {% for k, v in _bon.items() %}
+                                        {% if v and v != 0 %}
+                                            <span style="margin-right: 10px;">{{ k }} +{{ v }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <div style="margin-top: 6px; color:#94a3b8; font-size: 0.8rem;">
+                                    {% if e.equipped_character_instance_id %}
+                                        已装备：#{{ e.equipped_character_instance_id }}
+                                    {% else %}
+                                        未装备
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap: 8px; align-items:flex-end;">
+                                {% if e.equipped_character_instance_id %}
+                                    <button class="btn btn-danger" style="padding: 0.45rem 0.75rem;" onclick="unequip({{ e.id }})">卸下</button>
+                                {% else %}
+                                    <select class="input" style="height: 34px; padding: 0 10px; border-radius: 10px; background: rgba(15,23,42,0.45); border: 1px solid rgba(148,163,184,0.35); color: #e2e8f0;"
+                                            id="equip-target-{{ e.id }}">
+                                        <option value="">选择角色</option>
+                                        {% for c in owned_chars %}
+                                            <option value="{{ c.instance_id }}">{{ c.name }}（Lv.{{ c.level }}）</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="btn btn-success" style="padding: 0.45rem 0.75rem;" onclick="equip({{ e.id }})">装备</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">🧪</div>
-                    <div style="font-weight: bold; color: white;">材料仓库</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">收集升级材料</div>
-                </div>
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">🎁</div>
-                    <div style="font-weight: bold; color: white;">道具背包</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">消耗品与礼物</div>
-                </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<script>
+async function equip(equipmentId) {
+    const sel = document.getElementById('equip-target-' + equipmentId);
+    const instanceId = sel ? sel.value : '';
+    if (!instanceId) {
+        ToastManager.warning('请先选择要装备的角色');
+        return;
+    }
+    const r = await apiCall('/api/equipment/equip', { equipment_id: equipmentId, instance_id: instanceId });
+    if (r && r.success) {
+        ToastManager.success('装备成功', 1200);
+        setTimeout(() => location.reload(), 600);
+    } else {
+        ToastManager.error((r && r.error) || '装备失败');
+    }
+}
+
+async function unequip(equipmentId) {
+    const r = await apiCall('/api/equipment/unequip', { equipment_id: equipmentId });
+    if (r && r.success) {
+        ToastManager.info('已卸下', 1200);
+        setTimeout(() => location.reload(), 600);
+    } else {
+        ToastManager.error((r && r.error) || '卸下失败');
+    }
+}
+</script>
 {% endblock %}

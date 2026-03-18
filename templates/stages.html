@@ -96,8 +96,11 @@
                             {% if stage.id in completed_stages %}再次挑战{% else %}开始挑战{% endif %}
                         </button>
                         {% if stage.id in completed_stages %}
-                        <button type="button" class="btn btn-secondary" onclick="sweepStage('{{ stage.id }}', {{ stage.energy_cost }})"
-                                aria-label="扫荡关卡">
+                        {% set _stars = stage_stars.get(stage.id, 0) %}
+                        <button type="button" class="btn btn-secondary"
+                                onclick="sweepStage('{{ stage.id }}', {{ stage.energy_cost }}, {{ _stars }})"
+                                aria-label="扫荡关卡"
+                                {% if _stars < 3 %}disabled title="满星（3★）后解锁扫荡"{% endif %}>
                             ⚡ 扫荡
                         </button>
                         {% endif %}
@@ -178,16 +181,19 @@ function startBattle(stageId) {
     return;
     {% endif %}
     
-    if (confirm('确定要开始战斗吗？')) {
-        window.location.href = '/battle/' + stageId;
-    }
+    window.location.href = '/battle/' + stageId;
 }
 
-async function sweepStage(stageId, energyCost) {
+async function sweepStage(stageId, energyCost, stars) {
     {% if not team %}
     ToastManager.warning('请先设置队伍');
     return;
     {% endif %}
+
+    if ((stars || 0) < 3) {
+        ToastManager.warning('满星（3★）后解锁扫荡');
+        return;
+    }
     
     if (!confirm(`确定要扫荡吗？消耗 ${energyCost} 体力`)) {
         return;
