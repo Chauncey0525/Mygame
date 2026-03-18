@@ -146,7 +146,7 @@ STARTER_CHARACTERS = [
         'title': '远程射手',
         'era': '通用',
         'origin': '猎手村',
-        'element': 'wind',
+        'element': 'flying',
         'role_type': 'assassin',
         'description': '敏捷的远程单位，擅长从远处给予敌人致命打击。',
         'avatar': '/static/images/characters/archer.jpg',
@@ -161,9 +161,9 @@ STARTER_CHARACTERS = [
             'speed': 100
         },
         'skills': [
-            {'id': 'skill-1', 'name': '穿云箭', 'type': 'physical', 'power': 120, 'element': 'wind', 'cooldown': 2, 'target': 'single',
+            {'id': 'skill-1', 'name': '穿云箭', 'type': 'physical', 'power': 120, 'element': 'flying', 'cooldown': 2, 'target': 'single',
              'description': '射出强力一箭，对敌方造成风属性物理伤害'},
-            {'id': 'skill-2', 'name': '快速射击', 'type': 'physical', 'power': 60, 'element': 'wind', 'cooldown': 1, 'target': 'single',
+            {'id': 'skill-2', 'name': '快速射击', 'type': 'physical', 'power': 60, 'element': 'flying', 'cooldown': 1, 'target': 'single',
              'description': '快速射击，造成物理伤害'},
         ]
     },
@@ -223,38 +223,53 @@ RARITY_WEIGHTS = {
     'legendary': 2
 }
 
-# 元素配置
+# 元素配置 (12属性体系)
 ELEMENT_NAMES = {
     'fire': '火',
     'water': '水',
-    'wind': '风',
+    'wood': '木',
+    'metal': '金',
     'earth': '土',
     'light': '光',
-    'dark': '暗'
+    'dark': '暗',
+    'electric': '电',
+    'ice': '冰',
+    'fighting': '格斗',
+    'flying': '飞行',
+    'ground': '地面',
 }
 
 ELEMENT_COLORS = {
     'fire': '#ef4444',
     'water': '#3b82f6',
-    'wind': '#22c55e',
+    'wood': '#22c55e',
+    'metal': '#94a3b8',
     'earth': '#a16207',
     'light': '#fbbf24',
-    'dark': '#7c3aed'
+    'dark': '#7c3aed',
+    'electric': '#facc15',
+    'ice': '#67e8f9',
+    'fighting': '#f97316',
+    'flying': '#a5b4fc',
+    'ground': '#d97706',
 }
 
-# 元素克制关系 (攻击方 -> 被克制方)
-# 攻击克制属性时造成额外伤害，被克制时减少伤害
+# 元素克制关系 (宝可梦规则 多对多)
+# 格式: 攻击方 -> [被克制方列表]
 ELEMENT_ADVANTAGE = {
-    'fire': 'wind',     # 火克风
-    'water': 'fire',    # 水克火
-    'wind': 'earth',    # 风克土
-    'earth': 'water',   # 土克水
-    'light': 'dark',    # 光克暗
-    'dark': 'light'     # 暗克光
+    'fire':     ['wood', 'ice', 'metal'],
+    'water':    ['fire', 'ground', 'earth'],
+    'wood':     ['water', 'ground', 'earth'],
+    'metal':    ['ice', 'earth', 'light'],
+    'earth':    ['fire', 'ice', 'flying'],
+    'light':    ['fighting', 'dark'],
+    'dark':     ['light', 'electric'],
+    'electric': ['water', 'flying'],
+    'ice':      ['wood', 'flying', 'ground'],
+    'fighting': ['metal', 'ice', 'dark', 'earth'],
+    'flying':   ['wood', 'fighting', 'ground'],
+    'ground':   ['fire', 'electric', 'metal'],
 }
-
-# 元素被克制关系 (反向映射)
-ELEMENT_DISADVANTAGE = {v: k for k, v in ELEMENT_ADVANTAGE.items()}
 
 # 克制伤害加成
 ELEMENT_ADVANTAGE_BONUS = 0.3  # 克制时+30%伤害
@@ -336,7 +351,7 @@ ALL_CHARACTERS = [
         'title': '远程射手',
         'era': '通用',
         'origin': '猎手村',
-        'element': 'wind',
+        'element': 'flying',
         'role_type': 'assassin',
         'description': '敏捷的远程单位，擅长从远处给予敌人致命打击。',
         'avatar': '/static/images/characters/archer.jpg',
@@ -351,9 +366,9 @@ ALL_CHARACTERS = [
             'speed': 100
         },
         'skills': [
-            {'id': 'skill-1', 'name': '穿云箭', 'type': 'physical', 'power': 120, 'element': 'wind', 'cooldown': 2, 'target': 'single',
+            {'id': 'skill-1', 'name': '穿云箭', 'type': 'physical', 'power': 120, 'element': 'flying', 'cooldown': 2, 'target': 'single',
              'description': '射出强力一箭，对敌方造成风属性物理伤害'},
-            {'id': 'skill-2', 'name': '快速射击', 'type': 'physical', 'power': 60, 'element': 'wind', 'cooldown': 1, 'target': 'single',
+            {'id': 'skill-2', 'name': '快速射击', 'type': 'physical', 'power': 60, 'element': 'flying', 'cooldown': 1, 'target': 'single',
              'description': '快速射击，造成物理伤害'},
         ]
     },
@@ -490,7 +505,7 @@ ALL_CHARACTERS = [
              'description': '布下八卦阵，对敌方造成水属性魔法伤害'},
             {'id': 'skill-2', 'name': '火烧连营', 'type': 'magic', 'power': 100, 'element': 'fire', 'cooldown': 3, 'target': 'all',
              'description': '施展火攻计策，对敌方全体造成火焰魔法伤害'},
-            {'id': 'skill-3', 'name': '空城计', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4, 'target': 'self',
+            {'id': 'skill-3', 'name': '空城计', 'type': 'buff', 'power': 0, 'element': 'flying', 'cooldown': 4, 'target': 'self',
              'description': '虚张声势，提升自身物防和魔防'},
         ]
     },
@@ -531,7 +546,7 @@ ALL_CHARACTERS = [
         'title': '巾帼英雄',
         'era': '北魏',
         'origin': '中国',
-        'element': 'wind',
+        'element': 'flying',
         'role_type': 'warrior',
         'description': '替父从军，英勇善战。中国古代女英雄，忠孝两全。',
         'avatar': '/static/images/characters/hua-mulan.jpg',
@@ -546,11 +561,11 @@ ALL_CHARACTERS = [
             'speed': 110
         },
         'skills': [
-            {'id': 'skill-1', 'name': '破阵斩将', 'type': 'physical', 'power': 120, 'element': 'wind', 'cooldown': 2, 'target': 'single',
+            {'id': 'skill-1', 'name': '破阵斩将', 'type': 'physical', 'power': 120, 'element': 'flying', 'cooldown': 2, 'target': 'single',
              'description': '冲锋陷阵，对敌方造成风属性物理伤害'},
-            {'id': 'skill-2', 'name': '木兰从军', 'type': 'physical', 'power': 90, 'element': 'wind', 'cooldown': 1, 'target': 'single',
+            {'id': 'skill-2', 'name': '木兰从军', 'type': 'physical', 'power': 90, 'element': 'flying', 'cooldown': 1, 'target': 'single',
              'description': '快速连击，降低敌方物防'},
-            {'id': 'skill-3', 'name': '代父从军', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 3, 'target': 'self',
+            {'id': 'skill-3', 'name': '代父从军', 'type': 'buff', 'power': 0, 'element': 'flying', 'cooldown': 3, 'target': 'self',
              'description': '提升自身速度和物防'},
         ]
     },
@@ -621,7 +636,7 @@ ALL_CHARACTERS = [
         'title': '剑圣',
         'era': '江户',
         'origin': '日本',
-        'element': 'wind',
+        'element': 'flying',
         'role_type': 'assassin',
         'description': '日本历史上最伟大的剑豪，二天一流的创始人。',
         'avatar': '/static/images/characters/miyamoto.jpg',
@@ -636,11 +651,11 @@ ALL_CHARACTERS = [
             'speed': 130
         },
         'skills': [
-            {'id': 'skill-1', 'name': '二天一流', 'type': 'physical', 'power': 150, 'element': 'wind', 'cooldown': 3, 'target': 'single',
+            {'id': 'skill-1', 'name': '二天一流', 'type': 'physical', 'power': 150, 'element': 'flying', 'cooldown': 3, 'target': 'single',
              'description': '双刀流必杀技，对敌方造成大量物理伤害'},
-            {'id': 'skill-2', 'name': '燕返', 'type': 'physical', 'power': 80, 'element': 'wind', 'cooldown': 1, 'target': 'single',
+            {'id': 'skill-2', 'name': '燕返', 'type': 'physical', 'power': 80, 'element': 'flying', 'cooldown': 1, 'target': 'single',
              'description': '快速三连斩，必定先手'},
-            {'id': 'skill-3', 'name': '剑道极意', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4, 'target': 'self',
+            {'id': 'skill-3', 'name': '剑道极意', 'type': 'buff', 'power': 0, 'element': 'flying', 'cooldown': 4, 'target': 'self',
              'description': '大幅提升物攻和速度'},
         ]
     },
@@ -673,7 +688,7 @@ ALL_CHARACTERS = [
         'title': '百步穿杨',
         'era': '中世纪',
         'origin': '大陆',
-        'element': 'wind',
+        'element': 'flying',
         'role_type': 'assassin',
         'description': '精通弓术的远程射手，擅长在远处精准狙击敌方要害。',
         'avatar': '/static/images/characters/archer.jpg',
@@ -681,9 +696,9 @@ ALL_CHARACTERS = [
         'rarity': 'common',
         'stats': {'hp': 700, 'attack': 110, 'defense': 40, 'magic_attack': 30, 'magic_defense': 40, 'speed': 100},
         'skills': [
-            {'id': 'skill-1', 'name': '精准射击', 'type': 'physical', 'power': 90, 'element': 'wind', 'cooldown': 1, 'target': 'single',
+            {'id': 'skill-1', 'name': '精准射击', 'type': 'physical', 'power': 90, 'element': 'flying', 'cooldown': 1, 'target': 'single',
              'description': '瞄准要害射出一箭，造成物理伤害'},
-            {'id': 'skill-2', 'name': '箭雨', 'type': 'physical', 'power': 55, 'element': 'wind', 'cooldown': 3, 'target': 'all',
+            {'id': 'skill-2', 'name': '箭雨', 'type': 'physical', 'power': 55, 'element': 'flying', 'cooldown': 3, 'target': 'all',
              'description': '向天空射出箭雨，对全体敌人造成伤害'},
         ]
     },
@@ -759,7 +774,7 @@ ALL_CHARACTERS = [
         'title': '侠盗义士',
         'era': '中世纪',
         'origin': '英格兰',
-        'element': 'wind',
+        'element': 'flying',
         'role_type': 'assassin',
         'description': '劫富济贫的传奇侠盗，箭无虚发，行踪如风。',
         'avatar': '/static/images/characters/robin-hood.jpg',
@@ -767,11 +782,11 @@ ALL_CHARACTERS = [
         'rarity': 'rare',
         'stats': {'hp': 800, 'attack': 155, 'defense': 45, 'magic_attack': 40, 'magic_defense': 50, 'speed': 125},
         'skills': [
-            {'id': 'skill-1', 'name': '穿心箭', 'type': 'physical', 'power': 140, 'element': 'wind', 'cooldown': 2, 'target': 'single',
+            {'id': 'skill-1', 'name': '穿心箭', 'type': 'physical', 'power': 140, 'element': 'flying', 'cooldown': 2, 'target': 'single',
              'description': '一箭穿心，对单体造成巨大物理伤害'},
-            {'id': 'skill-2', 'name': '丛林伏击', 'type': 'physical', 'power': 65, 'element': 'wind', 'cooldown': 1, 'target': 'single',
+            {'id': 'skill-2', 'name': '丛林伏击', 'type': 'physical', 'power': 65, 'element': 'flying', 'cooldown': 1, 'target': 'single',
              'description': '从暗处突袭，有概率附加减速效果'},
-            {'id': 'skill-3', 'name': '义贼之风', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4, 'target': 'self',
+            {'id': 'skill-3', 'name': '义贼之风', 'type': 'buff', 'power': 0, 'element': 'flying', 'cooldown': 4, 'target': 'self',
              'description': '提升自身闪避率和速度'},
         ]
     },

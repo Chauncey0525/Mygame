@@ -7,12 +7,18 @@
 
   /* ==================== CONSTANTS ==================== */
   var ELEM = {
-    fire:  { pri: 0xff6b35, sec: 0xff8c42, glow: 0xff4500 },
-    water: { pri: 0x4fc3f7, sec: 0x81d4fa, glow: 0x0288d1 },
-    wind:  { pri: 0x81c784, sec: 0xa5d6a7, glow: 0x388e3c },
-    earth: { pri: 0xa1887f, sec: 0xbcaaa4, glow: 0x795548 },
-    light: { pri: 0xfff176, sec: 0xffee58, glow: 0xfdd835 },
-    dark:  { pri: 0x7e57c2, sec: 0x9575cd, glow: 0x512da8 }
+    fire:     { pri: 0xff6b35, sec: 0xff8c42, glow: 0xff4500 },
+    water:    { pri: 0x4fc3f7, sec: 0x81d4fa, glow: 0x0288d1 },
+    wood:     { pri: 0x4ade80, sec: 0x86efac, glow: 0x22c55e },
+    metal:    { pri: 0x94a3b8, sec: 0xcbd5e1, glow: 0x64748b },
+    earth:    { pri: 0xa1887f, sec: 0xbcaaa4, glow: 0x795548 },
+    light:    { pri: 0xfff176, sec: 0xffee58, glow: 0xfdd835 },
+    dark:     { pri: 0x7e57c2, sec: 0x9575cd, glow: 0x512da8 },
+    electric: { pri: 0xfacc15, sec: 0xfde047, glow: 0xeab308 },
+    ice:      { pri: 0x67e8f9, sec: 0xa5f3fc, glow: 0x06b6d4 },
+    fighting: { pri: 0xfb923c, sec: 0xfdba74, glow: 0xf97316 },
+    flying:   { pri: 0xa5b4fc, sec: 0xc7d2fe, glow: 0x818cf8 },
+    ground:   { pri: 0xd97706, sec: 0xfbbf24, glow: 0xb45309 }
   };
 
   var POS = {

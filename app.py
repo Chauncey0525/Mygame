@@ -367,8 +367,16 @@ def ensure_db_migrations():
                     ))
                     db.session.commit()
 
+        # wind -> flying 元素迁移
+        try:
+            db.session.execute(text(
+                "UPDATE character_templates SET element='flying' WHERE element='wind'"
+            ))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
     except Exception as e:
-        # 不阻塞应用启动，但会影响 phone 字段写入；打印出来便于排查
         print("[WARN] ensure_db_migrations failed:", type(e).__name__, str(e))
 
 
@@ -2934,9 +2942,13 @@ with app.app_context():
     ensure_db_migrations()
     seed_announcements()
     from skill_data import seed_skill_templates
-    n = seed_skill_templates(db.session)
+    from models import SkillTemplate
+    _need_reseed = db.session.query(SkillTemplate).filter(
+        SkillTemplate.element == 'ice'
+    ).first() is None
+    n = seed_skill_templates(db.session, force=_need_reseed)
     if n:
-        print(f"[INFO] Seeded {n} skill templates into DB")
+        print(f"[INFO] Seeded {n} skill templates into DB (reseed={_need_reseed})")
 
 
 if __name__ == '__main__':

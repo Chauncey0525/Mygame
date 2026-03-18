@@ -483,9 +483,9 @@ function calculateDamage(attacker,defender,skill){
     var atkEl=(skill&&skill.element)?skill.element:attacker.element;
     var defEl=defender.element;
     var elBonus=0,elText='';
-    var adv={fire:'wind',water:'fire',wind:'earth',earth:'water',light:'dark',dark:'light'};
-    if(adv[atkEl]===defEl){elBonus=0.3;elText='【克制】';}
-    else if(adv[defEl]===atkEl){elBonus=-0.2;elText='【被克】';}
+    var adv={fire:['wood','ice','metal'],water:['fire','ground','earth'],wood:['water','ground','earth'],metal:['ice','earth','light'],earth:['fire','ice','flying'],light:['fighting','dark'],dark:['light','electric'],electric:['water','flying'],ice:['wood','flying','ground'],fighting:['metal','ice','dark','earth'],flying:['wood','fighting','ground'],ground:['fire','electric','metal']};
+    if(adv[atkEl]&&adv[atkEl].indexOf(defEl)>=0){elBonus=0.3;elText='【克制】';}
+    else if(adv[defEl]&&adv[defEl].indexOf(atkEl)>=0){elBonus=-0.2;elText='【被克】';}
     if(elBonus!==0) damage=Math.floor(damage*(1+elBonus));
     var v=damage*0.1;
     damage=Math.max(1,Math.floor(damage+Math.random()*v*2-v));
