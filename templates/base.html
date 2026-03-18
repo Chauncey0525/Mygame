@@ -21,6 +21,61 @@
         .bg-rarity-rare { background-color: {{ (rarity_colors|default({})).rare|default('#3b82f6') }}; }
         .bg-rarity-epic { background-color: {{ (rarity_colors|default({})).epic|default('#a855f7') }}; }
         .bg-rarity-legendary { background-color: {{ (rarity_colors|default({})).legendary|default('#f59e0b') }}; }
+        
+        /* 用户头像样式 */
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--medieval-gold, #c9a227);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .user-avatar:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(201, 162, 39, 0.5);
+        }
+        
+        /* 头像选择弹窗样式 */
+        .avatar-modal-section {
+            margin-bottom: 1.5rem;
+        }
+        .avatar-modal-section:last-child {
+            margin-bottom: 0;
+        }
+        .avatar-section-title {
+            color: var(--medieval-gold-light, #d4af37);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .avatar-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+        }
+        .avatar-option-modal {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 3px solid var(--medieval-border, #5c4e3d);
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            background: var(--medieval-bg-dark, #1a1612);
+        }
+        .avatar-option-modal:hover {
+            transform: scale(1.1);
+            border-color: var(--medieval-gold-light, #d4af37);
+            box-shadow: 0 0 10px rgba(201, 162, 39, 0.4);
+        }
+        .avatar-option-modal.selected {
+            border-color: var(--medieval-gold, #c9a227);
+            box-shadow: 0 0 15px rgba(201, 162, 39, 0.6);
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -38,7 +93,7 @@
         <div class="navbar-content" style="display:flex;justify-content:space-between;align-items:center; gap:12px;">
             <div class="navbar-left" style="display:flex;align-items:center;gap:12px;flex:0 0 auto;">
                 <button type="button" id="player-avatar-btn" class="avatar-btn" title="玩家信息" aria-label="打开玩家信息" style="width:38px;height:38px;border-radius:50%;overflow:hidden;border:2px solid var(--medieval-border);background:transparent;cursor:pointer;padding:0;">
-                    <img src="{{ url_for('static', filename='images/ui/avatar-default.png') }}" alt="玩家头像" style="width:100%;height:100%;object-fit:cover;object-position:center;">
+                    <img src="{{ player.avatar or url_for('static', filename='images/ui/avatar-default.png') }}" alt="玩家头像" style="width:100%;height:100%;object-fit:cover;object-position:center;">
                 </button>
             </div>
             <div class="navbar-mid" role="region" aria-label="资源" style="display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:1 1 auto; flex-wrap:wrap;">
@@ -62,6 +117,28 @@
             </div>
         </div>
     </nav>
+    {% endif %}
+
+    <!-- 头像选择弹窗 -->
+    {% if player %}
+    <div id="avatarModal" class="modal" role="dialog" aria-labelledby="avatar-title" aria-modal="true" aria-hidden="true">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="card-title" id="avatar-title">🖼️ 选择头像</h3>
+                <button class="modal-close" type="button" id="avatar-close-btn" aria-label="关闭">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="avatar-modal-section">
+                    <div class="avatar-section-title">男性角色</div>
+                    <div class="avatar-modal-grid" id="male-avatars-modal"></div>
+                </div>
+                <div class="avatar-modal-section">
+                    <div class="avatar-section-title">女性角色</div>
+                    <div class="avatar-modal-grid" id="female-avatars-modal"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
         <!-- Toast 容器 -->
@@ -738,6 +815,138 @@
             if (window.AudioManager && settings.autoBgm && !window.AudioManager.isMuted()) {
                 window.AudioManager.playBgm();
             }
+        })();
+
+        // 头像选择器
+        (function() {
+            var avatarModal = document.getElementById('avatarModal');
+            var navbarAvatar = document.getElementById('navbar-avatar');
+            var avatarCloseBtn = document.getElementById('avatar-close-btn');
+            var maleAvatarsModal = document.getElementById('male-avatars-modal');
+            var femaleAvatarsModal = document.getElementById('female-avatars-modal');
+            var currentAvatar = navbarAvatar ? navbarAvatar.src : '';
+            
+            // 头像列表
+            var maleAvatarPaths = [
+                '/static/images/avatars/avatar_male_01.jpg',
+                '/static/images/avatars/avatar_male_02.jpg',
+                '/static/images/avatars/avatar_male_03.jpg',
+                '/static/images/avatars/avatar_male_04.jpg',
+                '/static/images/avatars/avatar_male_05.jpg',
+                '/static/images/avatars/avatar_male_06.jpg',
+                '/static/images/avatars/avatar_male_07.jpg',
+                '/static/images/avatars/avatar_male_08.jpg',
+                '/static/images/avatars/avatar_male_09.jpg',
+                '/static/images/avatars/avatar_male_10.jpg'
+            ];
+            
+            var femaleAvatarPaths = [
+                '/static/images/avatars/avatar_female_01.jpg',
+                '/static/images/avatars/avatar_female_02.jpg',
+                '/static/images/avatars/avatar_female_03.jpg',
+                '/static/images/avatars/avatar_female_04.jpg',
+                '/static/images/avatars/avatar_female_05.jpg',
+                '/static/images/avatars/avatar_female_06.jpg',
+                '/static/images/avatars/avatar_female_07.jpg',
+                '/static/images/avatars/avatar_female_08.jpg',
+                '/static/images/avatars/avatar_female_09.jpg',
+                '/static/images/avatars/avatar_female_10.jpg'
+            ];
+            
+            function openAvatarModal() {
+                if (!avatarModal) return;
+                avatarModal.classList.add('active');
+                avatarModal.setAttribute('aria-hidden', 'false');
+                if (window.AudioManager) window.AudioManager.playSfx('click');
+            }
+            
+            function closeAvatarModal() {
+                if (!avatarModal) return;
+                avatarModal.classList.remove('active');
+                avatarModal.setAttribute('aria-hidden', 'true');
+            }
+            
+            function getAvatarPath(src) {
+                // 提取相对路径
+                var idx = src.indexOf('/static/');
+                return idx >= 0 ? src.substring(idx) : src;
+            }
+            
+            function isSelected(src) {
+                return getAvatarPath(src) === getAvatarPath(currentAvatar);
+            }
+            
+            function initAvatarGrid() {
+                if (!maleAvatarsModal || !femaleAvatarsModal) return;
+                
+                maleAvatarsModal.innerHTML = '';
+                femaleAvatarsModal.innerHTML = '';
+                
+                maleAvatarPaths.forEach(function(path) {
+                    var img = document.createElement('img');
+                    img.src = path;
+                    img.className = 'avatar-option-modal' + (isSelected(path) ? ' selected' : '');
+                    img.dataset.path = path;
+                    img.onclick = function() { selectAvatar(path, img); };
+                    maleAvatarsModal.appendChild(img);
+                });
+                
+                femaleAvatarPaths.forEach(function(path) {
+                    var img = document.createElement('img');
+                    img.src = path;
+                    img.className = 'avatar-option-modal' + (isSelected(path) ? ' selected' : '');
+                    img.dataset.path = path;
+                    img.onclick = function() { selectAvatar(path, img); };
+                    femaleAvatarsModal.appendChild(img);
+                });
+            }
+            
+            function selectAvatar(path, element) {
+                // 更新选中状态
+                var allOptions = avatarModal.querySelectorAll('.avatar-option-modal');
+                allOptions.forEach(function(img) { img.classList.remove('selected'); });
+                element.classList.add('selected');
+                
+                // 调用API更新头像
+                fetch('/api/player/avatar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ avatar: path })
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        // 更新导航栏头像
+                        if (navbarAvatar) {
+                            navbarAvatar.src = path;
+                        }
+                        currentAvatar = path;
+                        ToastManager.success('头像更换成功！');
+                        closeAvatarModal();
+                    } else {
+                        ToastManager.error(data.error || '更换失败');
+                    }
+                })
+                .catch(function(err) {
+                    ToastManager.error('网络错误');
+                });
+            }
+            
+            // 绑定事件
+            if (navbarAvatar) {
+                navbarAvatar.onclick = openAvatarModal;
+            }
+            if (avatarCloseBtn) {
+                avatarCloseBtn.onclick = closeAvatarModal;
+            }
+            if (avatarModal) {
+                avatarModal.addEventListener('click', function(e) {
+                    if (e.target === avatarModal) closeAvatarModal();
+                });
+            }
+            
+            // 初始化头像网格
+            initAvatarGrid();
         })();
     </script>
 </body>

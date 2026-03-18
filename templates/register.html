@@ -172,6 +172,118 @@
     .strength-medium { background: #f59e0b; width: 66%; }
     .strength-strong { background: #22c55e; width: 100%; }
 
+    /* 头像选择器样式 */
+    .avatar-selector {
+        position: relative;
+    }
+    
+    .selected-avatar {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        background: var(--medieval-parchment, #3d3429);
+        border: 2px solid var(--medieval-border, #5c4e3d);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .selected-avatar:hover {
+        border-color: var(--medieval-gold, #c9a227);
+    }
+    
+    .selected-avatar img {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--medieval-gold, #c9a227);
+    }
+    
+    .avatar-label {
+        color: var(--medieval-text-muted, #9c8b6e);
+        font-size: 0.9rem;
+    }
+    
+    .avatar-grid {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 0.5rem;
+        background: linear-gradient(180deg, var(--medieval-bg-panel, #352d24) 0%, var(--medieval-bg-surface, #2c241c) 100%);
+        border: 2px solid var(--medieval-border, #5c4e3d);
+        border-radius: 12px;
+        padding: 1rem;
+        z-index: 100;
+        max-height: 300px;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    
+    .avatar-grid.show {
+        display: block;
+        animation: slideDown 0.2s ease-out;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .avatar-section {
+        margin-bottom: 1rem;
+    }
+    
+    .avatar-section:last-child {
+        margin-bottom: 0;
+    }
+    
+    .section-title {
+        color: var(--medieval-gold-light, #d4af37);
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .avatar-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.5rem;
+    }
+    
+    .avatar-option {
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        object-fit: cover;
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        background: var(--medieval-bg-dark, #1a1612);
+    }
+    
+    .avatar-option:hover {
+        transform: scale(1.1);
+        border-color: var(--medieval-gold-light, #d4af37);
+        box-shadow: 0 0 10px rgba(201, 162, 39, 0.4);
+    }
+    
+    .avatar-option.selected {
+        border-color: var(--medieval-gold, #c9a227);
+        box-shadow: 0 0 15px rgba(201, 162, 39, 0.6);
+    }
+
     /* 响应式 */
     @media (max-width: 480px) {
         .auth-box {
@@ -270,6 +382,27 @@
             </div>
             
             <div class="form-group">
+                <label class="form-label">选择头像</label>
+                <div class="avatar-selector">
+                    <div class="selected-avatar" id="selected-avatar">
+                        <img src="/static/images/avatars/avatar_male_01.jpg" alt="当前头像" id="avatar-preview">
+                        <span class="avatar-label">点击选择头像</span>
+                    </div>
+                    <div class="avatar-grid" id="avatar-grid">
+                        <div class="avatar-section">
+                            <div class="section-title">男性角色</div>
+                            <div class="avatar-row" id="male-avatars"></div>
+                        </div>
+                        <div class="avatar-section">
+                            <div class="section-title">女性角色</div>
+                            <div class="avatar-row" id="female-avatars"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="avatar" id="avatar-input" value="/static/images/avatars/avatar_male_01.jpg">
+                </div>
+            </div>
+            
+            <div class="form-group">
                 <label class="form-label" for="password">密码 *</label>
                 <input type="password" 
                        class="form-input" 
@@ -307,6 +440,90 @@
 
 {% block extra_js %}
 <script>
+    // 头像选择器
+    const avatarPreview = document.getElementById('avatar-preview');
+    const avatarInput = document.getElementById('avatar-input');
+    const avatarGrid = document.getElementById('avatar-grid');
+    const selectedAvatar = document.getElementById('selected-avatar');
+    const maleAvatars = document.getElementById('male-avatars');
+    const femaleAvatars = document.getElementById('female-avatars');
+    
+    // 头像列表
+    const maleAvatarPaths = [
+        '/static/images/avatars/avatar_male_01.jpg',
+        '/static/images/avatars/avatar_male_02.jpg',
+        '/static/images/avatars/avatar_male_03.jpg',
+        '/static/images/avatars/avatar_male_04.jpg',
+        '/static/images/avatars/avatar_male_05.jpg',
+        '/static/images/avatars/avatar_male_06.jpg',
+        '/static/images/avatars/avatar_male_07.jpg',
+        '/static/images/avatars/avatar_male_08.jpg',
+        '/static/images/avatars/avatar_male_09.jpg',
+        '/static/images/avatars/avatar_male_10.jpg'
+    ];
+    
+    const femaleAvatarPaths = [
+        '/static/images/avatars/avatar_female_01.jpg',
+        '/static/images/avatars/avatar_female_02.jpg',
+        '/static/images/avatars/avatar_female_03.jpg',
+        '/static/images/avatars/avatar_female_04.jpg',
+        '/static/images/avatars/avatar_female_05.jpg',
+        '/static/images/avatars/avatar_female_06.jpg',
+        '/static/images/avatars/avatar_female_07.jpg',
+        '/static/images/avatars/avatar_female_08.jpg',
+        '/static/images/avatars/avatar_female_09.jpg',
+        '/static/images/avatars/avatar_female_10.jpg'
+    ];
+    
+    // 初始化头像网格
+    function initAvatarGrid() {
+        maleAvatarPaths.forEach((path, index) => {
+            const img = document.createElement('img');
+            img.src = path;
+            img.className = 'avatar-option' + (index === 0 ? ' selected' : '');
+            img.dataset.path = path;
+            img.onclick = () => selectAvatar(path, img);
+            maleAvatars.appendChild(img);
+        });
+        
+        femaleAvatarPaths.forEach(path => {
+            const img = document.createElement('img');
+            img.src = path;
+            img.className = 'avatar-option';
+            img.dataset.path = path;
+            img.onclick = () => selectAvatar(path, img);
+            femaleAvatars.appendChild(img);
+        });
+    }
+    
+    // 选择头像
+    function selectAvatar(path, element) {
+        avatarInput.value = path;
+        avatarPreview.src = path;
+        
+        // 更新选中状态
+        document.querySelectorAll('.avatar-option').forEach(img => img.classList.remove('selected'));
+        element.classList.add('selected');
+        
+        // 关闭选择器
+        avatarGrid.classList.remove('show');
+    }
+    
+    // 切换头像选择器
+    selectedAvatar.onclick = () => {
+        avatarGrid.classList.toggle('show');
+    };
+    
+    // 点击外部关闭
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.avatar-selector')) {
+            avatarGrid.classList.remove('show');
+        }
+    });
+    
+    // 初始化
+    initAvatarGrid();
+    
     // 密码强度检测
     document.getElementById('password').addEventListener('input', function(e) {
         const password = e.target.value;

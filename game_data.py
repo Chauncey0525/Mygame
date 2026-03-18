@@ -124,11 +124,11 @@ ALL_CHARACTERS = [
             'speed': 90
         },
         'skills': [
-            {'id': 'skill-1', 'name': '八阵图', 'type': 'magic', 'power': 120, 'element': 'water',
+            {'id': 'skill-1', 'name': '八阵图', 'type': 'magic', 'power': 120, 'element': 'water', 'cooldown': 2,
              'description': '布下八卦阵，对敌方造成水属性魔法伤害'},
-            {'id': 'skill-2', 'name': '火烧连营', 'type': 'magic', 'power': 100, 'element': 'fire',
+            {'id': 'skill-2', 'name': '火烧连营', 'type': 'magic', 'power': 100, 'element': 'fire', 'cooldown': 3,
              'description': '施展火攻计策，对敌方全体造成火焰魔法伤害'},
-            {'id': 'skill-3', 'name': '空城计', 'type': 'buff', 'power': 0, 'element': 'wind',
+            {'id': 'skill-3', 'name': '空城计', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4,
              'description': '虚张声势，提升自身物防和魔防'},
         ]
     },
@@ -154,11 +154,11 @@ ALL_CHARACTERS = [
             'speed': 85
         },
         'skills': [
-            {'id': 'skill-1', 'name': '青龙偃月', 'type': 'physical', 'power': 140, 'element': 'fire',
+            {'id': 'skill-1', 'name': '青龙偃月', 'type': 'physical', 'power': 140, 'element': 'fire', 'cooldown': 2,
              'description': '挥舞青龙偃月刀，对敌方造成大量物理伤害'},
-            {'id': 'skill-2', 'name': '过五关斩六将', 'type': 'physical', 'power': 100, 'element': 'fire',
+            {'id': 'skill-2', 'name': '过五关斩六将', 'type': 'physical', 'power': 100, 'element': 'fire', 'cooldown': 1,
              'description': '连续攻击，对敌方造成物理伤害'},
-            {'id': 'skill-3', 'name': '武圣之威', 'type': 'buff', 'power': 0, 'element': 'fire',
+            {'id': 'skill-3', 'name': '武圣之威', 'type': 'buff', 'power': 0, 'element': 'fire', 'cooldown': 4,
              'description': '提升自身物攻和物防'},
         ]
     },
@@ -184,11 +184,11 @@ ALL_CHARACTERS = [
             'speed': 110
         },
         'skills': [
-            {'id': 'skill-1', 'name': '破阵斩将', 'type': 'physical', 'power': 120, 'element': 'wind',
+            {'id': 'skill-1', 'name': '破阵斩将', 'type': 'physical', 'power': 120, 'element': 'wind', 'cooldown': 2,
              'description': '冲锋陷阵，对敌方造成风属性物理伤害'},
-            {'id': 'skill-2', 'name': '木兰从军', 'type': 'physical', 'power': 90, 'element': 'wind',
+            {'id': 'skill-2', 'name': '木兰从军', 'type': 'physical', 'power': 90, 'element': 'wind', 'cooldown': 1,
              'description': '快速连击，降低敌方物防'},
-            {'id': 'skill-3', 'name': '代父从军', 'type': 'buff', 'power': 0, 'element': 'wind',
+            {'id': 'skill-3', 'name': '代父从军', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 3,
              'description': '提升自身速度和物防'},
         ]
     },
@@ -214,11 +214,11 @@ ALL_CHARACTERS = [
             'speed': 80
         },
         'skills': [
-            {'id': 'skill-1', 'name': '圣剑斩击', 'type': 'physical', 'power': 130, 'element': 'light',
+            {'id': 'skill-1', 'name': '圣剑斩击', 'type': 'physical', 'power': 130, 'element': 'light', 'cooldown': 2,
              'description': '挥舞圣剑，对敌方造成光属性物理伤害'},
-            {'id': 'skill-2', 'name': '王者之剑', 'type': 'magic', 'power': 110, 'element': 'light',
+            {'id': 'skill-2', 'name': '王者之剑', 'type': 'magic', 'power': 110, 'element': 'light', 'cooldown': 3,
              'description': '释放圣剑之力，对敌方造成光属性魔法伤害'},
-            {'id': 'skill-3', 'name': '骑士荣耀', 'type': 'buff', 'power': 0, 'element': 'light',
+            {'id': 'skill-3', 'name': '骑士荣耀', 'type': 'buff', 'power': 0, 'element': 'light', 'cooldown': 4,
              'description': '提升全队物攻和物防'},
         ]
     },
@@ -244,11 +244,11 @@ ALL_CHARACTERS = [
             'speed': 95
         },
         'skills': [
-            {'id': 'skill-1', 'name': '霸业之剑', 'type': 'physical', 'power': 110, 'element': 'dark',
+            {'id': 'skill-1', 'name': '霸业之剑', 'type': 'physical', 'power': 110, 'element': 'dark', 'cooldown': 2,
              'description': '霸王之剑，对敌方造成暗属性物理伤害'},
-            {'id': 'skill-2', 'name': '奸雄之计', 'type': 'magic', 'power': 90, 'element': 'dark',
+            {'id': 'skill-2', 'name': '奸雄之计', 'type': 'magic', 'power': 90, 'element': 'dark', 'cooldown': 3,
              'description': '阴险计谋，降低敌方物攻和物防'},
-            {'id': 'skill-3', 'name': '唯才是举', 'type': 'buff', 'power': 0, 'element': 'dark',
+            {'id': 'skill-3', 'name': '唯才是举', 'type': 'buff', 'power': 0, 'element': 'dark', 'cooldown': 4,
              'description': '提升自身所有属性'},
         ]
     },
@@ -274,11 +274,11 @@ ALL_CHARACTERS = [
             'speed': 130
         },
         'skills': [
-            {'id': 'skill-1', 'name': '二天一流', 'type': 'physical', 'power': 150, 'element': 'wind',
+            {'id': 'skill-1', 'name': '二天一流', 'type': 'physical', 'power': 150, 'element': 'wind', 'cooldown': 3,
              'description': '双刀流必杀技，对敌方造成大量物理伤害'},
-            {'id': 'skill-2', 'name': '燕返', 'type': 'physical', 'power': 80, 'element': 'wind',
+            {'id': 'skill-2', 'name': '燕返', 'type': 'physical', 'power': 80, 'element': 'wind', 'cooldown': 1,
              'description': '快速三连斩，必定先手'},
-            {'id': 'skill-3', 'name': '剑道极意', 'type': 'buff', 'power': 0, 'element': 'wind',
+            {'id': 'skill-3', 'name': '剑道极意', 'type': 'buff', 'power': 0, 'element': 'wind', 'cooldown': 4,
              'description': '大幅提升物攻和速度'},
         ]
     },

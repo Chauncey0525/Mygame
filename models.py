@@ -24,6 +24,7 @@ class Player(db.Model, UserMixin):
     
     # 玩家信息
     name = db.Column(db.String(128), nullable=False, default='勇者')
+    avatar = db.Column(db.String(256), nullable=True, default='/static/images/avatars/avatar_male_01.jpg')
     level = db.Column(db.Integer, nullable=False, default=1)
     exp = db.Column(db.Integer, nullable=False, default=0)
     exp_to_next = db.Column(db.Integer, nullable=False, default=100)
@@ -77,6 +78,7 @@ class Player(db.Model, UserMixin):
             'id': self.id,
             'uid': self.uid,
             'name': self.name,
+            'avatar': self.avatar,
             'level': self.level,
             'exp': self.exp,
             'exp_to_next': self.exp_to_next,
@@ -356,3 +358,88 @@ class CharacterTemplate(db.Model):
             base_speed=data['stats'].get('speed', 100),
             skills=json.dumps(data.get('skills', []), ensure_ascii=False),
         )
+
+
+class Announcement(db.Model):
+    """公告表"""
+    __tablename__ = 'announcements'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(128), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    announcement_type = db.Column(db.String(32), default='normal')  # normal, event, maintenance, update
+    priority = db.Column(db.Integer, default=0)  # 优先级，数字越大越靠前
+    
+    # 显示时间范围
+    start_time = db.Column(db.DateTime, default=datetime.now)
+    end_time = db.Column(db.DateTime, nullable=True)
+    
+    # 显示配置
+    show_on_login = db.Column(db.Boolean, default=True)  # 登录时显示
+    show_on_main = db.Column(db.Boolean, default=True)  # 主界面显示
+    
+    is_active = db.Column(db.Boolean, default=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content,
+            'type': self.announcement_type,
+            'priority': self.priority,
+            'start_time': self.start_time.isoformat() if self.start_time else None,
+            'end_time': self.end_time.isoformat() if self.end_time else None,
+            'show_on_login': self.show_on_login,
+            'show_on_main': self.show_on_main,
+        }
+
+
+class SevenDayGoal(db.Model):
+    """七日目标表"""
+    __tablename__ = 'seven_day_goals'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False)
+    day = db.Column(db.Integer, nullable=False)  # 第几天 (1-7)
+    goal_id = db.Column(db.String(64), nullable=False)  # 目标ID
+    
+    name = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    target = db.Column(db.Integer, nullable=False, default=1)
+    progress = db.Column(db.Integer, nullable=False, default=0)
+    
+    # 奖励
+    reward_gold = db.Column(db.Integer, default=0)
+    reward_gems = db.Column(db.Integer, default=0)
+    reward_items = db.Column(db.Text, nullable=True)  # JSON格式道具奖励
+    
+    completed = db.Column(db.Boolean, nullable=False, default=False)
+    claimed = db.Column(db.Boolean, nullable=False, default=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    __table_args__ = (
+        db.Index('idx_seven_day_goals', 'player_id', 'day'),
+    )
+    
+    def to_dict(self):
+        import json
+        return {
+            'id': self.goal_id,
+            'day': self.day,
+            'name': self.name,
+            'description': self.description,
+            'target': self.target,
+            'progress': self.progress,
+            'rewards': {
+                'gold': self.reward_gold or 0,
+                'gems': self.reward_gems or 0,
+                'items': json.loads(self.reward_items) if self.reward_items else [],
+            },
+            'completed': self.completed,
+            'claimed': self.claimed,
+        }
