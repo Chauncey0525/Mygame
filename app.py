@@ -183,6 +183,7 @@ def register():
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
         player_name = request.form.get('player_name', '勇者').strip()
+        avatar = request.form.get('avatar', '/static/images/avatars/avatar_male_01.jpg').strip()
         
         # 验证输入
         if not username or not password:
@@ -263,7 +264,8 @@ def register():
             username=username,
             email=email if email else None,
             phone=phone,
-            name=player_name if player_name else username
+            name=player_name if player_name else username,
+            avatar=avatar
         )
         player.set_password(password)
         

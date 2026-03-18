@@ -23,6 +23,7 @@ class Player(db.Model, UserMixin):
     
     # 玩家信息
     name = db.Column(db.String(128), nullable=False, default='勇者')
+    avatar = db.Column(db.String(256), nullable=True, default='/static/images/avatars/avatar_male_01.jpg')
     level = db.Column(db.Integer, nullable=False, default=1)
     exp = db.Column(db.Integer, nullable=False, default=0)
     exp_to_next = db.Column(db.Integer, nullable=False, default=100)
@@ -68,6 +69,7 @@ class Player(db.Model, UserMixin):
         return {
             'id': self.id,
             'name': self.name,
+            'avatar': self.avatar,
             'level': self.level,
             'exp': self.exp,
             'exp_to_next': self.exp_to_next,
