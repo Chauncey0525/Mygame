@@ -30,6 +30,8 @@ from models import (
     PlayerMainQuest,
     ShopPurchase,
     ArenaRecord,
+    SkillTemplate,
+    CharacterEquippedSkill,
 )
 from game_data import (
     CHAPTERS, RARITY_NAMES, RARITY_COLORS, RARITY_WEIGHTS,
@@ -978,13 +980,15 @@ def get_battle_character(character_instance):
     if not all_skills:
         all_skills = template.get('skills', [])
 
-    # 被动技能（始终生效，不占装备栏）
     passives = [s for s in all_skills if s.get('is_passive') or s.get('type') == 'passive']
 
-    # 已装备的4个主动技能（用于战斗）
-    equipped_ids = character_instance.get_equipped_skill_ids()
+    # 从关系表读取已装备的主动技能
+    equip_rows = CharacterEquippedSkill.query.filter_by(
+        character_instance_id=character_instance.id
+    ).order_by(CharacterEquippedSkill.slot).all()
+    equipped_ids = [r.skill_id for r in equip_rows]
+
     if equipped_ids:
-        id_set = set(equipped_ids)
         equipped = []
         for sid in equipped_ids:
             for s in all_skills:
@@ -2012,7 +2016,7 @@ def api_starup():
 @app.route('/api/equip_skills', methods=['POST'])
 @login_required
 def api_equip_skills():
-    """装备技能API——最多4个主动技能"""
+    """装备技能API——最多4个主动技能（关系表存储）"""
     player = current_user
     data = request.get_json(force=True)
     instance_id = data.get('instance_id')
@@ -2042,7 +2046,14 @@ def api_equip_skills():
         valid_ids = set(s['id'] for s in all_skills if not s.get('is_passive') and s.get('type') != 'passive')
         skill_ids = [sid for sid in skill_ids if sid in valid_ids]
 
-    char_inst.set_equipped_skill_ids(skill_ids)
+    CharacterEquippedSkill.query.filter_by(character_instance_id=instance_id).delete()
+    for slot, sid in enumerate(skill_ids, 1):
+        db.session.add(CharacterEquippedSkill(
+            player_id=player.id,
+            character_instance_id=instance_id,
+            skill_id=sid,
+            slot=slot,
+        ))
     db.session.commit()
 
     return jsonify({'success': True, 'equipped': skill_ids})
@@ -2875,6 +2886,10 @@ def init_db():
 with app.app_context():
     ensure_db_migrations()
     seed_announcements()
+    from skill_data import seed_skill_templates
+    n = seed_skill_templates(db.session)
+    if n:
+        print(f"[INFO] Seeded {n} skill templates into DB")
 
 
 if __name__ == '__main__':

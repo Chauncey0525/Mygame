@@ -143,9 +143,6 @@ class PlayerCharacter(db.Model):
     stars = db.Column(db.Integer, nullable=False, default=1)
     breakthrough = db.Column(db.Integer, nullable=False, default=0)
     
-    # 技能装备 (JSON: 最多4个技能id, 如 '["fire_01","fire_02a","fire_05","fire_07"]')
-    equipped_skills = db.Column(db.Text, nullable=True, default=None)
-
     # 羁绊
     bond_level = db.Column(db.Integer, nullable=False, default=1)
     bond_exp = db.Column(db.Integer, nullable=False, default=0)
@@ -158,19 +155,6 @@ class PlayerCharacter(db.Model):
         db.Index('idx_player_character', 'player_id', 'character_id'),
     )
     
-    def get_equipped_skill_ids(self):
-        if not self.equipped_skills:
-            return []
-        try:
-            import json
-            return json.loads(self.equipped_skills)
-        except Exception:
-            return []
-
-    def set_equipped_skill_ids(self, skill_ids):
-        import json
-        self.equipped_skills = json.dumps(skill_ids[:4])
-
     def to_dict(self):
         return {
             'id': self.id,
@@ -181,7 +165,6 @@ class PlayerCharacter(db.Model):
             'stars': self.stars,
             'breakthrough': self.breakthrough,
             'bond_level': self.bond_level,
-            'equipped_skills': self.get_equipped_skill_ids(),
         }
 
 
@@ -662,3 +645,61 @@ class ArenaRecord(db.Model):
     victory = db.Column(db.Boolean, nullable=False)
     score_change = db.Column(db.Integer, nullable=False, default=0)
     created_at = db.Column(db.DateTime, default=datetime.now)
+
+
+class SkillTemplate(db.Model):
+    """技能模板表——所有技能定义"""
+    __tablename__ = 'skill_templates'
+
+    id = db.Column(db.String(64), primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    power = db.Column(db.Integer, nullable=False, default=0)
+    skill_type = db.Column(db.String(16), nullable=False, default='physical')
+    target = db.Column(db.String(16), nullable=False, default='single')
+    cooldown = db.Column(db.Integer, nullable=False, default=0)
+    element = db.Column(db.String(16), nullable=True)
+    unlock_level = db.Column(db.Integer, nullable=False, default=1)
+    description = db.Column(db.Text, nullable=True)
+    effects_json = db.Column(db.Text, nullable=True)
+    roles = db.Column(db.String(128), nullable=True)
+    category = db.Column(db.String(16), nullable=False, default='shared')
+    character_id = db.Column(db.String(64), nullable=True, index=True)
+    is_exclusive = db.Column(db.Boolean, nullable=False, default=False)
+    is_passive = db.Column(db.Boolean, nullable=False, default=False)
+    is_awakening = db.Column(db.Boolean, nullable=False, default=False)
+
+    def to_skill_dict(self):
+        import json
+        d = {
+            'id': self.id,
+            'name': self.name,
+            'power': self.power,
+            'type': self.skill_type,
+            'target': self.target,
+            'cooldown': self.cooldown,
+            'description': self.description or '',
+            'effects': json.loads(self.effects_json) if self.effects_json else [],
+        }
+        if self.is_exclusive:
+            d['is_exclusive'] = True
+        if self.is_passive:
+            d['is_passive'] = True
+        if self.is_awakening:
+            d['is_awakening'] = True
+        return d
+
+
+class CharacterEquippedSkill(db.Model):
+    """角色已装备技能（关系表，每角色最多4个主动槽位）"""
+    __tablename__ = 'character_equipped_skills'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('players.id'), nullable=False, index=True)
+    character_instance_id = db.Column(db.Integer, db.ForeignKey('player_characters.id'), nullable=False, index=True)
+    skill_id = db.Column(db.String(64), db.ForeignKey('skill_templates.id'), nullable=False)
+    slot = db.Column(db.Integer, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint('character_instance_id', 'slot', name='uq_char_skill_slot'),
+        db.Index('idx_char_equip_inst', 'character_instance_id'),
+    )

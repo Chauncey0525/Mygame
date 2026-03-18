@@ -8,12 +8,10 @@ from skill_data import (
     MAX_CHARACTER_LEVEL,
     RARITY_CONFIG,
     ROLE_MODIFIERS,
-    ELEMENT_SKILL_POOL,
-    CHARACTER_EXCLUSIVE_SKILLS,
-    CHARACTER_PASSIVES,
     get_skills_for_character,
     get_skill_unlock_preview,
     calculate_stats_with_rarity,
+    seed_skill_templates,
 )
 
 # ==================== 经验值升级系统配置 ====================
