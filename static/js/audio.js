@@ -77,7 +77,7 @@
         if (!bgmEl) {
             bgmEl = document.createElement('audio');
             bgmEl.loop = true;
-            bgmEl.preload = 'auto';
+            bgmEl.preload = 'none';
         }
         return bgmEl;
     }
@@ -88,6 +88,7 @@
         if (url !== currentBgmSrc) {
             el.src = url;
             currentBgmSrc = url;
+            el.onerror = function () { currentBgmSrc = ''; };
             el.load();
         }
         el.volume = Math.max(0, Math.min(1, volume));

@@ -83,8 +83,13 @@
     <style>
         /* 顶部资源 HUD：紧凑且自适应 */
         @media (max-width: 640px) {
-            .hud-pill { padding: 5px 8px !important; }
-            .hud-pill span { font-size: 0.9rem; }
+            .hud-pill { padding: 4px 7px !important; gap: 4px !important; }
+            .hud-pill span { font-size: 0.8rem; }
+        }
+        @media (max-width: 400px) {
+            .hud-pill { padding: 3px 5px !important; gap: 2px !important; }
+            .hud-pill span { font-size: 0.7rem; }
+            .navbar-mid { gap: 4px !important; }
         }
         /* 玩家信息：头像悬浮提示 */
         .avatar-tip-wrap { position: relative; display: inline-block; }

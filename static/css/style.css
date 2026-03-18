@@ -772,7 +772,7 @@ body {
     right: 0;
     bottom: 0;
     background: rgba(0,0,0,0.75);
-    z-index: 200;
+    z-index: 1000;
     justify-content: center;
     align-items: center;
 }

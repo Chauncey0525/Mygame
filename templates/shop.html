@@ -3,7 +3,7 @@
 {% block title %}商会 - 巅峰对决{% endblock %}
 
 {% block back_link %}
-<div class="back-bar"><a href="{{ url_for('index') }}" class="back-btn">← 返回城镇</a></div>
+<div class="back-bar"><a href="{{ url_for('index') }}" class="back-btn">← 返回主城</a></div>
 {% endblock %}
 
 {% block content %}
@@ -16,33 +16,190 @@
         </div>
     </div>
 
-    <!-- 功能预告 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">🚧 功能开发中</h3>
-        </div>
-        <div class="card-body" style="text-align: center; padding: 3rem;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
-            <h3 style="color: var(--medieval-gold-light); margin-bottom: 0.5rem;">商会即将开放</h3>
-            <p style="color: var(--medieval-text-muted);">这里将提供以下功能：</p>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">💎</div>
-                    <div style="font-weight: bold; color: white;">钻石商店</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">购买稀有道具</div>
-                </div>
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">💰</div>
-                    <div style="font-weight: bold; color: white;">金币商店</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">购买日常道具</div>
-                </div>
-                <div style="padding: 1rem; background: var(--medieval-parchment); border-radius: 8px;">
-                    <div style="font-size: 2rem;">🔄</div>
-                    <div style="font-weight: bold; color: white;">资源兑换</div>
-                    <div style="font-size: 0.8rem; color: var(--medieval-text-muted);">资源互相转换</div>
+    <!-- 分类标签 -->
+    <div class="tabs shop-tabs" role="tablist">
+        <button type="button" class="tab active" data-shop-category="resource" aria-selected="true">📦 资源</button>
+        <button type="button" class="tab" data-shop-category="summon" aria-selected="false">🎫 召唤</button>
+        <button type="button" class="tab" data-shop-category="upgrade" aria-selected="false">⬆️ 升阶</button>
+    </div>
+
+    <!-- 商品网格 -->
+    {% if shop_items %}
+    {% set category_names = {'resource': '资源', 'summon': '召唤', 'upgrade': '升阶'} %}
+    {% for cat_key, cat_label in category_names.items() %}
+    {% set cat_items = shop_items|selectattr('category', 'equalto', cat_key)|list %}
+    <div class="shop-category-panel" data-shop-panel="{{ cat_key }}" style="{% if cat_key != 'resource' %}display: none;{% endif %}">
+        {% if cat_items %}
+        <div class="shop-grid">
+            {% for item in cat_items %}
+            {% set bought = purchase_counts.get(item.id, 0) %}
+            {% set remaining = item.daily_limit - bought %}
+            <div class="card shop-item-card" data-item-id="{{ item.id }}">
+                <div class="card-body">
+                    <h4 class="shop-item-name" style="font-weight: bold; color: var(--medieval-text); margin-bottom: 0.5rem;">{{ item.name }}</h4>
+                    <p class="shop-item-desc" style="font-size: 0.875rem; color: var(--medieval-text-muted); margin-bottom: 0.75rem;">{{ item.description }}</p>
+                    <!-- 价格 -->
+                    <div class="shop-item-price" style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+                        {% if item.price_type == 'gold' %}
+                        <span aria-hidden="true">💰</span>
+                        <span style="color: var(--medieval-gold-light); font-weight: 700;">{{ item.price }}</span>
+                        {% else %}
+                        <span aria-hidden="true">💎</span>
+                        <span style="color: #06b6d4; font-weight: 700;">{{ item.price }}</span>
+                        {% endif %}
+                    </div>
+                    <!-- 今日剩余 -->
+                    <div class="shop-item-remaining" style="font-size: 0.8rem; color: var(--medieval-text-muted); margin-bottom: 0.75rem;">
+                        今日剩余: <span class="remain-count" data-item-id="{{ item.id }}">{{ remaining }}</span>/{{ item.daily_limit }}
+                    </div>
+                    <button type="button" class="btn btn-primary shop-buy-btn" data-item-id="{{ item.id }}"
+                            {% if remaining <= 0 %}disabled{% endif %}>
+                        购买
+                    </button>
                 </div>
             </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body" style="text-align: center; padding: 2rem; color: var(--medieval-text-muted);">
+                暂无{{ cat_label }}类商品
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="card">
+        <div class="card-body" style="text-align: center; padding: 3rem;">
+            <p style="color: var(--medieval-text-muted);">暂无可购买商品</p>
         </div>
     </div>
+    {% endif %}
 </div>
+
+<style>
+/* 商会分类标签 */
+.shop-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+.shop-tabs .tab {
+    padding: 0.5rem 1rem;
+    background: var(--medieval-parchment);
+    border: 1px solid var(--medieval-border);
+    border-radius: 6px;
+    color: var(--medieval-text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+.shop-tabs .tab:hover {
+    border-color: var(--medieval-brass);
+    color: var(--medieval-text);
+}
+.shop-tabs .tab.active {
+    background: linear-gradient(135deg, var(--medieval-bg-panel) 0%, var(--medieval-parchment-light) 100%);
+    border-color: var(--medieval-gold);
+    color: var(--medieval-gold-light);
+}
+/* 商品网格 */
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+.shop-item-card {
+    background: var(--medieval-bg-surface);
+    border: 1px solid var(--medieval-border);
+}
+.shop-item-card:hover {
+    border-color: var(--medieval-brass);
+}
+.shop-buy-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+@media (max-width: 640px) {
+    .shop-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<script>
+(function() {
+    // 分类切换
+    const tabs = document.querySelectorAll('[data-shop-category]');
+    const panels = document.querySelectorAll('[data-shop-panel]');
+    tabs.forEach(function(btn) {
+        if (!btn.hasAttribute('data-shop-panel')) {
+            btn.addEventListener('click', function() {
+                const cat = btn.getAttribute('data-shop-category');
+                tabs.forEach(function(t) {
+                    t.classList.toggle('active', t === btn);
+                    t.setAttribute('aria-selected', t === btn ? 'true' : 'false');
+                });
+                panels.forEach(function(p) {
+                    p.style.display = (p.getAttribute('data-shop-panel') === cat) ? '' : 'none';
+                });
+                if (window.AudioManager) window.AudioManager.playSfx('click');
+            });
+        }
+    });
+
+    // 购买按钮
+    document.querySelectorAll('.shop-buy-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function() {
+            const itemId = btn.getAttribute('data-item-id');
+            if (!itemId || btn.disabled) return;
+
+            if (window.AudioManager) window.AudioManager.playSfx('click');
+
+            const result = await apiCall('/api/shop/buy', { item_id: itemId }, 'POST');
+
+            if (result && result.success) {
+                ToastManager.success('购买成功！');
+
+                // 更新顶部 HUD 资源
+                const hudGold = document.getElementById('hud-gold');
+                const hudGems = document.getElementById('hud-gems');
+                const hudEnergy = document.getElementById('hud-energy');
+                if (hudGold && result.gold !== undefined) {
+                    const span = hudGold.querySelector('span:last-child');
+                    if (span) span.textContent = result.gold;
+                }
+                if (hudGems && result.gems !== undefined) {
+                    const span = hudGems.querySelector('span:last-child');
+                    if (span) span.textContent = result.gems;
+                }
+                if (hudEnergy && result.energy !== undefined) {
+                    const span = hudEnergy.querySelector('span:last-child');
+                    if (span) {
+                        const maxEnergy = {{ player.max_energy or 100 }};
+                        span.textContent = result.energy + '/' + maxEnergy;
+                    }
+                }
+
+                // 更新今日剩余次数
+                const remainEl = document.querySelector('.remain-count[data-item-id="' + itemId + '"]');
+                if (remainEl) {
+                    const current = parseInt(remainEl.textContent, 10);
+                    const next = Math.max(0, current - 1);
+                    remainEl.textContent = next;
+                    const card = document.querySelector('.shop-item-card[data-item-id="' + itemId + '"]');
+                    if (card) {
+                        const buyBtn = card.querySelector('.shop-buy-btn');
+                        if (buyBtn && next <= 0) buyBtn.disabled = true;
+                    }
+                }
+            } else {
+                ToastManager.error(result && result.error ? result.error : '购买失败');
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

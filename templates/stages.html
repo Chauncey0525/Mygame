@@ -7,273 +7,417 @@
 {% endblock %}
 
 {% block content %}
-<div class="space-y-4">
-    <!-- 玩家等级信息 -->
-    <div class="card">
-        <div class="card-body" style="padding: 0.75rem 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div style="font-size: 1.5rem; font-weight: bold; color: #fbbf24;">Lv.{{ player.level }}</div>
-                    <div style="flex: 1;">
-                        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">
-                            经验值: {{ player.exp }} / {{ player.exp_to_next }}
-                        </div>
-                        <div style="width: 200px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden;">
-                            <div style="width: {{ (player.exp / player.exp_to_next * 100) if player.exp_to_next > 0 else 0 }}%; height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); border-radius: 4px;"></div>
-                        </div>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 1rem;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 0.75rem; color: #94a3b8;">体力</div>
-                        <div style="font-weight: bold; color: #22c55e;">⚡ {{ player.energy }}/{{ player.max_energy }}</div>
-                    </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 0.75rem; color: #94a3b8;">金币</div>
-                        <div style="font-weight: bold; color: #fbbf24;">💰 {{ player.gold }}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- 章节控制按钮 -->
-    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-        <button type="button" class="btn btn-secondary" onclick="expandAllChapters()" aria-label="展开所有章节">
-            📂 全部展开
-        </button>
-        <button type="button" class="btn btn-secondary" onclick="collapseAllChapters()" aria-label="折叠所有章节">
-            📁 全部折叠
-        </button>
-    </div>
+<style>
+/* ===== 副本大厅 Tab ===== */
+.dungeon-tabs{display:flex;gap:4px;overflow-x:auto;padding:4px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.dungeon-tabs::-webkit-scrollbar{display:none}
+.dtab{padding:8px 14px;border-radius:8px;background:rgba(30,41,59,.85);color:#94a3b8;font-size:.82rem;font-weight:600;white-space:nowrap;cursor:pointer;border:2px solid transparent;transition:all .25s}
+.dtab.active{background:linear-gradient(135deg,#78350f,#92400e);color:#fbbf24;border-color:#fbbf24;box-shadow:0 0 12px rgba(251,191,36,.3)}
+.dtab:hover:not(.active){background:rgba(55,65,81,.9);color:#e2e8f0}
+.dtab .tab-icon{margin-right:4px}
+.dungeon-panel{display:none}
+.dungeon-panel.active{display:block}
 
-    <!-- 章节列表 -->
-    {% for chapter in chapters %}
-    {% set chapter_status = chapter_unlock_status.get(chapter['id'], {'unlocked': True, 'reason': ''}) %}
-    <div class="card {% if not chapter_status.unlocked %}locked-chapter{% endif %}">
-        <div class="card-header" style="cursor: pointer;" onclick="toggleChapter('{{ chapter['id'] }}')">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 class="card-title">
-                        {% if not chapter_status.unlocked %}🔒 {% endif %}
-                        {{ chapter['name'] }}
-                    </h3>
-                    <p style="font-size: 0.875rem; color: #94a3b8;">
-                        {{ chapter['description'] }}
-                        {% if chapter.get('required_level', 1) > 1 %}
-                        <span style="color: #f59e0b; margin-left: 0.5rem;">(需要 Lv.{{ chapter['required_level'] }})</span>
-                        {% endif %}
-                    </p>
-                    {% if not chapter_status.unlocked %}
-                    <p style="font-size: 0.75rem; color: #ef4444; margin-top: 0.25rem;">
-                        ⚠️ {{ chapter_status.reason }}
-                    </p>
-                    {% endif %}
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 0.875rem; color: #94a3b8;">进度</div>
-                    <div style="font-size: 1.25rem; font-weight: bold; color: #fbbf24;">
-                        {{ chapter['stages']|selectattr('id', 'in', completed_stages)|list|length }}/{{ chapter['stages']|length }}
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="card-body" id="chapter-{{ chapter['id'] }}" style="display: none;">
-            {% for stage in chapter['stages'] %}
-            {% set stage_status = stage_unlock_status.get(stage.id, {'unlocked': True, 'reason': ''}) %}
-            <div class="card stage-card {% if stage.id in completed_stages %}completed{% elif not stage_status.unlocked %}locked{% endif %}" 
-                 style="margin-bottom: 1rem; {% if not stage_status.unlocked %}opacity: 0.6;{% endif %}">
-                <div class="card-body">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <!-- 状态图标 -->
-                            <div style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-                                        background: {% if stage.id in completed_stages %}#22c55e{% elif not stage_status.unlocked %}#6b7280{% else %}#334155{% endif %}; font-size: 1.25rem;">
-                                {% if stage.id in completed_stages %}✓{% elif not stage_status.unlocked %}🔒{% else %}⚡{{ stage.energy_cost }}{% endif %}
-                            </div>
-                            <div>
-                                <h4 style="font-weight: bold; color: white;">
-                                    {% if not stage_status.unlocked %}🔒 {% endif %}
-                                    {{ stage.name }}
-                                </h4>
-                                <!-- 星级显示 -->
-                                <div style="display: flex; gap: 0.15rem; margin-top: 0.15rem;">
-                                    {% set stars = stage_stars.get(stage.id, 0) %}
-                                    {% for i in range(3) %}
-                                    <span style="font-size: 0.9rem; color: {% if i < stars %}#fbbf24{% else %}#4b5563{% endif %};">★</span>
-                                    {% endfor %}
-                                </div>
-                                <p style="font-size: 0.75rem; color: #94a3b8;">{{ stage.description }}</p>
-                                {% if not stage_status.unlocked %}
-                                <p style="font-size: 0.7rem; color: #ef4444;">{{ stage_status.reason }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div style="text-align: right;">
-                            <span class="badge" style="background: {{ difficulty_colors[stage.difficulty] }};">
-                                {{ difficulty_names[stage.difficulty] }}
-                            </span>
-                            <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">
-                                推荐 Lv.{{ stage.recommended_level }}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- 敌人预览 -->
-                    <div class="stage-enemies">
-                        {% for enemy_id in stage.enemy_ids %}
-                        {% set enemy = get_character_by_id(enemy_id) %}
-                        {% if enemy %}
-                        <img src="{{ enemy.avatar }}" alt="{{ enemy.name }}" class="enemy-avatar"
-                             style="border-color: {{ element_colors[enemy.element] }};">
-                        {% endif %}
-                        {% endfor %}
-                    </div>
-                    
-                    <!-- 奖励 -->
-                    <div style="display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.875rem;">
-                        <span style="color: #fbbf24;">💰 {{ stage.rewards.gold }}</span>
-                        <span style="color: #22c55e;">📖 {{ stage.rewards.exp }} EXP</span>
-                        {% if stage.rewards.gems %}
-                        <span style="color: #06b6d4;">💎 {{ stage.rewards.gems }}</span>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- 操作按钮 -->
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                        {% if stage_status.unlocked %}
-                        <button type="button" class="btn btn-primary" style="flex: 1;" onclick="startBattle('{{ stage.id }}')" 
-                                {% if not team %}disabled title="请先设置队伍"{% endif %}>
-                            {% if stage.id in completed_stages %}再次挑战{% else %}开始挑战{% endif %}
-                        </button>
-                        {% if stage.id in completed_stages %}
-                        {% set _stars = stage_stars.get(stage.id, 0) %}
-                        <button type="button" class="btn btn-secondary"
-                                onclick="sweepStage('{{ stage.id }}', {{ stage.energy_cost }}, {{ _stars }})"
-                                aria-label="扫荡关卡"
-                                {% if _stars < 3 %}disabled title="满星（3★）后解锁扫荡"{% endif %}>
-                            ⚡ 扫荡
-                        </button>
-                        {% endif %}
-                        {% else %}
-                        <button type="button" class="btn btn-secondary" style="flex: 1;" disabled title="{{ stage_status.reason }}">
-                            🔒 需要解锁
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
+/* ===== 战斗模式标签 ===== */
+.mode-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:.7rem;font-weight:700;background:rgba(59,130,246,.25);color:#93c5fd;border:1px solid rgba(59,130,246,.4)}
+.mode-badge.mode-1v1{background:rgba(239,68,68,.2);color:#fca5a5;border-color:rgba(239,68,68,.4)}
+.mode-badge.mode-5v5{background:rgba(147,51,234,.2);color:#c4b5fd;border-color:rgba(147,51,234,.4)}
+
+/* ===== 副本卡片样式 ===== */
+.dungeon-card{background:linear-gradient(135deg,rgba(30,41,59,.9),rgba(15,23,42,.95));border:2px solid #334155;border-radius:12px;margin-bottom:12px;overflow:hidden;transition:all .25s}
+.dungeon-card:hover{border-color:#fbbf24;box-shadow:0 4px 20px rgba(251,191,36,.15)}
+.dungeon-card.completed{border-color:#22c55e50}
+.dungeon-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;cursor:pointer}
+.dungeon-header .dh-left{display:flex;align-items:center;gap:12px}
+.dungeon-icon{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:linear-gradient(135deg,#1e293b,#0f172a);border:2px solid #475569}
+.dungeon-icon.completed{border-color:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.3)}
+.dungeon-title{font-weight:700;color:#f1f5f9;font-size:.95rem}
+.dungeon-desc{font-size:.75rem;color:#94a3b8;margin-top:2px}
+.dh-right{text-align:right}
+.dungeon-body{display:none;padding:0 16px 16px}
+
+/* ===== 关卡条目 ===== */
+.stage-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin:6px 0;border-radius:10px;background:rgba(51,65,85,.4);border:1px solid #47556940;transition:all .2s}
+.stage-row:hover{background:rgba(71,85,105,.5)}
+.stage-row.stage-completed{border-left:3px solid #22c55e}
+.sr-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.sr-status{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.sr-status.done{background:#22c55e30;color:#22c55e}
+.sr-status.todo{background:#33415530;color:#94a3b8}
+.sr-info{min-width:0}
+.sr-name{font-weight:600;color:#e2e8f0;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr-stars{display:flex;gap:2px;margin-top:1px}
+.sr-stars span{font-size:.7rem}
+.sr-reward{font-size:.7rem;color:#94a3b8;margin-top:2px}
+.sr-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.sr-diff{padding:2px 6px;border-radius:6px;font-size:.65rem;font-weight:700}
+.sr-level{font-size:.68rem;color:#94a3b8}
+.sr-enemies{display:flex;gap:-4px}
+.sr-enemies img{width:28px;height:28px;border-radius:50%;border:2px solid #475569;margin-left:-6px;object-fit:cover}
+.sr-enemies img:first-child{margin-left:0}
+.sr-btns{display:flex;gap:4px}
+.sr-btns .btn{padding:4px 12px;font-size:.75rem;border-radius:6px}
+
+/* ===== 日常副本状态 ===== */
+.dungeon-closed{opacity:.5;pointer-events:none}
+.dungeon-closed .dungeon-header{cursor:default}
+.open-tag{padding:1px 6px;border-radius:4px;font-size:.65rem;font-weight:700}
+.open-tag.open{background:#22c55e30;color:#22c55e}
+.open-tag.closed{background:#ef444430;color:#ef4444}
+
+/* ===== 队伍面板 ===== */
+.team-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(135deg,rgba(30,41,59,.9),rgba(15,23,42,.95));border:2px solid #334155;border-radius:10px;margin-bottom:12px;flex-wrap:wrap}
+.team-bar .team-label{font-size:.8rem;color:#94a3b8;font-weight:600;white-space:nowrap}
+.team-member{display:flex;align-items:center;gap:4px}
+.team-member img{width:32px;height:32px;border-radius:50%;border:2px solid #475569;object-fit:cover}
+.team-member .tm-info{font-size:.65rem;color:#cbd5e1}
+.no-team-warn{color:#fbbf24;font-size:.8rem}
+</style>
+
+<div class="space-y-3">
+    <!-- 队伍面板 -->
+    <div class="team-bar">
+        <span class="team-label">⚔️ 当前队伍：</span>
+        {% if team %}
+            {% for char in team %}
+            <div class="team-member">
+                <img src="{{ char.avatar }}" alt="{{ char.name }}" style="border-color:{{ element_colors[char.element] }}">
+                <span class="tm-info">{{ char.name }}<br>Lv.{{ char.level }}</span>
             </div>
             {% endfor %}
-        </div>
+        {% else %}
+            <span class="no-team-warn">⚠️ 未设置队伍 <a href="{{ url_for('characters') }}" style="color:#fbbf24;text-decoration:underline">去设置</a></span>
+        {% endif %}
     </div>
-    {% endfor %}
 
-    <!-- 队伍提示 -->
-    {% if not team %}
-    <div class="card" style="background: linear-gradient(135deg, #7c2d12 0%, #9a3412 100%); border-color: #ef4444;">
-        <div class="card-body" style="text-align: center;">
-            <p style="color: white;">⚠️ 请先设置队伍再挑战副本</p>
-            <a href="{{ url_for('characters') }}" class="btn btn-warning" style="margin-top: 0.5rem;">去设置队伍</a>
-        </div>
+    <!-- 副本类型 Tab 栏 -->
+    <div class="dungeon-tabs">
+        <div class="dtab active" data-panel="panel-main"><span class="tab-icon">📜</span>主线副本</div>
+        <div class="dtab" data-panel="panel-daily"><span class="tab-icon">🔄</span>日常副本</div>
+        <div class="dtab" data-panel="panel-trial"><span class="tab-icon">🏛️</span>英雄试炼</div>
+        <div class="dtab" data-panel="panel-hard"><span class="tab-icon">🌀</span>高难副本</div>
     </div>
-    {% endif %}
 
-    <!-- 当前队伍显示 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">当前队伍</h3>
-        </div>
-        <div class="card-body">
-            {% if team %}
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                {% for char in team %}
-                <div style="text-align: center;">
-                    <div style="width: 60px; height: 60px; border-radius: 50%; overflow: hidden; border: 3px solid {{ element_colors[char.element] }};">
-                        <img src="{{ char.avatar }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+    <!-- ========== 主线副本 ========== -->
+    <div id="panel-main" class="dungeon-panel active">
+        {% for chapter in chapters %}
+        <div class="dungeon-card">
+            <div class="dungeon-header" onclick="toggleDungeon(this)">
+                <div class="dh-left">
+                    <div class="dungeon-icon {% if chapter.stages|selectattr('id','in',completed_stages)|list|length == chapter.stages|length %}completed{% endif %}">📜</div>
+                    <div>
+                        <div class="dungeon-title">{{ chapter.name }} <span class="mode-badge">🗡️ 3v3</span></div>
+                        <div class="dungeon-desc">{{ chapter.description }}</div>
                     </div>
-                    <div style="font-size: 0.75rem; color: white;">{{ char.name }}</div>
-                    <div style="font-size: 0.625rem; color: #94a3b8;">Lv.{{ char.level }}</div>
+                </div>
+                <div class="dh-right">
+                    <div style="font-size:1.1rem;font-weight:700;color:#fbbf24">
+                        {{ chapter.stages|selectattr('id','in',completed_stages)|list|length }}/{{ chapter.stages|length }}
+                    </div>
+                    <div style="font-size:.7rem;color:#94a3b8">▼</div>
+                </div>
+            </div>
+            <div class="dungeon-body">
+                {% for stage in chapter.stages %}
+                {% set is_done = stage.id in completed_stages %}
+                {% set stars = stage_stars.get(stage.id, 0) %}
+                <div class="stage-row {% if is_done %}stage-completed{% endif %}">
+                    <div class="sr-left">
+                        <div class="sr-status {% if is_done %}done{% else %}todo{% endif %}">
+                            {% if is_done %}✓{% else %}⚡{{ stage.energy_cost }}{% endif %}
+                        </div>
+                        <div class="sr-info">
+                            <div class="sr-name">{{ stage.name }}</div>
+                            <div class="sr-stars">
+                                {% for i in range(3) %}
+                                <span style="color:{% if i < stars %}#fbbf24{% else %}#4b5563{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            <div class="sr-reward">
+                                💰{{ stage.rewards.gold }} 📖{{ stage.rewards.exp }}
+                                {% if stage.rewards.gems %}💎{{ stage.rewards.gems }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sr-right">
+                        <div class="sr-enemies">
+                            {% for eid in stage.enemy_ids %}
+                            {% set e = get_character_by_id(eid) %}
+                            {% if e %}<img src="{{ e.avatar }}" alt="{{ e.name }}" style="border-color:{{ element_colors[e.element] }}">{% endif %}
+                            {% endfor %}
+                        </div>
+                        <div>
+                            <span class="sr-diff" style="background:{{ difficulty_colors[stage.difficulty] }}30;color:{{ difficulty_colors[stage.difficulty] }}">{{ difficulty_names[stage.difficulty] }}</span>
+                            <div class="sr-level">Lv.{{ stage.recommended_level }}</div>
+                        </div>
+                        <div class="sr-btns">
+                            <button class="btn btn-primary" onclick="startBattle('{{ stage.id }}')" {% if not team %}disabled{% endif %}>
+                                {% if is_done %}再战{% else %}挑战{% endif %}
+                            </button>
+                            {% if is_done and stars >= 3 %}
+                            <button class="btn btn-secondary" onclick="sweepStage('{{ stage.id }}',{{ stage.energy_cost }},{{ stars }})">扫荡</button>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
-            {% else %}
-            <p style="text-align: center; color: #94a3b8;">还没有设置队伍</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ========== 日常副本 ========== -->
+    <div id="panel-daily" class="dungeon-panel">
+        <div style="font-size:.78rem;color:#94a3b8;margin-bottom:8px;padding:0 4px">
+            🕐 每个副本有固定开放日，周日全部开放
+        </div>
+        {% for dungeon in daily_dungeons %}
+        <div class="dungeon-card {% if not dungeon.is_open %}dungeon-closed{% endif %}">
+            <div class="dungeon-header" onclick="{% if dungeon.is_open %}toggleDungeon(this){% endif %}">
+                <div class="dh-left">
+                    <div class="dungeon-icon">{{ dungeon.icon }}</div>
+                    <div>
+                        <div class="dungeon-title">
+                            {{ dungeon.name }}
+                            <span class="mode-badge">🗡️ {{ battle_modes[dungeon.battle_mode].name }}</span>
+                            {% if dungeon.is_open %}
+                            <span class="open-tag open">开放中</span>
+                            {% else %}
+                            <span class="open-tag closed">未开放</span>
+                            {% endif %}
+                        </div>
+                        <div class="dungeon-desc">{{ dungeon.description }}</div>
+                        <div style="font-size:.65rem;color:#64748b;margin-top:2px">
+                            开放日：{% for d in dungeon.open_days %}{{ ['','周一','周二','周三','周四','周五','周六','周日'][d] }}{% if not loop.last %} {% endif %}{% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div class="dh-right">
+                    {% if dungeon.is_open %}<div style="font-size:.7rem;color:#94a3b8">▼</div>{% endif %}
+                </div>
+            </div>
+            {% if dungeon.is_open %}
+            <div class="dungeon-body">
+                {% for level in dungeon.levels %}
+                {% set is_done = level.id in completed_stages %}
+                {% set stars = stage_stars.get(level.id, 0) %}
+                <div class="stage-row {% if is_done %}stage-completed{% endif %}">
+                    <div class="sr-left">
+                        <div class="sr-status {% if is_done %}done{% else %}todo{% endif %}">
+                            {% if is_done %}✓{% else %}⚡{{ level.energy_cost }}{% endif %}
+                        </div>
+                        <div class="sr-info">
+                            <div class="sr-name">{{ level.name }}</div>
+                            <div class="sr-stars">
+                                {% for i in range(3) %}
+                                <span style="color:{% if i < stars %}#fbbf24{% else %}#4b5563{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            <div class="sr-reward">
+                                {% for k,v in level.rewards.items() %}
+                                {% if k == 'gold' %}💰{% elif k == 'exp_books' %}📖{% elif k == 'star_soul' %}⭐{% elif k == 'breakthrough_stone' %}💎{% endif %}{{ v }} 
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sr-right">
+                        <div>
+                            <span class="sr-diff" style="background:{{ difficulty_colors[level.difficulty] }}30;color:{{ difficulty_colors[level.difficulty] }}">{{ difficulty_names[level.difficulty] }}</span>
+                            <div class="sr-level">Lv.{{ level.recommended_level }}</div>
+                        </div>
+                        <div class="sr-btns">
+                            <button class="btn btn-primary" onclick="startBattle('{{ level.id }}')" {% if not team %}disabled{% endif %}>挑战</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
         </div>
+        {% endfor %}
+    </div>
+
+    <!-- ========== 英雄试炼 ========== -->
+    <div id="panel-trial" class="dungeon-panel">
+        <div class="dungeon-card">
+            <div class="dungeon-header" onclick="toggleDungeon(this)" style="cursor:pointer">
+                <div class="dh-left">
+                    <div class="dungeon-icon">{{ hero_trials.icon }}</div>
+                    <div>
+                        <div class="dungeon-title">{{ hero_trials.name }} <span class="mode-badge mode-1v1">⚔️ 1v1 单挑</span></div>
+                        <div class="dungeon-desc">{{ hero_trials.description }}</div>
+                    </div>
+                </div>
+                <div class="dh-right">
+                    <div style="font-size:1.1rem;font-weight:700;color:#fbbf24">
+                        {{ hero_trials.bosses|selectattr('id','in',completed_stages)|list|length }}/{{ hero_trials.bosses|length }}
+                    </div>
+                    <div style="font-size:.7rem;color:#94a3b8">▼</div>
+                </div>
+            </div>
+            <div class="dungeon-body" style="display:block">
+                {% for boss in hero_trials.bosses %}
+                {% set is_done = boss.id in completed_stages %}
+                {% set boss_char = get_character_by_id(boss.boss_id) %}
+                <div class="stage-row {% if is_done %}stage-completed{% endif %}">
+                    <div class="sr-left">
+                        <div class="sr-status {% if is_done %}done{% else %}todo{% endif %}">
+                            {% if is_done %}✓{% else %}⚡{{ boss.energy_cost }}{% endif %}
+                        </div>
+                        {% if boss_char %}
+                        <img src="{{ boss_char.avatar }}" style="width:40px;height:40px;border-radius:50%;border:3px solid {{ element_colors[boss_char.element] }};object-fit:cover;flex-shrink:0">
+                        {% endif %}
+                        <div class="sr-info">
+                            <div class="sr-name">{{ boss.name }}</div>
+                            <div style="font-size:.7rem;color:#94a3b8">
+                                {% if boss_char %}{{ boss_char.name }} Lv.{{ boss.boss_level }}{% endif %}
+                            </div>
+                            <div class="sr-reward">
+                                {% for k,v in boss.rewards.items() %}
+                                {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'star_soul' %}⭐{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sr-right">
+                        <div>
+                            <span class="sr-diff" style="background:{{ difficulty_colors[boss.difficulty] }}30;color:{{ difficulty_colors[boss.difficulty] }}">{{ difficulty_names[boss.difficulty] }}</span>
+                            <div class="sr-level">推荐 Lv.{{ boss.recommended_level }}</div>
+                        </div>
+                        <div class="sr-btns">
+                            <button class="btn btn-primary" onclick="startBattle('{{ boss.id }}')" {% if not team %}disabled{% endif %}>
+                                {% if is_done %}再战{% else %}挑战{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== 高难度副本 ========== -->
+    <div id="panel-hard" class="dungeon-panel">
+        {% for dungeon in hard_dungeons %}
+        <div class="dungeon-card">
+            <div class="dungeon-header" onclick="toggleDungeon(this)">
+                <div class="dh-left">
+                    <div class="dungeon-icon">{{ dungeon.icon }}</div>
+                    <div>
+                        <div class="dungeon-title">{{ dungeon.name }} <span class="mode-badge mode-5v5">⚔️🛡️ 5v5 大战</span></div>
+                        <div class="dungeon-desc">{{ dungeon.description }}</div>
+                    </div>
+                </div>
+                <div class="dh-right">
+                    <div style="font-size:1.1rem;font-weight:700;color:#fbbf24">
+                        {{ dungeon.levels|selectattr('id','in',completed_stages)|list|length }}/{{ dungeon.levels|length }}
+                    </div>
+                    <div style="font-size:.7rem;color:#94a3b8">▼</div>
+                </div>
+            </div>
+            <div class="dungeon-body">
+                {% for level in dungeon.levels %}
+                {% set is_done = level.id in completed_stages %}
+                {% set stars = stage_stars.get(level.id, 0) %}
+                <div class="stage-row {% if is_done %}stage-completed{% endif %}">
+                    <div class="sr-left">
+                        <div class="sr-status {% if is_done %}done{% else %}todo{% endif %}">
+                            {% if is_done %}✓{% else %}⚡{{ level.energy_cost }}{% endif %}
+                        </div>
+                        <div class="sr-info">
+                            <div class="sr-name">{{ level.name }}</div>
+                            <div class="sr-stars">
+                                {% for i in range(3) %}
+                                <span style="color:{% if i < stars %}#fbbf24{% else %}#4b5563{% endif %}">★</span>
+                                {% endfor %}
+                            </div>
+                            <div class="sr-reward">
+                                {% for k,v in level.rewards.items() %}
+                                {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'star_soul' %}⭐{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sr-right">
+                        <div class="sr-enemies">
+                            {% for eid in level.enemy_ids %}
+                            {% set e = get_character_by_id(eid) %}
+                            {% if e %}<img src="{{ e.avatar }}" alt="{{ e.name }}" style="border-color:{{ element_colors[e.element] }}">{% endif %}
+                            {% endfor %}
+                        </div>
+                        <div>
+                            <span class="sr-diff" style="background:{{ difficulty_colors[level.difficulty] }}30;color:{{ difficulty_colors[level.difficulty] }}">{{ difficulty_names[level.difficulty] }}</span>
+                            <div class="sr-level">Lv.{{ level.recommended_level }}</div>
+                        </div>
+                        <div class="sr-btns">
+                            <button class="btn btn-primary" onclick="startBattle('{{ level.id }}')" {% if not team %}disabled{% endif %}>
+                                {% if is_done %}再战{% else %}挑战{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
     </div>
 </div>
 
 <script>
-function toggleChapter(chapterId) {
-    const content = document.getElementById('chapter-' + chapterId);
-    if (content.style.display === 'none') {
-        content.style.display = 'block';
-    } else {
-        content.style.display = 'none';
-    }
-}
-
-function expandAllChapters() {
-    if (window.AudioManager) window.AudioManager.playSfx('click');
-    const chapters = document.querySelectorAll('[id^="chapter-"]');
-    chapters.forEach(chapter => {
-        chapter.style.display = 'block';
+/* ===== Tab 切换 ===== */
+document.querySelectorAll('.dtab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+        if(window.AudioManager) window.AudioManager.playSfx('click');
+        document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('active')});
+        document.querySelectorAll('.dungeon-panel').forEach(function(p){p.classList.remove('active')});
+        tab.classList.add('active');
+        var panel = document.getElementById(tab.dataset.panel);
+        if(panel) panel.classList.add('active');
     });
-    ToastManager.info('已展开所有章节', 2000);
+});
+
+/* ===== 折叠展开 ===== */
+function toggleDungeon(header){
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+    var body = header.parentElement.querySelector('.dungeon-body');
+    if(!body) return;
+    body.style.display = body.style.display === 'none' ? 'block' : 'none';
 }
 
-function collapseAllChapters() {
-    if (window.AudioManager) window.AudioManager.playSfx('click');
-    const chapters = document.querySelectorAll('[id^="chapter-"]');
-    chapters.forEach(chapter => {
-        chapter.style.display = 'none';
-    });
-    ToastManager.info('已折叠所有章节', 2000);
-}
-
-function startBattle(stageId) {
+/* ===== 开始战斗 ===== */
+function startBattle(stageId){
     {% if not team %}
     ToastManager.warning('请先设置队伍');
     return;
     {% endif %}
-    
     window.location.href = '/battle/' + stageId;
 }
 
-async function sweepStage(stageId, energyCost, stars) {
+/* ===== 扫荡 ===== */
+async function sweepStage(stageId, energyCost, stars){
     {% if not team %}
     ToastManager.warning('请先设置队伍');
     return;
     {% endif %}
-
-    if ((stars || 0) < 3) {
+    if((stars||0) < 3){
         ToastManager.warning('满星（3★）后解锁扫荡');
         return;
     }
-    
-    if (!confirm(`确定要扫荡吗？消耗 ${energyCost} 体力`)) {
-        return;
-    }
-    
-    if (window.AudioManager) window.AudioManager.playSfx('click');
-    
-    const result = await apiCall('/api/sweep', { stage_id: stageId });
-    
-    if (result.success) {
-        ToastManager.success(`扫荡成功！获得 💰${result.rewards.gold} 📖${result.rewards.exp}`);
-        // 刷新页面更新数据
-        setTimeout(() => location.reload(), 1500);
+    if(!confirm('确定要扫荡吗？消耗 '+energyCost+' 体力')) return;
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+    var result = await apiCall('/api/sweep', {stage_id: stageId});
+    if(result.success){
+        ToastManager.success('扫荡成功！获得 💰'+result.rewards.gold+' 📖'+result.rewards.exp);
+        setTimeout(function(){location.reload()}, 1500);
     } else {
         ToastManager.error(result.error || '扫荡失败');
     }
 }
 
-// 默认展开第一章
-document.addEventListener('DOMContentLoaded', function() {
-    const firstChapter = document.querySelector('[id^="chapter-"]');
-    if (firstChapter) {
-        firstChapter.style.display = 'block';
-    }
+/* 默认展开主线第一章 */
+document.addEventListener('DOMContentLoaded', function(){
+    var first = document.querySelector('#panel-main .dungeon-body');
+    if(first) first.style.display = 'block';
 });
 </script>
 {% endblock %}

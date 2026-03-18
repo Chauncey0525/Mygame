@@ -3,1372 +3,994 @@
 {% block title %}战斗 - {{ stage.name }} - 巅峰对决{% endblock %}
 
 {% block back_link %}
-<div class="back-bar"><a href="{{ url_for('stages') }}" class="back-btn">← 返回演武场</a></div>
+<div class="back-bar"><a href="{{ url_for('stages') }}" class="back-btn">← 返回副本</a></div>
 {% endblock %}
 
 {% block content %}
-<div class="space-y-4">
-    <!-- 轻量剧情对话（可跳过） -->
-    <div id="dialogueModal" class="modal" role="dialog" aria-labelledby="dialogue-title" aria-modal="true" aria-hidden="true" style="z-index: 18000;">
-        <div class="modal-content" style="max-width: 720px;">
-            <div class="modal-header">
-                <h3 class="card-title" id="dialogue-title">📖 剧情</h3>
-                <button class="modal-close" type="button" id="dialogue-close-btn" aria-label="关闭对话">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="dialogue-lines" style="display:flex; flex-direction:column; gap:10px;"></div>
-                <div style="margin-top: 1rem; display:flex; justify-content: flex-end; gap: 0.5rem;">
-                    <button type="button" class="btn btn-secondary" id="dialogue-skip-btn2">跳过</button>
-                    <button type="button" class="btn btn-primary" id="dialogue-next-btn">下一句</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- 战斗信息 -->
-    <div class="card">
-        <div class="card-body" style="text-align: center;">
-            <h2 style="font-size: 1.5rem; font-weight: bold; color: white;">⚔️ {{ stage.name }}</h2>
-            <p style="color: #94a3b8;">{{ stage.description }}</p>
-            <div id="turn-counter" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--medieval-gold-light);">
-                回合: 1
-            </div>
-        </div>
-    </div>
+<style>
+/* ===== 战斗界面核心布局 ===== */
+.battle-screen{display:flex;flex-direction:column;min-height:calc(100vh - 120px);position:relative;overflow:hidden}
 
-    <!-- 战斗控制栏 -->
-    <div class="card">
-        <div class="card-body" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-                <!-- 自动战斗开关 -->
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <label for="auto-battle-toggle" style="font-size: 0.9rem; color: var(--medieval-text);">自动战斗</label>
-                    <label class="switch" style="width: 44px; height: 24px;">
-                        <input type="checkbox" id="auto-battle-toggle" aria-label="自动战斗开关">
-                        <span class="slider" style="width: 44px; height: 24px;"></span>
-                        <span class="slider:before" style="height: 18px; width: 18px;"></span>
-                    </label>
-                </div>
+/* --- 顶部信息栏 --- */
+.battle-topbar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(15,23,42,.92);border-bottom:1px solid #334155;z-index:5}
+.bt-left{display:flex;align-items:center;gap:8px}
+.bt-stage{font-weight:700;color:#f1f5f9;font-size:.85rem}
+.bt-mode{padding:2px 8px;border-radius:8px;font-size:.68rem;font-weight:700}
+.bt-mode.m1v1{background:rgba(239,68,68,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.4)}
+.bt-mode.m3v3{background:rgba(59,130,246,.2);color:#93c5fd;border:1px solid rgba(59,130,246,.4)}
+.bt-mode.m5v5{background:rgba(147,51,234,.2);color:#c4b5fd;border:1px solid rgba(147,51,234,.4)}
+.bt-right{display:flex;align-items:center;gap:6px}
+.bt-turn{font-size:.78rem;color:#fbbf24;font-weight:600}
+.bt-speed{display:flex;gap:3px}
+.bt-speed button{padding:2px 6px;border-radius:4px;font-size:.65rem;background:rgba(51,65,85,.6);color:#94a3b8;border:1px solid #475569;cursor:pointer}
+.bt-speed button.active{background:#fbbf2430;color:#fbbf24;border-color:#fbbf24}
 
-                <!-- 自动战斗策略 -->
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-size: 0.9rem; color: var(--medieval-text);">策略</span>
-                    <select id="auto-battle-mode" class="input" aria-label="自动战斗策略"
-                            style="height: 34px; padding: 0 10px; border-radius: 10px; background: rgba(15,23,42,0.45); border: 1px solid rgba(148,163,184,0.35); color: #e2e8f0;"
-                            disabled>
-                        <option value="basic">仅普攻</option>
-                        <option value="smart">智能放技能</option>
-                    </select>
-                </div>
-                
-                <!-- 倍速控制 -->
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <span style="font-size: 0.9rem; color: var(--medieval-text);">速度</span>
-                    <div style="display: flex; gap: 0.25rem;">
-                        <button type="button" class="speed-btn active" data-speed="1" onclick="setBattleSpeed(1)" aria-label="1倍速">1x</button>
-                        <button type="button" class="speed-btn" data-speed="1.5" onclick="setBattleSpeed(1.5)" aria-label="1.5倍速">1.5x</button>
-                        <button type="button" class="speed-btn" data-speed="2" onclick="setBattleSpeed(2)" aria-label="2倍速">2x</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="battle-status" style="font-size: 0.9rem; color: var(--medieval-gold-light);">
-                选择目标与技能
-            </div>
+/* --- 战场区域 --- */
+.battlefield{flex:1;position:relative;background:linear-gradient(180deg,rgba(15,23,42,.95) 0%,rgba(30,41,59,.9) 50%,rgba(15,23,42,.95) 100%);display:flex;flex-direction:column;justify-content:space-between;padding:12px 8px;min-height:300px}
+
+/* 敌方区域 */
+.enemy-zone{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 0}
+.ally-zone{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:8px 0}
+
+/* VS分割线 */
+.vs-divider{text-align:center;padding:4px 0;font-size:1.4rem;font-weight:900;color:#fbbf24;text-shadow:0 0 12px rgba(251,191,36,.5);letter-spacing:4px}
+
+/* 角色卡片 */
+.bchar{display:flex;flex-direction:column;align-items:center;padding:8px;border-radius:10px;background:rgba(51,65,85,.3);border:2px solid transparent;cursor:pointer;transition:all .2s;position:relative;min-width:70px}
+.bchar.enemy{border-color:rgba(239,68,68,.4)}
+.bchar.ally{border-color:rgba(34,197,94,.4)}
+.bchar.active-actor{border-color:#fbbf24!important;box-shadow:0 0 16px rgba(251,191,36,.4);transform:scale(1.05)}
+.bchar.selected{box-shadow:0 0 14px rgba(251,191,36,.7);border-color:#fbbf24!important}
+.bchar.dead{opacity:.35;filter:grayscale(80%);pointer-events:none}
+.bchar:hover:not(.dead){box-shadow:0 0 10px rgba(251,191,36,.3)}
+
+.bchar-avatar{width:56px;height:56px;border-radius:50%;overflow:hidden;border:3px solid #475569;flex-shrink:0}
+.bchar-avatar img{width:100%;height:100%;object-fit:cover}
+.bchar-name{font-size:.72rem;font-weight:700;color:#e2e8f0;margin-top:4px;text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bchar-lv{font-size:.6rem;color:#94a3b8}
+
+/* HP条 */
+.bchar-hp{width:60px;height:6px;background:#1e293b;border-radius:3px;overflow:hidden;margin-top:3px;border:1px solid #334155}
+.bchar-hp-fill{height:100%;transition:width .3s;border-radius:3px}
+.bchar-hp-fill.hp-enemy{background:linear-gradient(90deg,#ef4444,#f87171)}
+.bchar-hp-fill.hp-ally{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.bchar-hp-text{font-size:.55rem;color:#94a3b8;margin-top:1px}
+
+/* Boss标记 */
+.boss-crown{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:.85rem}
+
+/* 伤害飘字 */
+.float-dmg{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:1.1rem;font-weight:900;color:#ef4444;text-shadow:0 0 6px rgba(239,68,68,.6);pointer-events:none;animation:floatUp .8s ease-out forwards;z-index:10}
+.float-dmg.heal{color:#22c55e;text-shadow:0 0 6px rgba(34,197,94,.6)}
+.float-dmg.crit{font-size:1.4rem;color:#fbbf24;text-shadow:0 0 8px rgba(251,191,36,.6)}
+@keyframes floatUp{0%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-40px)}}
+
+/* 受击闪烁 */
+.hit-flash{animation:hitFlash .3s}
+@keyframes hitFlash{0%{filter:brightness(1)}50%{filter:brightness(2.5)}100%{filter:brightness(1)}}
+.shake{animation:shakeAnim .3s}
+@keyframes shakeAnim{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+/* --- 宝可梦风格底部操作面板 --- */
+.action-panel{position:relative;background:linear-gradient(135deg,#1e293b,#0f172a);border-top:2px solid #334155;z-index:6}
+
+/* 当前行动角色信息 */
+.actor-info{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #33415580;background:rgba(251,191,36,.05)}
+.actor-avatar{width:40px;height:40px;border-radius:50%;border:2px solid #fbbf24;overflow:hidden;flex-shrink:0}
+.actor-avatar img{width:100%;height:100%;object-fit:cover}
+.actor-detail{flex:1}
+.actor-name{font-weight:700;color:#fbbf24;font-size:.85rem}
+.actor-hp-bar{width:100%;height:5px;background:#334155;border-radius:3px;margin-top:3px}
+.actor-hp-fill{height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);border-radius:3px;transition:width .3s}
+.actor-hp-text{font-size:.6rem;color:#94a3b8;margin-top:1px}
+.actor-status-text{font-size:.72rem;color:#94a3b8;margin-top:2px}
+
+/* 主菜单四按钮 */
+.action-menu{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px 14px}
+.action-btn{padding:14px 8px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;border:2px solid;transition:all .2s;text-align:center}
+.action-btn:hover{transform:scale(1.03)}
+.action-btn:active{transform:scale(.97)}
+.action-btn.btn-skill{background:linear-gradient(135deg,#dc262620,#dc262610);border-color:#ef4444;color:#fca5a5}
+.action-btn.btn-item{background:linear-gradient(135deg,#16a34a20,#16a34a10);border-color:#22c55e;color:#86efac}
+.action-btn.btn-switch{background:linear-gradient(135deg,#2563eb20,#2563eb10);border-color:#3b82f6;color:#93c5fd}
+.action-btn.btn-flee{background:linear-gradient(135deg,#71717a20,#71717a10);border-color:#71717a;color:#a1a1aa}
+
+/* 子面板 */
+.sub-panel{display:none;padding:10px 14px;max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.sub-panel.active{display:block}
+.sub-panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sub-panel-title{font-size:.82rem;font-weight:700;color:#e2e8f0}
+.sub-panel-back{padding:4px 10px;border-radius:6px;font-size:.72rem;background:#33415580;color:#94a3b8;cursor:pointer;border:1px solid #475569}
+.sub-panel-back:hover{background:#475569;color:#e2e8f0}
+
+/* 技能列表 */
+.skill-list{display:flex;flex-direction:column;gap:6px}
+.skill-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;background:rgba(51,65,85,.4);border:1px solid #47556940;cursor:pointer;transition:all .15s}
+.skill-row:hover:not(.on-cd){background:rgba(71,85,105,.5);border-color:#fbbf2460}
+.skill-row:active:not(.on-cd){transform:scale(.98)}
+.skill-row.on-cd{opacity:.45;cursor:not-allowed}
+.sk-left{display:flex;flex-direction:column;gap:2px}
+.sk-name{font-weight:700;color:#e2e8f0;font-size:.82rem}
+.sk-meta{font-size:.68rem;color:#94a3b8}
+.sk-right{text-align:right}
+.sk-power{font-size:.82rem;font-weight:700;color:#fbbf24}
+.sk-cd-tag{font-size:.62rem;color:#ef4444;margin-top:2px}
+
+/* 道具列表 */
+.item-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:rgba(51,65,85,.4);border:1px solid #47556940;cursor:pointer;transition:all .15s;margin-bottom:6px}
+.item-row:hover:not(.item-empty){background:rgba(71,85,105,.5);border-color:#22c55e60}
+.item-row.item-empty{opacity:.4;cursor:not-allowed}
+.item-icon{font-size:1.4rem}
+.item-info{flex:1}
+.item-name{font-weight:700;color:#e2e8f0;font-size:.82rem}
+.item-desc{font-size:.68rem;color:#94a3b8}
+.item-count{font-size:.75rem;color:#fbbf24;font-weight:600}
+
+/* 切换角色列表 */
+.switch-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:rgba(51,65,85,.4);border:1px solid #47556940;cursor:pointer;transition:all .15s;margin-bottom:6px}
+.switch-row:hover:not(.sw-dead):not(.sw-active){background:rgba(71,85,105,.5);border-color:#3b82f660}
+.switch-row.sw-active{border-color:#fbbf24;background:rgba(251,191,36,.1);cursor:default}
+.switch-row.sw-dead{opacity:.35;cursor:not-allowed}
+.sw-avatar{width:36px;height:36px;border-radius:50%;overflow:hidden;border:2px solid #475569;flex-shrink:0}
+.sw-avatar img{width:100%;height:100%;object-fit:cover}
+.sw-info{flex:1}
+.sw-name{font-weight:700;color:#e2e8f0;font-size:.82rem}
+.sw-hp{font-size:.68rem;color:#94a3b8}
+.sw-tag{font-size:.65rem;padding:2px 6px;border-radius:4px}
+.sw-tag.current{background:#fbbf2430;color:#fbbf24}
+.sw-tag.dead{background:#ef444430;color:#ef4444}
+
+/* 战斗日志 */
+.battle-log-panel{max-height:100px;overflow-y:auto;padding:4px 12px;background:rgba(15,23,42,.7);border-top:1px solid #33415580;font-size:.7rem;color:#94a3b8;scrollbar-width:thin}
+.battle-log-panel .log-entry{padding:2px 0;border-bottom:1px solid #1e293b}
+
+/* 自动战斗悬浮按钮 */
+.auto-battle-fab{position:absolute;top:8px;right:12px;display:flex;align-items:center;gap:6px;z-index:7}
+.auto-btn{padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:600;cursor:pointer;border:1px solid #475569;background:rgba(51,65,85,.7);color:#94a3b8;transition:all .2s}
+.auto-btn.active{background:#fbbf2430;color:#fbbf24;border-color:#fbbf24}
+.auto-select{padding:2px 6px;border-radius:4px;font-size:.65rem;background:rgba(51,65,85,.7);color:#94a3b8;border:1px solid #475569}
+
+/* Boss阶段提示 */
+.boss-phase-alert{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.92);border:3px solid #f59e0b;padding:1.5rem 2.5rem;border-radius:12px;z-index:2000;animation:bossAlertIn .5s ease-out}
+@keyframes bossAlertIn{from{opacity:0;transform:translate(-50%,-50%) scale(.5)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.boss-phase-alert h2{color:#f59e0b;font-size:1.3rem;text-align:center}
+.boss-phase-alert p{color:#fff;text-align:center;margin-top:.4rem;font-size:.9rem}
+
+/* 对话modal */
+#dialogueModal .modal-content{max-width:720px}
+
+/* 结果modal */
+#resultModal .modal-content{text-align:center}
+
+/* 响应式 */
+@media(max-width:480px){
+  .bchar-avatar{width:44px;height:44px}
+  .bchar-hp{width:48px}
+  .bchar{padding:6px;min-width:58px}
+  .bchar-name{font-size:.65rem;max-width:58px}
+  .action-btn{padding:10px 6px;font-size:.82rem}
+}
+</style>
+
+<!-- 轻量剧情对话 -->
+<div id="dialogueModal" class="modal" role="dialog" aria-modal="true" aria-hidden="true" style="z-index:18000">
+    <div class="modal-content" style="max-width:720px">
+        <div class="modal-header">
+            <h3 class="card-title" id="dialogue-title">📖 剧情</h3>
+            <button class="modal-close" type="button" id="dialogue-close-btn">&times;</button>
         </div>
-    </div>
-
-    <!-- 3D/2D战斗区域切换 -->
-    <div class="card" style="padding: 0;">
-        <!-- 切换按钮 -->
-        <div style="display: flex; justify-content: center; gap: 0.5rem; padding: 0.5rem; background: rgba(15,23,42,0.8); border-bottom: 1px solid rgba(148,163,184,0.2);">
-            <button type="button" id="toggle-3d-btn" class="btn btn-primary" style="font-size: 0.85rem; padding: 0.25rem 0.75rem;" onclick="toggleBattleMode()">
-                🎮 切换3D模式
-            </button>
-            <span id="battle-mode-label" style="font-size: 0.8rem; color: #94a3b8; display: flex; align-items: center;">当前: 2D模式</span>
-        </div>
-        
-        <!-- 3D战斗场景容器 -->
-        <div id="battle-3d-container" style="width: 100%; height: 500px; display: none; position: relative;">
-            <!-- Three.js 将在这里渲染 -->
-            <div id="loading-3d" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #1a1a2e;">
-                <div style="text-align: center;">
-                    <div class="spinner" style="width: 40px; height: 40px; border: 3px solid rgba(251,191,36,0.3); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
-                    <div style="color: #94a3b8;">加载3D场景中...</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 2D战斗区域 -->
-        <div id="battle-2d-container" class="battle-area" style="background: url('{{ url_for('static', filename='images/backgrounds/battle.jpg') }}') center/cover; position: relative;">
-        <div style="position: absolute; inset: 0; background: rgba(15, 23, 42, 0.85);"></div>
-        <div class="card-body" style="padding: 2rem; position: relative; z-index: 1;">
-            <!-- 敌方 -->
-            <div style="margin-bottom: 2rem;">
-                <h4 style="color: #ef4444; margin-bottom: 1rem; text-align: center;">敌方</h4>
-                <div id="enemies-container" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-                    {% for enemy in enemies %}
-                    <div class="battle-character enemy-target" id="enemy-{{ loop.index0 }}" 
-                         data-index="{{ loop.index0 }}"
-                         onclick="selectTarget('enemy', {{ loop.index0 }})"
-                         style="flex-direction: column; align-items: center; background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; cursor: pointer; transition: all 0.2s;">
-                        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 3px solid {{ element_colors[enemy.element] }};">
-                            <img src="{{ enemy.avatar }}" alt="{{ enemy.name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-weight: bold; color: white;">{{ enemy.name }}</div>
-                            <div style="font-size: 0.75rem; color: #94a3b8;">Lv.{{ enemy.level }}</div>
-                            <div class="hp-bar" style="margin-top: 0.25rem;">
-                                <div class="hp-fill" id="enemy-hp-{{ loop.index0 }}" style="width: 100%;"></div>
-                            </div>
-                            <div id="enemy-hp-text-{{ loop.index0 }}" style="font-size: 0.75rem; color: #ef4444;">
-                                {{ enemy.current_stats.hp }}/{{ enemy.stats.max_hp }}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <!-- VS -->
-            <div style="text-align: center; font-size: 2rem; font-weight: bold; color: #fbbf24; margin: 1rem 0;">
-                VS
-            </div>
-
-            <!-- 我方 -->
-            <div>
-                <h4 style="color: #22c55e; margin-bottom: 1rem; text-align: center;">我方</h4>
-                <div id="team-container" style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-                    {% for char in team %}
-                    <div class="battle-character ally-unit" id="ally-{{ loop.index0 }}" 
-                         data-index="{{ loop.index0 }}"
-                         onclick="selectAlly({{ loop.index0 }})"
-                         style="flex-direction: column; align-items: center; background: rgba(34, 197, 94, 0.1); border: 2px solid #22c55e; cursor: pointer; transition: all 0.2s;">
-                        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 3px solid {{ element_colors[char.element] }};">
-                            <img src="{{ char.avatar }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-weight: bold; color: white;">{{ char.name }}</div>
-                            <div style="font-size: 0.75rem; color: #94a3b8;">Lv.{{ char.level }}</div>
-                            <div class="hp-bar" style="margin-top: 0.25rem;">
-                                <div class="hp-fill" id="ally-hp-{{ loop.index0 }}" style="width: 100%; background: linear-gradient(90deg, #22c55e, #4ade80);"></div>
-                            </div>
-                            <div id="ally-hp-text-{{ loop.index0 }}" style="font-size: 0.75rem; color: #22c55e;">
-                                {{ char.current_stats.hp }}/{{ char.stats.max_hp }}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 战斗日志 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">📜 战斗日志</h3>
-        </div>
-        <div class="card-body">
-            <div class="battle-log" id="battle-log">
-                <div class="log-entry">战斗开始！</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 当前行动角色提示 -->
-    <div class="card" id="current-actor-panel">
-        <div class="card-body" style="text-align: center;">
-            <div style="font-size: 0.9rem; color: var(--medieval-text-muted);">当前行动</div>
-            <div id="current-actor-name" style="font-size: 1.2rem; font-weight: bold; color: var(--medieval-gold-light);">
-                {{ team[0].name }}
-            </div>
-        </div>
-    </div>
-
-    <!-- 技能按钮 -->
-    <div id="skill-buttons" class="skill-buttons">
-        {% for skill in team[0].skills %}
-        <button class="skill-btn" onclick="useSkill({{ loop.index0 }})" data-skill-index="{{ loop.index0 }}" data-cooldown="{{ skill.cooldown|default(0) }}">
-            <span class="skill-name">{{ skill.name }}</span>
-            {% if skill.power > 0 %}<span class="skill-power">威力: {{ skill.power }}</span>{% endif %}
-            <span class="skill-meta">目标: {% set _t = skill.target|default('single') %}{% if _t == 'all' %}敌方全体{% elif _t == 'allies' %}我方全体{% elif _t == 'self' %}自身{% else %}单体{% endif %}</span>
-            <span class="skill-meta">冷却: {{ skill.cooldown|default(0) }} 回合</span>
-            <span class="skill-cd" style="display: none;"></span>
-        </button>
-        {% endfor %}
-        <button class="skill-btn" style="background: #6b7280;" onclick="useSkill(-1)">
-            <span class="skill-name">普通攻击</span>
-        </button>
-    </div>
-
-    <!-- 战斗结果弹窗 -->
-    <div id="resultModal" class="modal">
-        <div class="modal-content" style="text-align: center;">
-            <div class="modal-header">
-                <h3 class="card-title" id="result-title">战斗结果</h3>
-            </div>
-            <div class="modal-body">
-                <div id="result-content"></div>
-                <div style="margin-top: 1rem;">
-                    <a href="{{ url_for('stages') }}" class="btn btn-primary">返回副本</a>
-                </div>
+        <div class="modal-body">
+            <div id="dialogue-lines" style="display:flex;flex-direction:column;gap:10px"></div>
+            <div style="margin-top:1rem;display:flex;justify-content:flex-end;gap:.5rem">
+                <button type="button" class="btn btn-secondary" id="dialogue-skip-btn2">跳过</button>
+                <button type="button" class="btn btn-primary" id="dialogue-next-btn">下一句</button>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-/* 3D战斗场景样式 */
-#battle-3d-container {
-    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-    border-radius: 0 0 12px 12px;
-}
+<!-- 战斗结果弹窗 -->
+<div id="resultModal" class="modal">
+    <div class="modal-content" style="text-align:center">
+        <div class="modal-header">
+            <h3 class="card-title" id="result-title">战斗结果</h3>
+        </div>
+        <div class="modal-body">
+            <div id="result-content"></div>
+            <div style="margin-top:1rem">
+                <a href="{{ url_for('stages') }}" class="btn btn-primary">返回副本</a>
+            </div>
+        </div>
+    </div>
+</div>
 
-#battle-3d-container canvas {
-    width: 100% !important;
-    height: 100% !important;
-}
+<!-- ========== 战斗主界面 ========== -->
+<div class="battle-screen">
+    <!-- 顶部信息栏 -->
+    <div class="battle-topbar">
+        <div class="bt-left">
+            <span class="bt-stage">{{ stage.name }}</span>
+            <span class="bt-mode m{{ battle_mode|default('3v3') }}">{{ mode_info.icon }} {{ mode_info.name }}</span>
+        </div>
+        <div class="bt-right">
+            <span class="bt-turn" id="turn-counter">回合 1</span>
+            <div class="bt-speed">
+                <button class="active" data-speed="1" onclick="setBattleSpeed(1)">1x</button>
+                <button data-speed="1.5" onclick="setBattleSpeed(1.5)">1.5x</button>
+                <button data-speed="2" onclick="setBattleSpeed(2)">2x</button>
+            </div>
+        </div>
+    </div>
 
-/* 加载动画 */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
+    <!-- 自动战斗悬浮控制 -->
+    <div class="auto-battle-fab">
+        <button class="auto-btn" id="auto-toggle" onclick="toggleAutoBattle()">自动</button>
+        <select class="auto-select" id="auto-mode" onchange="changeAutoMode(this.value)" disabled>
+            <option value="basic">仅普攻</option>
+            <option value="smart">智能</option>
+        </select>
+    </div>
 
-.spinner {
-    animation: spin 1s linear infinite;
-}
+    <!-- 战场 -->
+    <div class="battlefield">
+        <!-- 敌方 -->
+        <div class="enemy-zone" id="enemies-container">
+            {% for enemy in enemies %}
+            <div class="bchar enemy" id="enemy-{{ loop.index0 }}" data-index="{{ loop.index0 }}" onclick="selectTarget('enemy',{{ loop.index0 }})">
+                {% if enemy.is_boss %}<div class="boss-crown">👑</div>{% endif %}
+                <div class="bchar-avatar" style="border-color:{{ element_colors[enemy.element] }}">
+                    <img src="{{ enemy.avatar }}" alt="{{ enemy.name }}">
+                </div>
+                <div class="bchar-name">{{ enemy.name }}</div>
+                <div class="bchar-lv">Lv.{{ enemy.level }}</div>
+                <div class="bchar-hp"><div class="bchar-hp-fill hp-enemy" id="enemy-hp-{{ loop.index0 }}" style="width:100%"></div></div>
+                <div class="bchar-hp-text" id="enemy-hp-text-{{ loop.index0 }}">{{ enemy.current_stats.hp }}/{{ enemy.stats.max_hp }}</div>
+            </div>
+            {% endfor %}
+        </div>
 
-/* 3D/2D切换按钮高亮 */
-#toggle-3d-btn {
-    transition: all 0.3s ease;
-}
+        <!-- VS -->
+        <div class="vs-divider">— VS —</div>
 
-#toggle-3d-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
-}
+        <!-- 我方 -->
+        <div class="ally-zone" id="team-container">
+            {% for char in team %}
+            <div class="bchar ally {% if loop.index0 == 0 %}active-actor{% endif %}" id="ally-{{ loop.index0 }}" data-index="{{ loop.index0 }}" onclick="selectAlly({{ loop.index0 }})">
+                <div class="bchar-avatar" style="border-color:{{ element_colors[char.element] }}">
+                    <img src="{{ char.avatar }}" alt="{{ char.name }}">
+                </div>
+                <div class="bchar-name">{{ char.name }}</div>
+                <div class="bchar-lv">Lv.{{ char.level }}</div>
+                <div class="bchar-hp"><div class="bchar-hp-fill hp-ally" id="ally-hp-{{ loop.index0 }}" style="width:100%"></div></div>
+                <div class="bchar-hp-text" id="ally-hp-text-{{ loop.index0 }}">{{ char.current_stats.hp }}/{{ char.stats.max_hp }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 
-/* 战斗区域过渡效果 */
-#battle-2d-container, #battle-3d-container {
-    transition: opacity 0.3s ease;
-}
+    <!-- 战斗日志（折叠） -->
+    <div class="battle-log-panel" id="battle-log">
+        <div class="log-entry">⚔️ 战斗开始！</div>
+    </div>
 
-/* 技能按钮样式增强 */
-.skill-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
+    <!-- 底部操作面板 (宝可梦风格) -->
+    <div class="action-panel">
+        <!-- 当前行动角色信息 -->
+        <div class="actor-info">
+            <div class="actor-avatar" id="actor-avatar-wrap">
+                {% if team %}
+                <img src="{{ team[0].avatar }}" alt="{{ team[0].name }}" id="actor-avatar-img">
+                {% endif %}
+            </div>
+            <div class="actor-detail">
+                <div class="actor-name" id="actor-name">{% if team %}{{ team[0].name }}{% endif %}</div>
+                <div class="actor-hp-bar"><div class="actor-hp-fill" id="actor-hp-fill" style="width:100%"></div></div>
+                <div class="actor-hp-text" id="actor-hp-text">{% if team %}{{ team[0].current_stats.hp }}/{{ team[0].stats.max_hp }}{% endif %}</div>
+            </div>
+            <div class="actor-status-text" id="actor-status">选择行动</div>
+        </div>
 
-.skill-name {
-    font-weight: bold;
-}
+        <!-- 主菜单 -->
+        <div class="action-menu" id="main-menu">
+            <div class="action-btn btn-skill" onclick="showPanel('skills')">⚔️ 技能</div>
+            <div class="action-btn btn-item" onclick="showPanel('items')">🎒 道具</div>
+            <div class="action-btn btn-switch" onclick="showPanel('switch')">🔄 切换</div>
+            <div class="action-btn btn-flee" onclick="tryFlee()">🏃 逃跑</div>
+        </div>
 
-.skill-power {
-    font-size: 0.75rem;
-    opacity: 0.8;
-}
+        <!-- 技能子面板 -->
+        <div class="sub-panel" id="panel-skills">
+            <div class="sub-panel-header">
+                <span class="sub-panel-title">选择技能</span>
+                <button class="sub-panel-back" onclick="showMenu()">◀ 返回</button>
+            </div>
+            <div class="skill-list" id="skill-list"></div>
+        </div>
 
-.skill-meta {
-    font-size: 0.7rem;
-    opacity: 0.85;
-}
+        <!-- 道具子面板 -->
+        <div class="sub-panel" id="panel-items">
+            <div class="sub-panel-header">
+                <span class="sub-panel-title">使用道具</span>
+                <button class="sub-panel-back" onclick="showMenu()">◀ 返回</button>
+            </div>
+            <div id="item-list"></div>
+        </div>
 
-.skill-cd {
-    font-size: 0.7rem;
-    color: #fbbf24;
-}
-
-.skill-btn.on-cooldown {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: grayscale(50%);
-}
-
-.skill-btn.on-cooldown::after {
-    content: attr(data-cd-remaining);
-    position: absolute;
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #ef4444;
-}
-
-/* 目标选中状态 */
-.enemy-target.selected, .ally-unit.selected {
-    box-shadow: 0 0 15px rgba(251, 191, 36, 0.8);
-    border-color: #fbbf24 !important;
-    transform: scale(1.05);
-}
-
-.enemy-target:hover, .ally-unit:hover {
-    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
-}
-
-/* 阵亡状态 */
-.battle-character.dead {
-    opacity: 0.4;
-    filter: grayscale(80%);
-    pointer-events: none;
-}
-
-/* Boss 阶段提示 */
-.boss-phase-alert {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.9);
-    border: 3px solid #f59e0b;
-    padding: 2rem 3rem;
-    border-radius: 12px;
-    z-index: 1000;
-    animation: bossAlertIn 0.5s ease-out;
-}
-
-@keyframes bossAlertIn {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.5);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-    }
-}
-
-.boss-phase-alert h2 {
-    color: #f59e0b;
-    font-size: 1.5rem;
-    text-align: center;
-}
-
-.boss-phase-alert p {
-    color: #fff;
-    text-align: center;
-    margin-top: 0.5rem;
-}
-</style>
+        <!-- 切换角色子面板 -->
+        <div class="sub-panel" id="panel-switch">
+            <div class="sub-panel-header">
+                <span class="sub-panel-title">切换角色</span>
+                <button class="sub-panel-back" onclick="showMenu()">◀ 返回</button>
+            </div>
+            <div id="switch-list"></div>
+        </div>
+    </div>
+</div>
 
 <script>
-// 游戏状态
-let gameState = {
+/* ========== 数据初始化 ========== */
+var battleMode = '{{ battle_mode|default("3v3") }}';
+var dungeonType = '{{ dungeon_type|default("main") }}';
+var stageId = '{{ stage.id }}';
+
+var gameState = {
     allies: {{ team | tojson }},
     enemies: {{ enemies | tojson }},
-    currentTurn: 0,  // 0 = ally, 1 = enemy
-    phase: 'ally',   // 'ally' | 'enemy'
+    phase: 'ally',
     currentAllyIndex: 0,
-    currentEnemyIndex: 0,
     selectedTargetIndex: null,
-    selectedAllyIndex: null,
     battleEnded: false,
     autoBattle: false,
-    autoBattleMode: 'basic', // basic=仅普攻, smart=智能放技能
+    autoBattleMode: 'basic',
     autoBattleTimer: null,
     battleSpeed: 1,
     turnCount: 1,
-    // 技能冷却追踪
-    skillCooldowns: {},  // { allyIndex: { skillIndex: remainingCooldown } }
-    // Boss阶段追踪
-    bossPhases: {}  // { enemyIndex: currentPhase }
+    skillCooldowns: {},
+    bossPhases: {},
+    itemUsage: {},
+    buffs: {}
 };
 
-// 章节轻量剧情（来自静态配置，可跳过）
-const chapterDialogue = {{ (chapter_dialogue or {'pre': [], 'post': []}) | tojson }};
+var battleItems = {{ battle_items | tojson }};
+var chapterDialogue = {{ (chapter_dialogue or {'pre':[],'post':[]}) | tojson }};
 
-// 初始化技能冷却
-gameState.allies.forEach((ally, allyIndex) => {
-    gameState.skillCooldowns[allyIndex] = {};
-    if (ally.skills) {
-        ally.skills.forEach((skill, skillIndex) => {
-            gameState.skillCooldowns[allyIndex][skillIndex] = 0;
-        });
-    }
-});
-
-// 初始化Boss阶段
-gameState.enemies.forEach((enemy, index) => {
-    if (enemy.is_boss) {
-        gameState.bossPhases[index] = 1;
-    }
-});
-
-// 自动战斗控制
-const autoBattleToggle = document.getElementById('auto-battle-toggle');
-const autoBattleModeSelect = document.getElementById('auto-battle-mode');
-const battleStatus = document.getElementById('battle-status');
-
-function clearAutoBattleTimer() {
-    if (gameState.autoBattleTimer) {
-        clearTimeout(gameState.autoBattleTimer);
-        gameState.autoBattleTimer = null;
-    }
-}
-
-function setAutoBattleEnabled(enabled) {
-    gameState.autoBattle = !!enabled;
-    if (autoBattleModeSelect) autoBattleModeSelect.disabled = !gameState.autoBattle;
-    clearAutoBattleTimer();
-    if (gameState.autoBattle && !gameState.battleEnded) {
-        battleStatus.textContent = `自动战斗中（${gameState.autoBattleMode === 'smart' ? '智能放技能' : '仅普攻'}）...`;
-        autoAttack();
-    } else {
-        battleStatus.textContent = '选择目标与技能';
-    }
-}
-
-autoBattleToggle.addEventListener('change', function() {
-    setAutoBattleEnabled(this.checked);
-    if (window.AudioManager) window.AudioManager.playSfx('click');
-});
-
-if (autoBattleModeSelect) {
-    autoBattleModeSelect.addEventListener('change', function() {
-        gameState.autoBattleMode = this.value === 'smart' ? 'smart' : 'basic';
-        if (gameState.autoBattle && !gameState.battleEnded) {
-            battleStatus.textContent = `自动战斗中（${gameState.autoBattleMode === 'smart' ? '智能放技能' : '仅普攻'}）...`;
-            ToastManager.info(`自动战斗策略：${gameState.autoBattleMode === 'smart' ? '智能放技能' : '仅普攻'}`, 1500);
-            clearAutoBattleTimer();
-            autoAttack();
-        }
-        if (window.AudioManager) window.AudioManager.playSfx('click');
-    });
-}
-
-// 设置战斗倍速
-function setBattleSpeed(speed) {
-    gameState.battleSpeed = speed;
-    
-    document.querySelectorAll('.speed-btn').forEach(btn => {
-        btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
-    });
-    
-    if (window.AudioManager) window.AudioManager.playSfx('click');
-    ToastManager.info(`战斗速度: ${speed}x`, 1500);
-}
-
-// 获取基础延迟（根据倍速调整）
-function getDelay(baseDelay) {
-    return baseDelay / gameState.battleSpeed;
-}
-
-// 目标选择
-function selectTarget(type, index) {
-    if (gameState.battleEnded) return;
-    
-    // 移除之前的选中状态
-    document.querySelectorAll('.enemy-target.selected').forEach(el => el.classList.remove('selected'));
-    document.querySelectorAll('.ally-unit.selected').forEach(el => el.classList.remove('selected'));
-    
-    if (type === 'enemy') {
-        const enemy = gameState.enemies[index];
-        if (enemy.currentHp <= 0) return; // 不能选择已死亡目标
-        
-        gameState.selectedTargetIndex = index;
-        document.getElementById('enemy-' + index).classList.add('selected');
-        battleStatus.textContent = `目标: ${enemy.name}`;
-    } else if (type === 'ally') {
-        const ally = gameState.allies[index];
-        if (ally.currentHp <= 0) return;
-        
-        gameState.selectedAllyIndex = index;
-        document.getElementById('ally-' + index).classList.add('selected');
-        battleStatus.textContent = `选择: ${ally.name}`;
-    }
-    
-    if (window.AudioManager) window.AudioManager.playSfx('click');
-}
-
-function selectAlly(index) {
-    selectTarget('ally', index);
-}
-
-// 自动选择目标
-function autoSelectTarget() {
-    // 找到存活的敌人
-    const aliveEnemies = gameState.enemies.map((e, i) => ({ enemy: e, index: i }))
-        .filter(item => item.enemy.currentHp > 0);
-    
-    if (aliveEnemies.length > 0) {
-        // 优先选择血量最低的
-        aliveEnemies.sort((a, b) => a.enemy.currentHp - b.enemy.currentHp);
-        gameState.selectedTargetIndex = aliveEnemies[0].index;
-    }
-}
-
-// 自动攻击
-async function autoAttack() {
-    if (!gameState.autoBattle || gameState.battleEnded) return;
-    if (gameState.phase !== 'ally') {
-        // 敌方行动中不插队；稍后再试
-        clearAutoBattleTimer();
-        gameState.autoBattleTimer = setTimeout(autoAttack, getDelay(600));
-        return;
-    }
-    
-    // 自动选择目标
-    autoSelectTarget();
-    
-    // 选择技能（仅普攻 / 智能放技能）
-    const attacker = gameState.allies[gameState.currentAllyIndex];
-    let skillIndex = -1;
-    
-    if (gameState.autoBattleMode === 'smart' && attacker.skills && attacker.skills.length > 0) {
-        // 智能：优先用“威力最高且不在冷却”的技能，否则普攻
-        const available = attacker.skills
-            .map((skill, index) => ({ skill, index, power: Number(skill.power || 0) }))
-            .filter(item => (gameState.skillCooldowns[gameState.currentAllyIndex]?.[item.index] || 0) <= 0);
-        if (available.length > 0) {
-            available.sort((a, b) => (b.power - a.power));
-            skillIndex = available[0].index;
-        }
-    } else {
-        // 仅普攻：保持 -1
-        skillIndex = -1;
-    }
-    
-    await useSkill(skillIndex);
-    
-    if (gameState.autoBattle && !gameState.battleEnded) {
-        clearAutoBattleTimer();
-        gameState.autoBattleTimer = setTimeout(autoAttack, getDelay(900));
-    }
-}
-
-// 初始化血量
-gameState.allies.forEach((ally, i) => {
+// 初始化
+gameState.allies.forEach(function(ally, i){
     ally.currentHp = ally.stats.max_hp;
     ally.maxHp = ally.stats.max_hp;
+    gameState.skillCooldowns[i] = {};
+    if(ally.skills){
+        ally.skills.forEach(function(_,si){ gameState.skillCooldowns[i][si] = 0; });
+    }
+    gameState.buffs[i] = [];
 });
-
-gameState.enemies.forEach((enemy, i) => {
+gameState.enemies.forEach(function(enemy, i){
     enemy.currentHp = enemy.stats.max_hp;
     enemy.maxHp = enemy.stats.max_hp;
+    if(enemy.is_boss) gameState.bossPhases[i] = 1;
+});
+battleItems.forEach(function(item){
+    gameState.itemUsage[item.id] = 0;
 });
 
-// 默认选择第一个敌人
-if (gameState.enemies.length > 0) {
+if(gameState.enemies.length > 0){
     gameState.selectedTargetIndex = 0;
     document.getElementById('enemy-0').classList.add('selected');
 }
 
-function openDialogue(lines, onDone) {
-    const modal = document.getElementById('dialogueModal');
-    const wrap = document.getElementById('dialogue-lines');
-    const nextBtn = document.getElementById('dialogue-next-btn');
-    const closeBtn = document.getElementById('dialogue-close-btn');
-    const skipBtn2 = document.getElementById('dialogue-skip-btn2');
-    if (!modal || !wrap || !nextBtn) return onDone && onDone();
-
-    let idx = 0;
-    function renderLine(i) {
-        const item = lines[i];
-        if (!item) return;
-        wrap.innerHTML = `
-            <div style="font-weight:900; color:#e2e8f0;">${item.speaker || '旁白'}</div>
-            <div style="color:#cbd5e1; line-height:1.6;">${item.text || ''}</div>
-        `;
-        nextBtn.textContent = (i >= lines.length - 1) ? '开始战斗' : '下一句';
-    }
-    function close() {
-        modal.classList.remove('active');
-        modal.setAttribute('aria-hidden', 'true');
-    }
-    function done() {
-        close();
-        if (onDone) onDone();
-    }
-    function next() {
-        idx++;
-        if (idx >= lines.length) return done();
-        renderLine(idx);
-    }
-
-    renderLine(idx);
-    modal.classList.add('active');
-    modal.setAttribute('aria-hidden', 'false');
-    if (window.AudioManager) window.AudioManager.playSfx('click');
-
-    nextBtn.onclick = next;
-    const doSkip = () => done();
-    if (closeBtn) closeBtn.onclick = doSkip;
-    if (skipBtn2) skipBtn2.onclick = doSkip;
-    modal.onclick = (e) => { if (e.target === modal) doSkip(); };
+/* ========== UI面板切换 ========== */
+function showMenu(){
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+    document.getElementById('main-menu').style.display = 'grid';
+    document.querySelectorAll('.sub-panel').forEach(function(p){ p.classList.remove('active'); });
 }
 
-// 开场对话：进入战斗页后展示（不影响数值与进入）
-document.addEventListener('DOMContentLoaded', function() {
-    try {
-        const pre = (chapterDialogue && chapterDialogue.pre) ? chapterDialogue.pre : [];
-        if (pre && pre.length) {
-            openDialogue(pre, function() {});
-        }
-    } catch (e) {}
-});
+function showPanel(panel){
+    if(gameState.battleEnded) return;
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+    document.getElementById('main-menu').style.display = 'none';
+    document.querySelectorAll('.sub-panel').forEach(function(p){ p.classList.remove('active'); });
 
-function addLog(message) {
-    const log = document.getElementById('battle-log');
-    const entry = document.createElement('div');
+    if(panel === 'skills') renderSkills();
+    else if(panel === 'items') renderItems();
+    else if(panel === 'switch') renderSwitch();
+
+    var el = document.getElementById('panel-' + panel);
+    if(el) el.classList.add('active');
+}
+
+/* ========== 渲染技能面板 ========== */
+function renderSkills(){
+    var actor = gameState.allies[gameState.currentAllyIndex];
+    var html = '';
+    if(actor.skills){
+        actor.skills.forEach(function(skill, si){
+            var cd = gameState.skillCooldowns[gameState.currentAllyIndex][si] || 0;
+            var onCd = cd > 0;
+            var tgtLabel = {'all':'全体','allies':'友方','self':'自身'}[skill.target||'single'] || '单体';
+            html += '<div class="skill-row '+(onCd?'on-cd':'')+'" onclick="'+(onCd?'':'useSkill('+si+')')+'">';
+            html += '<div class="sk-left"><div class="sk-name">'+skill.name+'</div>';
+            html += '<div class="sk-meta">'+tgtLabel+' | 冷却 '+(skill.cooldown||0)+'回合'+(skill.element?' | '+skill.element:'')+'</div></div>';
+            html += '<div class="sk-right">';
+            if(skill.power > 0) html += '<div class="sk-power">'+skill.power+'</div>';
+            if(onCd) html += '<div class="sk-cd-tag">冷却 '+cd+' 回合</div>';
+            html += '</div></div>';
+        });
+    }
+    html += '<div class="skill-row" onclick="useSkill(-1)"><div class="sk-left"><div class="sk-name">普通攻击</div><div class="sk-meta">单体 | 无冷却</div></div><div class="sk-right"><div class="sk-power" style="color:#94a3b8">基础</div></div></div>';
+    document.getElementById('skill-list').innerHTML = html;
+}
+
+/* ========== 渲染道具面板 ========== */
+function renderItems(){
+    var html = '';
+    battleItems.forEach(function(item){
+        var used = gameState.itemUsage[item.id] || 0;
+        var remaining = item.max_per_battle - used;
+        var empty = remaining <= 0;
+        html += '<div class="item-row '+(empty?'item-empty':'')+'" onclick="'+(empty?'':'useItem(\''+item.id+'\')')+'">';
+        html += '<div class="item-icon">'+item.icon+'</div>';
+        html += '<div class="item-info"><div class="item-name">'+item.name+'</div><div class="item-desc">'+item.description+'</div></div>';
+        html += '<div class="item-count">'+remaining+'/'+item.max_per_battle+'</div>';
+        html += '</div>';
+    });
+    document.getElementById('item-list').innerHTML = html;
+}
+
+/* ========== 渲染切换角色面板 ========== */
+function renderSwitch(){
+    var html = '';
+    gameState.allies.forEach(function(ally, i){
+        var isCurrent = i === gameState.currentAllyIndex;
+        var isDead = ally.currentHp <= 0;
+        var cls = isCurrent ? 'sw-active' : (isDead ? 'sw-dead' : '');
+        html += '<div class="switch-row '+cls+'" onclick="'+(isCurrent||isDead?'':'switchCharacter('+i+')')+'">';
+        html += '<div class="sw-avatar" style="border-color:'+(isCurrent?'#fbbf24':'#475569')+'"><img src="'+ally.avatar+'" alt="'+ally.name+'"></div>';
+        html += '<div class="sw-info"><div class="sw-name">'+ally.name+' Lv.'+ally.level+'</div>';
+        html += '<div class="sw-hp">HP: '+Math.max(0,Math.floor(ally.currentHp))+'/'+ally.maxHp+'</div></div>';
+        if(isCurrent) html += '<span class="sw-tag current">当前</span>';
+        else if(isDead) html += '<span class="sw-tag dead">阵亡</span>';
+        html += '</div>';
+    });
+    document.getElementById('switch-list').innerHTML = html;
+}
+
+/* ========== 目标选择 ========== */
+function selectTarget(type, index){
+    if(gameState.battleEnded) return;
+    document.querySelectorAll('.bchar.selected').forEach(function(el){ el.classList.remove('selected'); });
+
+    if(type === 'enemy'){
+        var enemy = gameState.enemies[index];
+        if(!enemy || enemy.currentHp <= 0) return;
+        gameState.selectedTargetIndex = index;
+        document.getElementById('enemy-'+index).classList.add('selected');
+        updateStatus('目标: '+enemy.name);
+    }
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+}
+
+function selectAlly(index){
+    selectTarget('ally', index);
+}
+
+function autoSelectTarget(){
+    var alive = gameState.enemies.map(function(e,i){return {e:e,i:i}}).filter(function(x){return x.e.currentHp > 0});
+    if(alive.length > 0){
+        alive.sort(function(a,b){return a.e.currentHp - b.e.currentHp});
+        gameState.selectedTargetIndex = alive[0].i;
+        document.querySelectorAll('.bchar.enemy.selected').forEach(function(el){el.classList.remove('selected')});
+        var el = document.getElementById('enemy-'+alive[0].i);
+        if(el) el.classList.add('selected');
+    }
+}
+
+/* ========== 更新显示 ========== */
+function updateStatus(text){
+    document.getElementById('actor-status').textContent = text;
+}
+
+function updateHpDisplay(type, index){
+    var entity = type === 'ally' ? gameState.allies[index] : gameState.enemies[index];
+    var pct = Math.max(0, (entity.currentHp / entity.maxHp) * 100);
+    var hpEl = document.getElementById(type+'-hp-'+index);
+    var txtEl = document.getElementById(type+'-hp-text-'+index);
+    if(hpEl) hpEl.style.width = pct+'%';
+    if(txtEl) txtEl.textContent = Math.max(0,Math.floor(entity.currentHp))+'/'+entity.maxHp;
+}
+
+function updateActorInfo(){
+    var actor = gameState.allies[gameState.currentAllyIndex];
+    if(!actor) return;
+    document.getElementById('actor-name').textContent = actor.name;
+    var pct = Math.max(0, (actor.currentHp / actor.maxHp) * 100);
+    document.getElementById('actor-hp-fill').style.width = pct+'%';
+    document.getElementById('actor-hp-text').textContent = Math.max(0,Math.floor(actor.currentHp))+'/'+actor.maxHp;
+    var img = document.getElementById('actor-avatar-img');
+    if(img) img.src = actor.avatar;
+
+    document.querySelectorAll('.bchar.ally.active-actor').forEach(function(el){el.classList.remove('active-actor')});
+    var actorEl = document.getElementById('ally-'+gameState.currentAllyIndex);
+    if(actorEl) actorEl.classList.add('active-actor');
+}
+
+function addLog(message){
+    var log = document.getElementById('battle-log');
+    var entry = document.createElement('div');
     entry.className = 'log-entry';
     entry.textContent = message;
     log.appendChild(entry);
     log.scrollTop = log.scrollHeight;
 }
 
-function updateHpDisplay(type, index) {
-    const entity = type === 'ally' ? gameState.allies[index] : gameState.enemies[index];
-    const hpPercent = (entity.currentHp / entity.maxHp) * 100;
-    
-    document.getElementById(type + '-hp-' + index).style.width = Math.max(0, hpPercent) + '%';
-    document.getElementById(type + '-hp-text-' + index).textContent = 
-        Math.max(0, Math.floor(entity.currentHp)) + '/' + entity.maxHp;
+function showFloatDmg(el, text, cls){
+    if(!el) return;
+    var span = document.createElement('span');
+    span.className = 'float-dmg '+(cls||'');
+    span.textContent = text;
+    el.appendChild(span);
+    el.classList.add('hit-flash','shake');
+    setTimeout(function(){ el.classList.remove('hit-flash','shake'); span.remove(); }, 900);
 }
 
-// 更新技能冷却显示
-function updateSkillButtons() {
-    const buttons = document.querySelectorAll('.skill-btn[data-skill-index]');
-    const currentAlly = gameState.currentAllyIndex;
-    
-    buttons.forEach(btn => {
-        const skillIndex = parseInt(btn.dataset.skillIndex);
-        const cooldown = gameState.skillCooldowns[currentAlly]?.[skillIndex] || 0;
-        const cdSpan = btn.querySelector('.skill-cd');
-        
-        if (cooldown > 0) {
-            btn.classList.add('on-cooldown');
-            btn.disabled = true;
-            if (cdSpan) {
-                cdSpan.style.display = 'inline';
-                cdSpan.textContent = `冷却剩余: ${cooldown} 回合`;
-            }
-            btn.setAttribute('data-cd-remaining', cooldown);
-        } else {
-            btn.classList.remove('on-cooldown');
-            btn.disabled = false;
-            if (cdSpan) {
-                cdSpan.style.display = 'none';
-            }
-            btn.removeAttribute('data-cd-remaining');
+/* ========== 倍速 ========== */
+function setBattleSpeed(speed){
+    gameState.battleSpeed = speed;
+    document.querySelectorAll('.bt-speed button').forEach(function(btn){
+        btn.classList.toggle('active', parseFloat(btn.dataset.speed) === speed);
+    });
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+}
+
+function getDelay(base){ return base / gameState.battleSpeed; }
+
+/* ========== 自动战斗 ========== */
+function toggleAutoBattle(){
+    gameState.autoBattle = !gameState.autoBattle;
+    var btn = document.getElementById('auto-toggle');
+    var sel = document.getElementById('auto-mode');
+    btn.classList.toggle('active', gameState.autoBattle);
+    sel.disabled = !gameState.autoBattle;
+    if(gameState.autoBattle && !gameState.battleEnded){
+        updateStatus('自动战斗中...');
+        autoAttack();
+    } else {
+        updateStatus('选择行动');
+        clearAutoTimer();
+    }
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+}
+
+function changeAutoMode(val){
+    gameState.autoBattleMode = val;
+    if(gameState.autoBattle && !gameState.battleEnded){
+        clearAutoTimer();
+        autoAttack();
+    }
+}
+
+function clearAutoTimer(){
+    if(gameState.autoBattleTimer){clearTimeout(gameState.autoBattleTimer);gameState.autoBattleTimer=null;}
+}
+
+async function autoAttack(){
+    if(!gameState.autoBattle || gameState.battleEnded) return;
+    if(gameState.phase !== 'ally'){
+        clearAutoTimer();
+        gameState.autoBattleTimer = setTimeout(autoAttack, getDelay(600));
+        return;
+    }
+    autoSelectTarget();
+    var attacker = gameState.allies[gameState.currentAllyIndex];
+    var skillIndex = -1;
+    if(gameState.autoBattleMode === 'smart' && attacker.skills && attacker.skills.length > 0){
+        var available = attacker.skills.map(function(s,i){return {s:s,i:i,p:Number(s.power||0)}})
+            .filter(function(x){return (gameState.skillCooldowns[gameState.currentAllyIndex][x.i]||0) <= 0});
+        if(available.length > 0){
+            available.sort(function(a,b){return b.p-a.p});
+            skillIndex = available[0].i;
         }
-    });
+    }
+    await useSkill(skillIndex);
+    if(gameState.autoBattle && !gameState.battleEnded){
+        clearAutoTimer();
+        gameState.autoBattleTimer = setTimeout(autoAttack, getDelay(900));
+    }
 }
 
-// 减少所有技能冷却
-function reduceCooldowns() {
-    gameState.allies.forEach((ally, allyIndex) => {
-        if (!gameState.skillCooldowns[allyIndex]) return;
-        
-        Object.keys(gameState.skillCooldowns[allyIndex]).forEach(skillIndex => {
-            if (gameState.skillCooldowns[allyIndex][skillIndex] > 0) {
-                gameState.skillCooldowns[allyIndex][skillIndex]--;
-            }
-        });
-    });
+/* ========== 伤害计算 ========== */
+function calculateDamage(attacker, defender, skill){
+    var atkStat, defStat;
+    if(skill && skill.type === 'magic'){
+        atkStat = attacker.stats.magic_attack || attacker.stats.attack;
+        defStat = defender.stats.magic_defense || defender.stats.defense;
+    } else {
+        atkStat = attacker.stats.attack;
+        defStat = defender.stats.defense;
+    }
+    var baseDmg = atkStat;
+    if(skill && skill.power > 0) baseDmg = baseDmg * (skill.power / 100);
+    var damage = Math.max(1, Math.floor(baseDmg - defStat * 0.5));
+
+    var atkEl = (skill && skill.element) ? skill.element : attacker.element;
+    var defEl = defender.element;
+    var elBonus = 0, elText = '';
+    var adv = {fire:'wind',water:'fire',wind:'earth',earth:'water',light:'dark',dark:'light'};
+    if(adv[atkEl] === defEl){ elBonus = 0.3; elText = '【克制】'; }
+    else if(adv[defEl] === atkEl){ elBonus = -0.2; elText = '【被克】'; }
+    if(elBonus !== 0) damage = Math.floor(damage * (1 + elBonus));
+
+    var v = damage * 0.1;
+    damage = Math.max(1, Math.floor(damage + Math.random()*v*2 - v));
+    return {damage:damage, elementText:elText};
 }
 
-// 检查并触发Boss阶段变化
-function checkBossPhase(enemy, enemyIndex) {
-    if (!enemy.is_boss) return;
-    
-    const currentPhase = gameState.bossPhases[enemyIndex] || 1;
-    const hpPercent = (enemy.currentHp / enemy.maxHp) * 100;
-    
-    // 阶段2: 血量低于50%
-    if (currentPhase === 1 && hpPercent < 50) {
-        gameState.bossPhases[enemyIndex] = 2;
+/* ========== Boss阶段 ========== */
+function checkBossPhase(enemy, idx){
+    if(!enemy.is_boss) return;
+    var phase = gameState.bossPhases[idx] || 1;
+    var pct = (enemy.currentHp / enemy.maxHp) * 100;
+    if(phase===1 && pct<50){
+        gameState.bossPhases[idx]=2;
         showBossPhaseAlert(enemy.name, 2, 'Boss进入狂暴状态，攻击力提升！');
         enemy.stats.attack = Math.floor(enemy.stats.attack * 1.3);
         enemy.stats.magic_attack = Math.floor(enemy.stats.magic_attack * 1.3);
-    }
-    // 阶段3: 血量低于25%
-    else if (currentPhase === 2 && hpPercent < 25) {
-        gameState.bossPhases[enemyIndex] = 3;
+    } else if(phase===2 && pct<25){
+        gameState.bossPhases[idx]=3;
         showBossPhaseAlert(enemy.name, 3, 'Boss进入绝境，速度大幅提升！');
         enemy.stats.speed = Math.floor(enemy.stats.speed * 1.5);
     }
 }
 
-// 显示Boss阶段提示
-function showBossPhaseAlert(bossName, phase, message) {
-    const alert = document.createElement('div');
+function showBossPhaseAlert(name, phase, msg){
+    var alert = document.createElement('div');
     alert.className = 'boss-phase-alert';
-    alert.innerHTML = `
-        <h2>⚠️ ${bossName} 阶段 ${phase}</h2>
-        <p>${message}</p>
-    `;
+    alert.innerHTML = '<h2>⚠️ '+name+' 阶段 '+phase+'</h2><p>'+msg+'</p>';
     document.body.appendChild(alert);
-    
-    setTimeout(() => {
-        alert.remove();
-    }, getDelay(2000));
-    
-    addLog(`⚠️ ${bossName} 进入阶段 ${phase}！`);
+    setTimeout(function(){alert.remove()}, getDelay(2000));
+    addLog('⚠️ '+name+' 进入阶段 '+phase+'！');
 }
 
-function calculateDamage(attacker, defender, skill) {
-    // 根据技能类型选择攻击属性
-    let attackStat, defenseStat;
-    
-    if (skill && skill.type === 'magic') {
-        attackStat = attacker.stats.magic_attack || attacker.stats.attack;
-        defenseStat = defender.stats.magic_defense || defender.stats.defense;
-    } else {
-        attackStat = attacker.stats.attack;
-        defenseStat = defender.stats.defense;
+/* ========== 使用技能 ========== */
+async function useSkill(skillIndex){
+    if(gameState.battleEnded) return;
+    if(skillIndex >= 0){
+        var cd = gameState.skillCooldowns[gameState.currentAllyIndex][skillIndex] || 0;
+        if(cd > 0){ ToastManager.warning('技能冷却中：还需 '+cd+' 回合'); return; }
     }
-    
-    let baseDamage = attackStat;
-    if (skill && skill.power > 0) {
-        baseDamage = baseDamage * (skill.power / 100);
-    }
-    
-    // 计算伤害
-    let damage = Math.max(1, Math.floor(baseDamage - defenseStat * 0.5));
-    
-    // 元素克制计算
-    const attackerElement = skill && skill.element ? skill.element : attacker.element;
-    const defenderElement = defender.element;
-    let elementBonus = 0;
-    let elementText = '';
-    
-    const elementAdvantage = {
-        'fire': 'wind', 'water': 'fire', 'wind': 'earth',
-        'earth': 'water', 'light': 'dark', 'dark': 'light'
-    };
-    
-    if (elementAdvantage[attackerElement] === defenderElement) {
-        elementBonus = 0.3;
-        elementText = '【克制】';
-    } else if (elementAdvantage[defenderElement] === attackerElement) {
-        elementBonus = -0.2;
-        elementText = '【被克】';
-    }
-    
-    if (elementBonus !== 0) {
-        damage = Math.floor(damage * (1 + elementBonus));
-    }
-    
-    // 添加随机波动
-    const variance = damage * 0.1;
-    damage = Math.floor(damage + (Math.random() * variance * 2 - variance));
-    damage = Math.max(1, damage);
-    
-    return { damage, elementText, elementBonus };
-}
+    if(gameState.selectedTargetIndex === null) autoSelectTarget();
 
-async function useSkill(skillIndex) {
-    if (gameState.battleEnded) return;
-    
-    // 检查技能冷却
-    if (skillIndex >= 0) {
-        const cooldown = gameState.skillCooldowns[gameState.currentAllyIndex]?.[skillIndex] || 0;
-        if (cooldown > 0) {
-            ToastManager.warning(`技能冷却中：还需 ${cooldown} 回合`, 1800);
-            return;
-        }
-    }
-    
-    // 确保选择了目标
-    if (gameState.selectedTargetIndex === null) {
-        autoSelectTarget();
-    }
-    
-    const attacker = gameState.allies[gameState.currentAllyIndex];
-    if (attacker.currentHp <= 0) {
-        // 切换到下一个存活的盟友
-        nextAlly();
-        return;
-    }
-    
-    const skill = skillIndex >= 0 ? attacker.skills[skillIndex] : null;
-    const targetMode = skill ? (skill.target || 'single') : 'single';
+    var attacker = gameState.allies[gameState.currentAllyIndex];
+    if(attacker.currentHp <= 0){ nextAlly(); return; }
 
-    // 目标校验：单体技能必须有有效目标；全体技能无需选目标
-    if (targetMode === 'single') {
-        const target = gameState.enemies[gameState.selectedTargetIndex];
-        if (!target || target.currentHp <= 0) {
-            ToastManager.warning('请选择有效目标');
-            return;
-        }
+    var skill = skillIndex >= 0 ? attacker.skills[skillIndex] : null;
+    var targetMode = skill ? (skill.target || 'single') : 'single';
+
+    if(targetMode === 'single'){
+        var target = gameState.enemies[gameState.selectedTargetIndex];
+        if(!target || target.currentHp <= 0){ ToastManager.warning('请选择有效目标'); return; }
     }
-    
-    // 设置技能冷却
-    if (skill && skill.cooldown) {
-        gameState.skillCooldowns[gameState.currentAllyIndex][skillIndex] = skill.cooldown;
-    }
-    
-    // 玩家攻击（支持单体/敌方全体）
-    const skillName = skill ? skill.name : '普通攻击';
-    const aliveEnemyItems = gameState.enemies
-        .map((e, idx) => ({ e, idx }))
-        .filter(x => x.e.currentHp > 0);
 
-    if (targetMode === 'all') {
-        if (!aliveEnemyItems.length) {
-            setTimeout(() => endBattle(true), getDelay(300));
-            return;
-        }
-        addLog(`⚔️ ${attacker.name} 使用 ${skillName} 攻击敌方全体！`);
-        
-        // 3D动画：全体攻击
-        if (is3DMode && battle3D) {
-            const attackerPos = battle3D.config.allyPositions[gameState.currentAllyIndex] || { x: 0, z: 0 };
-            aliveEnemyItems.forEach(({ e, idx }) => {
-                const targetPos = battle3D.config.enemyPositions[idx] || { x: 0, z: 0 };
-                if (skill && skill.element) {
-                    setTimeout(() => {
-                        skillEffectFactory.create(skill.element, attackerPos, targetPos);
-                    }, idx * 100);
-                }
-            });
-        }
-        
-        aliveEnemyItems.forEach(({ e, idx }) => {
-            const result = calculateDamage(attacker, e, skill);
-            const damage = result.damage;
-            e.currentHp -= damage;
+    if(skill && skill.cooldown) gameState.skillCooldowns[gameState.currentAllyIndex][skillIndex] = skill.cooldown;
 
-            updateHpDisplay('enemy', idx);
-            
-            // 3D模式：显示伤害数字
-            if (is3DMode && battle3D) {
-                setTimeout(() => {
-                    battle3D.showDamageNumber('enemy', idx, damage);
-                    battle3D.hitCharacter('enemy', idx);
-                }, 300 + idx * 100);
-            } else {
-                // 2D模式动画
-                const enemyEl = document.getElementById('enemy-' + idx);
-                if (enemyEl) {
-                    enemyEl.classList.add('hit-flash', 'shake');
-                    const dmgSpan = document.createElement('span');
-                    dmgSpan.className = 'float-damage';
-                    dmgSpan.textContent = '-' + damage;
-                    enemyEl.appendChild(dmgSpan);
-                    setTimeout(function() { enemyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
-                }
-            }
+    var skillName = skill ? skill.name : '普通攻击';
+    var aliveItems = gameState.enemies.map(function(e,i){return {e:e,i:i}}).filter(function(x){return x.e.currentHp>0});
 
-            if (result.elementText) {
-                addLog(`→ ${e.name} 受到 ${damage} 点伤害 ${result.elementText}`);
-            } else {
-                addLog(`→ ${e.name} 受到 ${damage} 点伤害`);
-            }
+    showMenu();
 
-            checkBossPhase(e, idx);
-            if (e.currentHp <= 0) {
-                addLog(`💀 ${e.name} 被击败！`);
-                if (is3DMode && battle3D) {
-                    setTimeout(() => battle3D.deathCharacter('enemy', idx), 500);
-                } else {
-                    document.getElementById('enemy-' + idx)?.classList.add('dead');
-                }
+    if(targetMode === 'all'){
+        if(!aliveItems.length){setTimeout(function(){endBattle(true)},getDelay(300));return;}
+        addLog('⚔️ '+attacker.name+' 使用 '+skillName+' 攻击全体！');
+        aliveItems.forEach(function(x){
+            var r = calculateDamage(attacker, x.e, skill);
+            x.e.currentHp -= r.damage;
+            updateHpDisplay('enemy', x.i);
+            showFloatDmg(document.getElementById('enemy-'+x.i), '-'+r.damage);
+            if(r.elementText) addLog('→ '+x.e.name+' -'+r.damage+' '+r.elementText);
+            else addLog('→ '+x.e.name+' -'+r.damage);
+            checkBossPhase(x.e, x.i);
+            if(x.e.currentHp <= 0){
+                addLog('💀 '+x.e.name+' 被击败！');
+                var el = document.getElementById('enemy-'+x.i);
+                if(el) el.classList.add('dead');
             }
         });
-        if (window.AudioManager) window.AudioManager.playSfx('hit');
     } else {
-        const target = gameState.enemies[gameState.selectedTargetIndex];
-        const result = calculateDamage(attacker, target, skill);
-        const damage = result.damage;
-        target.currentHp -= damage;
-
-        let logMessage = `⚔️ ${attacker.name} 使用 ${skillName} 对 ${target.name} 造成 ${damage} 点伤害！`;
-        if (result.elementText) {
-            logMessage += ` ${result.elementText}`;
-        }
-        addLog(logMessage);
-
+        var tgt = gameState.enemies[gameState.selectedTargetIndex];
+        var r = calculateDamage(attacker, tgt, skill);
+        tgt.currentHp -= r.damage;
+        var msg = '⚔️ '+attacker.name+' 使用 '+skillName+' 对 '+tgt.name+' -'+r.damage;
+        if(r.elementText) msg += ' '+r.elementText;
+        addLog(msg);
         updateHpDisplay('enemy', gameState.selectedTargetIndex);
-        
-        // 3D模式：攻击动画和特效
-        if (is3DMode && battle3D) {
-            const attackerPos = battle3D.config.allyPositions[gameState.currentAllyIndex] || { x: 0, z: 0 };
-            const targetPos = battle3D.config.enemyPositions[gameState.selectedTargetIndex] || { x: 0, z: 0 };
-            
-            // 攻击动画
-            battle3D.attackCharacter('ally', gameState.currentAllyIndex, gameState.selectedTargetIndex, true);
-            
-            // 技能特效
-            if (skill && skill.element) {
-                setTimeout(() => {
-                    skillEffectFactory.create(skill.element, attackerPos, targetPos);
-                }, 150);
-            }
-            
-            // 受击和伤害数字
-            setTimeout(() => {
-                battle3D.hitCharacter('enemy', gameState.selectedTargetIndex);
-                battle3D.showDamageNumber('enemy', gameState.selectedTargetIndex, damage);
-            }, 350);
-        } else {
-            // 2D模式动画
-            var enemyEl = document.getElementById('enemy-' + gameState.selectedTargetIndex);
-            if (enemyEl) {
-                enemyEl.classList.add('hit-flash', 'shake');
-                var dmgSpan = document.createElement('span');
-                dmgSpan.className = 'float-damage';
-                dmgSpan.textContent = '-' + damage;
-                enemyEl.appendChild(dmgSpan);
-                setTimeout(function() { enemyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
-            }
-        }
-        if (window.AudioManager) window.AudioManager.playSfx('hit');
-
-        // 检查Boss阶段
-        checkBossPhase(target, gameState.selectedTargetIndex);
-
-        // 检查敌人是否死亡
-        if (target.currentHp <= 0) {
-            addLog(`💀 ${target.name} 被击败！`);
-            if (is3DMode && battle3D) {
-                setTimeout(() => battle3D.deathCharacter('enemy', gameState.selectedTargetIndex), 500);
-            } else {
-                document.getElementById('enemy-' + gameState.selectedTargetIndex)?.classList.add('dead');
-            }
+        showFloatDmg(document.getElementById('enemy-'+gameState.selectedTargetIndex), '-'+r.damage);
+        checkBossPhase(tgt, gameState.selectedTargetIndex);
+        if(tgt.currentHp <= 0){
+            addLog('💀 '+tgt.name+' 被击败！');
+            var el = document.getElementById('enemy-'+gameState.selectedTargetIndex);
+            if(el) el.classList.add('dead');
         }
     }
+    if(window.AudioManager) window.AudioManager.playSfx('hit');
 
-    // 检查是否所有敌人都被击败
-    const aliveEnemies = gameState.enemies.filter(e => e.currentHp > 0);
-    if (aliveEnemies.length === 0) {
-        setTimeout(() => endBattle(true), getDelay(500));
-        return;
-    }
+    var alive = gameState.enemies.filter(function(e){return e.currentHp>0});
+    if(alive.length === 0){setTimeout(function(){endBattle(true)},getDelay(500));return;}
 
-    // 自动选择下一个目标
     autoSelectTarget();
-    
-    // 下一个行动的角色
     setTimeout(nextAlly, getDelay(500));
 }
 
-// 切换到下一个盟友行动
-function nextAlly() {
-    if (gameState.battleEnded) return;
-    
-    // 找下一个存活的盟友
-    let nextIndex = gameState.currentAllyIndex + 1;
-    while (nextIndex < gameState.allies.length && gameState.allies[nextIndex].currentHp <= 0) {
-        nextIndex++;
+/* ========== 使用道具 ========== */
+function useItem(itemId){
+    if(gameState.battleEnded) return;
+    var item = battleItems.find(function(x){return x.id===itemId});
+    if(!item) return;
+    var used = gameState.itemUsage[itemId] || 0;
+    if(used >= item.max_per_battle){ ToastManager.warning('本场战斗已用完'); return; }
+
+    var actor = gameState.allies[gameState.currentAllyIndex];
+    if(actor.currentHp <= 0 && item.effect !== 'revive'){ ToastManager.warning('当前角色已阵亡'); return; }
+
+    gameState.itemUsage[itemId] = used + 1;
+    var logMsg = '';
+
+    switch(item.effect){
+        case 'heal':
+            var heal = Math.floor(actor.maxHp * item.value);
+            actor.currentHp = Math.min(actor.maxHp, actor.currentHp + heal);
+            updateHpDisplay('ally', gameState.currentAllyIndex);
+            updateActorInfo();
+            showFloatDmg(document.getElementById('ally-'+gameState.currentAllyIndex), '+'+heal, 'heal');
+            logMsg = '💊 '+actor.name+' 使用 '+item.name+'，恢复 '+heal+' HP';
+            break;
+        case 'buff_atk':
+        case 'buff_def':
+        case 'buff_speed':
+            var statKey = item.effect === 'buff_atk' ? 'attack' : (item.effect === 'buff_def' ? 'defense' : 'speed');
+            var boost = Math.floor(actor.stats[statKey] * item.value);
+            actor.stats[statKey] += boost;
+            gameState.buffs[gameState.currentAllyIndex].push({stat:statKey, amount:boost, turns:item.duration||3});
+            logMsg = '✨ '+actor.name+' 使用 '+item.name+'，'+statKey+' +'+boost;
+            break;
+        case 'revive':
+            var deadAllies = gameState.allies.map(function(a,i){return {a:a,i:i}}).filter(function(x){return x.a.currentHp<=0});
+            if(deadAllies.length === 0){ ToastManager.info('没有阵亡角色'); gameState.itemUsage[itemId] = used; return; }
+            var revived = deadAllies[0];
+            revived.a.currentHp = Math.floor(revived.a.maxHp * item.value);
+            updateHpDisplay('ally', revived.i);
+            var rEl = document.getElementById('ally-'+revived.i);
+            if(rEl) rEl.classList.remove('dead');
+            showFloatDmg(rEl, '复活!', 'heal');
+            logMsg = '📜 '+revived.a.name+' 被复活！HP '+Math.floor(revived.a.currentHp);
+            break;
     }
-    
-    if (nextIndex < gameState.allies.length) {
-        // 切换到下一个盟友
-        gameState.currentAllyIndex = nextIndex;
-        updateCurrentActorDisplay();
-        updateSkillButtons();
-        battleStatus.textContent = '选择目标与技能';
+    if(logMsg) addLog(logMsg);
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+
+    showMenu();
+    setTimeout(nextAlly, getDelay(500));
+}
+
+/* ========== 切换角色 ========== */
+function switchCharacter(index){
+    if(gameState.battleEnded) return;
+    if(index === gameState.currentAllyIndex) return;
+    var ally = gameState.allies[index];
+    if(ally.currentHp <= 0){ ToastManager.warning('该角色已阵亡'); return; }
+
+    addLog('🔄 切换至 '+ally.name+'！');
+    gameState.currentAllyIndex = index;
+    updateActorInfo();
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+
+    showMenu();
+    setTimeout(nextAlly, getDelay(300));
+}
+
+/* ========== 逃跑 ========== */
+function tryFlee(){
+    if(gameState.battleEnded) return;
+    if(dungeonType === 'trial'){
+        ToastManager.warning('英雄试炼无法逃跑！');
+        return;
+    }
+    if(!confirm('确定要逃跑吗？将失去本次战斗消耗的体力')) return;
+    gameState.battleEnded = true;
+    addLog('🏃 你选择了逃跑...');
+    if(window.AudioManager) window.AudioManager.playSfx('click');
+    setTimeout(function(){ window.location.href = '/stages'; }, 800);
+}
+
+/* ========== 回合逻辑 ========== */
+function nextAlly(){
+    if(gameState.battleEnded) return;
+    var nextIdx = gameState.currentAllyIndex + 1;
+    while(nextIdx < gameState.allies.length && gameState.allies[nextIdx].currentHp <= 0) nextIdx++;
+
+    if(nextIdx < gameState.allies.length){
+        gameState.currentAllyIndex = nextIdx;
+        updateActorInfo();
+        updateStatus('选择行动');
     } else {
-        // 所有盟友行动完毕，进入敌人回合
         setTimeout(enemyTurn, getDelay(300));
     }
 }
 
-// 更新当前行动角色显示
-function updateCurrentActorDisplay() {
-    const currentAlly = gameState.allies[gameState.currentAllyIndex];
-    document.getElementById('current-actor-name').textContent = currentAlly.name;
-    
-    // 更新技能按钮
-    const skillButtons = document.getElementById('skill-buttons');
-    let buttonsHtml = '';
-    
-    if (currentAlly.skills) {
-        currentAlly.skills.forEach((skill, index) => {
-            const cooldown = gameState.skillCooldowns[gameState.currentAllyIndex]?.[index] || 0;
-            const disabled = cooldown > 0 ? 'disabled on-cooldown' : '';
-            const targetMode = (skill && skill.target) ? skill.target : 'single';
-            const targetLabel = (targetMode === 'all') ? '敌方全体' : (targetMode === 'allies') ? '我方全体' : (targetMode === 'self') ? '自身' : '单体';
-            buttonsHtml += `
-                <button class="skill-btn ${disabled}" onclick="useSkill(${index})" data-skill-index="${index}">
-                    <span class="skill-name">${skill.name}</span>
-                    ${skill.power > 0 ? `<span class="skill-power">威力: ${skill.power}</span>` : ''}
-                    <span class="skill-meta">目标: ${targetLabel}</span>
-                    <span class="skill-meta">冷却: ${Number(skill.cooldown || 0)} 回合</span>
-                    ${cooldown > 0 ? `<span class="skill-cd">冷却剩余: ${cooldown} 回合</span>` : ''}
-                </button>
-            `;
-        });
-    }
-    
-    buttonsHtml += `<button class="skill-btn" style="background: #6b7280;" onclick="useSkill(-1)">
-        <span class="skill-name">普通攻击</span>
-    </button>`;
-    
-    skillButtons.innerHTML = buttonsHtml;
+function processBuffs(){
+    gameState.allies.forEach(function(ally, i){
+        var buffs = gameState.buffs[i];
+        if(!buffs) return;
+        for(var b = buffs.length-1; b >= 0; b--){
+            buffs[b].turns--;
+            if(buffs[b].turns <= 0){
+                ally.stats[buffs[b].stat] -= buffs[b].amount;
+                addLog('✨ '+ally.name+' 的 '+buffs[b].stat+' 增益消失');
+                buffs.splice(b, 1);
+            }
+        }
+    });
 }
 
-function enemyTurn() {
-    if (gameState.battleEnded) return;
-    gameState.phase = 'enemy';
-    
-    addLog(`--- 回合 ${gameState.turnCount} 敌方行动 ---`);
-    
-    // 所有存活敌人攻击
-    const aliveAllies = gameState.allies.filter(a => a.currentHp > 0);
-    if (aliveAllies.length === 0) {
-        endBattle(false);
-        return;
-    }
-    
-    let delay = 0;
-    const enemyAttacks = [];
-    
-    gameState.enemies.forEach((enemy, index) => {
-        if (enemy.currentHp <= 0 || gameState.battleEnded) return;
-        
-        const aliveAlliesNow = gameState.allies.filter(a => a.currentHp > 0);
-        if (aliveAlliesNow.length === 0) return;
-        
-        const target = aliveAlliesNow[Math.floor(Math.random() * aliveAlliesNow.length)];
-        const targetIndex = gameState.allies.indexOf(target);
-        
-        // 敌人可能使用技能
-        let enemySkill = null;
-        if (enemy.skills && enemy.skills.length > 0 && Math.random() > 0.5) {
-            enemySkill = enemy.skills[Math.floor(Math.random() * enemy.skills.length)];
-        }
-        
-        const result = calculateDamage(enemy, target, enemySkill);
-        const damage = result.damage;
-        
-        enemyAttacks.push({
-            enemyIndex: index,
-            targetIndex: targetIndex,
-            skill: enemySkill,
-            damage: damage,
-            elementText: result.elementText
+function reduceCooldowns(){
+    gameState.allies.forEach(function(_, ai){
+        if(!gameState.skillCooldowns[ai]) return;
+        Object.keys(gameState.skillCooldowns[ai]).forEach(function(si){
+            if(gameState.skillCooldowns[ai][si] > 0) gameState.skillCooldowns[ai][si]--;
         });
     });
-    
-    // 按顺序执行攻击动画
-    enemyAttacks.forEach((attack, i) => {
-        const enemy = gameState.enemies[attack.enemyIndex];
-        const target = gameState.allies[attack.targetIndex];
-        
-        setTimeout(() => {
-            const skillName = attack.skill ? attack.skill.name : '普通攻击';
-            let logMessage = `👿 ${enemy.name} 使用 ${skillName} 对 ${target.name} 造成 ${attack.damage} 点伤害！`;
-            if (attack.elementText) {
-                logMessage += ` ${attack.elementText}`;
-            }
-            addLog(logMessage);
-            
-            target.currentHp -= attack.damage;
-            updateHpDisplay('ally', attack.targetIndex);
-            
-            // 3D模式动画
-            if (is3DMode && battle3D) {
-                const attackerPos = battle3D.config.enemyPositions[attack.enemyIndex] || { x: 0, z: 0 };
-                const targetPos = battle3D.config.allyPositions[attack.targetIndex] || { x: 0, z: 0 };
-                
-                // 攻击动画
-                battle3D.attackCharacter('enemy', attack.enemyIndex, attack.targetIndex, false);
-                
-                // 技能特效
-                if (attack.skill && attack.skill.element) {
-                    setTimeout(() => {
-                        skillEffectFactory.create(attack.skill.element, attackerPos, targetPos);
-                    }, 150);
-                }
-                
-                // 受击和伤害数字
-                setTimeout(() => {
-                    battle3D.hitCharacter('ally', attack.targetIndex);
-                    battle3D.showDamageNumber('ally', attack.targetIndex, attack.damage);
-                }, 350);
-            } else {
-                // 2D模式动画
-                var allyEl = document.getElementById('ally-' + attack.targetIndex);
-                if (allyEl) {
-                    allyEl.classList.add('hit-flash', 'shake');
-                    var dmgSpan = document.createElement('span');
-                    dmgSpan.className = 'float-damage';
-                    dmgSpan.textContent = '-' + attack.damage;
-                    allyEl.appendChild(dmgSpan);
-                    setTimeout(function() { allyEl.classList.remove('hit-flash', 'shake'); dmgSpan.remove(); }, 900);
-                }
-            }
-            if (window.AudioManager) window.AudioManager.playSfx('hit');
-            
-            // 检查是否死亡
-            if (target.currentHp <= 0) {
-                addLog(`💔 ${target.name} 被击败！`);
-                if (is3DMode && battle3D) {
-                    setTimeout(() => battle3D.deathCharacter('ally', attack.targetIndex), 500);
-                } else {
-                    document.getElementById('ally-' + attack.targetIndex)?.classList.add('dead');
-                }
-            }
-        }, delay);
-        
-        delay += getDelay(600);
+}
+
+function enemyTurn(){
+    if(gameState.battleEnded) return;
+    gameState.phase = 'enemy';
+    updateStatus('敌方行动...');
+    disableActions(true);
+
+    addLog('--- 回合 '+gameState.turnCount+' 敌方行动 ---');
+
+    var aliveAllies = gameState.allies.filter(function(a){return a.currentHp>0});
+    if(aliveAllies.length === 0){endBattle(false);return;}
+
+    gameState.enemies.forEach(function(enemy, idx){
+        if(enemy.currentHp <= 0 || gameState.battleEnded) return;
+        var alive = gameState.allies.filter(function(a){return a.currentHp>0});
+        if(alive.length === 0) return;
+
+        var tgt = alive[Math.floor(Math.random()*alive.length)];
+        var ti = gameState.allies.indexOf(tgt);
+
+        var eSkill = null;
+        if(enemy.skills && enemy.skills.length > 0 && Math.random() > 0.5)
+            eSkill = enemy.skills[Math.floor(Math.random()*enemy.skills.length)];
+
+        var r = calculateDamage(enemy, tgt, eSkill);
+        tgt.currentHp -= r.damage;
+        var sn = eSkill ? eSkill.name : '普通攻击';
+        var msg = '👿 '+enemy.name+' 使用 '+sn+' 对 '+tgt.name+' -'+r.damage;
+        if(r.elementText) msg += ' '+r.elementText;
+        addLog(msg);
+        updateHpDisplay('ally', ti);
+        showFloatDmg(document.getElementById('ally-'+ti), '-'+r.damage);
+        if(window.AudioManager) window.AudioManager.playSfx('hit');
+
+        if(tgt.currentHp <= 0){
+            addLog('💔 '+tgt.name+' 被击败！');
+            var el = document.getElementById('ally-'+ti);
+            if(el) el.classList.add('dead');
+        }
     });
-    
-    // 敌方行动结束后检查
-    setTimeout(() => {
-        // 检查是否所有盟友都被击败
-        const aliveAlliesAfter = gameState.allies.filter(a => a.currentHp > 0);
-        if (aliveAlliesAfter.length === 0) {
-            setTimeout(() => endBattle(false), getDelay(500));
-            return;
-        }
-        
-        // 新回合开始
-        gameState.turnCount++;
-        document.getElementById('turn-counter').textContent = `回合: ${gameState.turnCount}`;
-        
-        // 减少技能冷却
-        reduceCooldowns();
-        
-        // 重置盟友索引
-        gameState.currentAllyIndex = 0;
-        while (gameState.currentAllyIndex < gameState.allies.length && 
-               gameState.allies[gameState.currentAllyIndex].currentHp <= 0) {
-            gameState.currentAllyIndex++;
-        }
-        
-        addLog(`--- 回合 ${gameState.turnCount} 我方行动 ---`);
-        gameState.phase = 'ally';
-        updateCurrentActorDisplay();
-        battleStatus.textContent = '选择目标与技能';
-        
-        // 自动战斗模式
-        if (gameState.autoBattle && !gameState.battleEnded) {
-        clearAutoBattleTimer();
+
+    var aliveAfter = gameState.allies.filter(function(a){return a.currentHp>0});
+    if(aliveAfter.length === 0){setTimeout(function(){endBattle(false)},getDelay(500));return;}
+
+    gameState.turnCount++;
+    document.getElementById('turn-counter').textContent = '回合 '+gameState.turnCount;
+    reduceCooldowns();
+    processBuffs();
+
+    gameState.currentAllyIndex = 0;
+    while(gameState.currentAllyIndex < gameState.allies.length && gameState.allies[gameState.currentAllyIndex].currentHp <= 0)
+        gameState.currentAllyIndex++;
+
+    addLog('--- 回合 '+gameState.turnCount+' 我方行动 ---');
+    gameState.phase = 'ally';
+    updateActorInfo();
+    updateStatus('选择行动');
+    disableActions(false);
+
+    if(gameState.autoBattle && !gameState.battleEnded){
+        clearAutoTimer();
         gameState.autoBattleTimer = setTimeout(autoAttack, getDelay(700));
     }
 }
 
-async function endBattle(victory) {
-    gameState.battleEnded = true;
-    if (window.AudioManager) window.AudioManager.playSfx(victory ? 'victory' : 'defeat');
-    
-    // 禁用技能按钮
-    document.querySelectorAll('.skill-btn').forEach(btn => btn.disabled = true);
-    
-    // 计算战斗统计
-    const turns = gameState.turnCount;
-    const casualties = gameState.allies.filter(a => a.currentHp <= 0).length;
-    
-    // 发送结果到服务器
-    const result = await apiCall('/api/battle/complete', {
-        stage_id: '{{ stage.id }}',
-        victory: victory,
-        turns: turns,
-        casualties: casualties
+function disableActions(disabled){
+    document.querySelectorAll('.action-btn').forEach(function(btn){
+        btn.style.pointerEvents = disabled ? 'none' : 'auto';
+        btn.style.opacity = disabled ? '0.5' : '1';
     });
-    
-    function showResult() {
-        // 显示结果
-        const modal = document.getElementById('resultModal');
-        const title = document.getElementById('result-title');
-        const content = document.getElementById('result-content');
-        
-        if (victory) {
+}
+
+/* ========== 战斗结束 ========== */
+async function endBattle(victory){
+    gameState.battleEnded = true;
+    clearAutoTimer();
+    disableActions(true);
+    if(window.AudioManager) window.AudioManager.playSfx(victory ? 'victory' : 'defeat');
+
+    var turns = gameState.turnCount;
+    var casualties = gameState.allies.filter(function(a){return a.currentHp<=0}).length;
+
+    var result = await apiCall('/api/battle/complete', {
+        stage_id: stageId, victory: victory, turns: turns, casualties: casualties
+    });
+
+    function showResult(){
+        var modal = document.getElementById('resultModal');
+        var title = document.getElementById('result-title');
+        var content = document.getElementById('result-content');
+        if(victory){
             title.textContent = '🎉 胜利！';
             title.style.color = '#22c55e';
-            
-            // 星级显示
-            let starsHtml = '';
-            for (let i = 0; i < 3; i++) {
-                starsHtml += `<span style="font-size: 2rem; color: ${i < result.stars ? '#fbbf24' : '#4b5563'};">★</span>`;
-            }
-            
-            content.innerHTML = `
-                <div style="margin-bottom: 1rem;">${starsHtml}</div>
-                <p style="font-size: 1.25rem; color: white;">恭喜通关！</p>
-                <div style="margin-top: 1rem;">
-                    <p>💰 金币 +${result.rewards.gold}</p>
-                    <p>📖 经验 +${result.rewards.exp}</p>
-                    ${result.rewards.gems ? '<p>💎 钻石 +' + result.rewards.gems + '</p>' : ''}
-                </div>
-                <div style="margin-top: 0.5rem; font-size: 0.85rem; color: #94a3b8;">
-                    回合数: ${turns} | 阵亡: ${casualties}
-                </div>
-            `;
+            var starsHtml = '';
+            for(var i=0;i<3;i++) starsHtml += '<span style="font-size:2rem;color:'+(i<result.stars?'#fbbf24':'#4b5563')+'">★</span>';
+            var rewardHtml = '<p>💰 金币 +'+result.rewards.gold+'</p>';
+            if(result.rewards.exp) rewardHtml += '<p>📖 经验 +'+result.rewards.exp+'</p>';
+            if(result.rewards.gems) rewardHtml += '<p>💎 钻石 +'+result.rewards.gems+'</p>';
+            if(result.rewards.exp_books) rewardHtml += '<p>📚 经验书 +'+result.rewards.exp_books+'</p>';
+            if(result.rewards.star_soul) rewardHtml += '<p>⭐ 星魂 +'+result.rewards.star_soul+'</p>';
+            if(result.rewards.breakthrough_stone) rewardHtml += '<p>🔮 突破石 +'+result.rewards.breakthrough_stone+'</p>';
+            content.innerHTML = '<div style="margin-bottom:1rem">'+starsHtml+'</div><p style="font-size:1.25rem;color:white">恭喜通关！</p><div style="margin-top:1rem">'+rewardHtml+'</div><div style="margin-top:.5rem;font-size:.85rem;color:#94a3b8">回合: '+turns+' | 阵亡: '+casualties+'</div>';
         } else {
             title.textContent = '💔 失败';
             title.style.color = '#ef4444';
-            content.innerHTML = `
-                <p style="font-size: 1.25rem; color: white;">下次一定可以！</p>
-            `;
+            content.innerHTML = '<p style="font-size:1.25rem;color:white">下次一定可以！</p>';
         }
-        
         modal.classList.add('active');
     }
 
-    // 战后对话：优先展示，再弹出结算
-    try {
-        const post = (chapterDialogue && chapterDialogue.post) ? chapterDialogue.post : [];
-        if (victory && post && post.length) {
-            openDialogue(post, showResult);
-        } else {
-            showResult();
-        }
-    } catch (e) {
-        showResult();
+    try{
+        var post = (chapterDialogue && chapterDialogue.post) ? chapterDialogue.post : [];
+        if(victory && post && post.length) openDialogue(post, showResult);
+        else showResult();
+    } catch(e){ showResult(); }
+}
+
+/* ========== 对话系统 ========== */
+function openDialogue(lines, onDone){
+    var modal = document.getElementById('dialogueModal');
+    var wrap = document.getElementById('dialogue-lines');
+    var nextBtn = document.getElementById('dialogue-next-btn');
+    var closeBtn = document.getElementById('dialogue-close-btn');
+    var skipBtn = document.getElementById('dialogue-skip-btn2');
+    if(!modal || !wrap || !nextBtn) return onDone && onDone();
+
+    var idx = 0;
+    function render(i){
+        var item = lines[i]; if(!item) return;
+        wrap.innerHTML = '<div style="font-weight:900;color:#e2e8f0">'+(item.speaker||'旁白')+'</div><div style="color:#cbd5e1;line-height:1.6">'+(item.text||'')+'</div>';
+        nextBtn.textContent = (i>=lines.length-1)?'开始战斗':'下一句';
     }
+    function close(){ modal.classList.remove('active'); modal.setAttribute('aria-hidden','true'); }
+    function done(){ close(); if(onDone) onDone(); }
+    function next(){ idx++; if(idx>=lines.length) return done(); render(idx); }
+
+    render(idx);
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden','false');
+    nextBtn.onclick = next;
+    if(closeBtn) closeBtn.onclick = done;
+    if(skipBtn) skipBtn.onclick = done;
+    modal.onclick = function(e){ if(e.target===modal) done(); };
 }
 
-// ========== 3D战斗系统集成 ==========
-let battle3D = null;
-let skillEffectFactory = null;
-let is3DMode = false;
-
-// 切换战斗模式
-function toggleBattleMode() {
-    is3DMode = !is3DMode;
-    
-    const container3D = document.getElementById('battle-3d-container');
-    const container2D = document.getElementById('battle-2d-container');
-    const label = document.getElementById('battle-mode-label');
-    const btn = document.getElementById('toggle-3d-btn');
-    
-    if (is3DMode) {
-        container3D.style.display = 'block';
-        container2D.style.display = 'none';
-        label.textContent = '当前: 3D模式';
-        btn.textContent = '📱 切换2D模式';
-        
-        // 初始化3D场景
-        initBattle3D();
-    } else {
-        container3D.style.display = 'none';
-        container2D.style.display = 'block';
-        label.textContent = '当前: 2D模式';
-        btn.textContent = '🎮 切换3D模式';
-        
-        // 销毁3D场景释放资源
-        if (battle3D) {
-            battle3D.destroy();
-            battle3D = null;
-            skillEffectFactory = null;
-        }
-    }
-    
-    if (window.AudioManager) window.AudioManager.playSfx('click');
-}
-
-// 初始化3D战斗场景
-async function initBattle3D() {
-    const loadingEl = document.getElementById('loading-3d');
-    if (!loadingEl) return;
-    
-    loadingEl.style.display = 'flex';
-    
-    try {
-        // 动态加载脚本
-        await loadScript('{{ url_for("static", filename="js/battle3d/battle3d.js") }}');
-        await loadScript('{{ url_for("static", filename="js/battle3d/effects.js") }}');
-        
-        // 创建3D场景
-        battle3D = new Battle3D('battle-3d-container');
-        skillEffectFactory = new SkillEffectFactory(battle3D);
-        
-        // 等待初始化完成
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 创建角色模型
-        gameState.allies.forEach((ally, index) => {
-            battle3D.createCharacter(ally, 'ally', index);
-        });
-        
-        gameState.enemies.forEach((enemy, index) => {
-            battle3D.createCharacter(enemy, 'enemy', index);
-        });
-        
-        loadingEl.style.display = 'none';
-        ToastManager.success('3D战斗场景已加载', 2000);
-        
-    } catch (error) {
-        console.error('3D场景初始化失败:', error);
-        loadingEl.innerHTML = `
-            <div style="text-align: center; color: #ef4444;">
-                <div>⚠️ 3D场景加载失败</div>
-                <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #94a3b8;">请刷新页面重试</div>
-            </div>
-        `;
-    }
-}
-
-// 动态加载脚本
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        // 检查是否已加载
-        const existing = document.querySelector(`script[src="${src}"]`);
-        if (existing) {
-            resolve();
-            return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
-
-// 3D战斗动画 - 攻击
-function play3DAttack(attackerType, attackerIndex, targetType, targetIndex, skill) {
-    if (!battle3D || !is3DMode) return;
-    
-    const attacker = attackerType === 'ally' 
-        ? gameState.allies[attackerIndex] 
-        : gameState.enemies[attackerIndex];
-    const target = targetType === 'ally' 
-        ? gameState.allies[targetIndex] 
-        : gameState.enemies[targetIndex];
-    
-    // 获取位置
-    const attackerPos = battle3D.config[attackerType + 'Positions'][attackerIndex] || { x: 0, z: 0 };
-    const targetPos = battle3D.config[targetType + 'Positions'][targetIndex] || { x: 0, z: 0 };
-    
-    // 播放攻击动画
-    battle3D.attackCharacter(attackerType, attackerIndex, targetIndex, targetType === 'enemy');
-    
-    // 播放技能特效
-    if (skill && skill.element) {
-        setTimeout(() => {
-            skillEffectFactory.create(
-                skill.element,
-                { x: attackerPos.x, y: 1.5, z: attackerPos.z },
-                { x: targetPos.x, y: 1.5, z: targetPos.z }
-            );
-        }, 150);
-    }
-}
-
-// 3D受击动画
-function play3DHit(type, index, damage) {
-    if (!battle3D || !is3DMode) return;
-    
-    battle3D.hitCharacter(type, index);
-    battle3D.showDamageNumber(type, index, damage);
-}
-
-// 3D死亡动画
-function play3DDeath(type, index) {
-    if (!battle3D || !is3DMode) return;
-    
-    battle3D.deathCharacter(type, index);
-}
-
-// 3D治疗动画
-function play3DHeal(type, index, amount) {
-    if (!battle3D || !is3DMode) return;
-    
-    skillEffectFactory.createHealEffect(
-        { x: 0, y: 0, z: 0 }, // 位置会在函数内部从角色获取
-        amount
-    );
-}
+/* ========== 初始化 ========== */
+document.addEventListener('DOMContentLoaded', function(){
+    updateActorInfo();
+    try{
+        var pre = (chapterDialogue && chapterDialogue.pre) ? chapterDialogue.pre : [];
+        if(pre && pre.length) openDialogue(pre, function(){});
+    } catch(e){}
+});
 </script>
-
-{% block extra_scripts %}
-<!-- Three.js CDN -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-{% endblock %}
 {% endblock %}
