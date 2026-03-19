@@ -2,6 +2,10 @@
 
 {% block title %}{{ character.name }} - 巅峰对决{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/character-breathe.css') }}">
+{% endblock %}
+
 {% block back_link %}
 <div class="back-bar"><a href="{{ url_for('characters') }}" class="back-btn">← 返回军营</a></div>
 {% endblock %}
@@ -57,7 +61,11 @@
                             原画
                         </div>
                         <div style="border:1px solid rgba(148,163,184,0.25);border-radius:10px;overflow:hidden;background:rgba(0,0,0,0.12);">
-                            <img src="{{ character.illustration }}" alt="{{ character.name }} 原画" style="width:100%;height:260px;object-fit:contain;background:rgba(0,0,0,0.15);">
+                            {% set dynamic_illustration = get_dynamic_illustration(character.character_id, character.illustration) %}
+                            {% set is_dynamic = dynamic_illustration != character.illustration %}
+                            <div class="character-illustration-wrapper {{ 'breathe-idle element-' ~ character.element if is_dynamic else '' }}">
+                                <img src="{{ dynamic_illustration }}" alt="{{ character.name }} 原画" style="width:100%;height:260px;object-fit:contain;background:rgba(0,0,0,0.15);" class="{{ 'dynamic-illustration' if is_dynamic else '' }}">
+                            </div>
                         </div>
                     </div>
                 </div>

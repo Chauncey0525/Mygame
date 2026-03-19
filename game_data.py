@@ -404,6 +404,38 @@ def get_skill_icon(skill, character_id=None):
     return SKILL_TYPE_ICONS['physical']
 
 
+# 动态立绘角色映射（有动态立绘的角色）
+DYNAMIC_ILLUSTRATION_CHARACTERS = {
+    'miyamoto': '/static/images/characters/dynamic/miyamoto-dynamic.png',
+    'guan-yu': '/static/images/characters/dynamic/guan-yu-dynamic.png',
+    'zhuge-liang': '/static/images/characters/dynamic/zhuge-liang-dynamic.png',
+    'hua-mulan': '/static/images/characters/dynamic/hua-mulan-dynamic.png',
+    'arthur': '/static/images/characters/dynamic/arthur-dynamic.png',
+    'joan-of-arc': '/static/images/characters/dynamic/joan-of-arc-dynamic.png',
+    'genghis-khan': '/static/images/characters/dynamic/genghis-khan-dynamic.png',
+    'cao-cao': '/static/images/characters/dynamic/cao-cao-dynamic.png',
+    'cleopatra': '/static/images/characters/dynamic/cleopatra-dynamic.png',
+    'robin-hood': '/static/images/characters/dynamic/robin-hood-dynamic.png',
+    'viking-ragnar': '/static/images/characters/dynamic/viking-ragnar-dynamic.png',
+}
+
+
+def get_dynamic_illustration(character_id, default_illustration=None):
+    """
+    获取角色的动态立绘路径
+    
+    Args:
+        character_id: 角色ID
+        default_illustration: 默认立绘路径（如果没有动态立绘）
+        
+    Returns:
+        动态立绘路径或默认立绘路径
+    """
+    if character_id in DYNAMIC_ILLUSTRATION_CHARACTERS:
+        return DYNAMIC_ILLUSTRATION_CHARACTERS[character_id]
+    return default_illustration or ''
+
+
 # 所有角色模板数据
 ALL_CHARACTERS = [
     # ========== 普通角色（初始角色） ==========

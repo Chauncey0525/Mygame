@@ -547,11 +547,12 @@ def load_user(player_id):
 @app.context_processor
 def inject_template_globals():
     """让 base.html 等模板在所有页面都能拿到 player 和 rarity_colors，避免登录/注册页报错"""
-    from game_data import RARITY_COLORS
+    from game_data import RARITY_COLORS, get_dynamic_illustration
     return {
         'rarity_colors': RARITY_COLORS,
         'player': current_user if current_user.is_authenticated else None,
         'get_character_by_id': get_character_by_id,
+        'get_dynamic_illustration': get_dynamic_illustration,
     }
 
 

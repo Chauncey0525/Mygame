@@ -99,10 +99,24 @@ var Battle2D = (function() {
         var hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
         var hpClass = hpPercent > 50 ? 'high' : (hpPercent > 25 ? 'mid' : 'low');
         
-        var spriteUrl = (enemy && (enemy.illustration || enemy.avatar)) || '';
+        // 使用动态立绘（如果存在）
+        var illustration = enemy.illustration || enemy.avatar;
+        var isDynamic = illustration && illustration.includes('/dynamic/');
+        
+        // 根据HP状态设置动画类
+        var animClass = 'breathe-idle';
+        if (enemy.currentHp <= 0) {
+            animClass = 'breathe-dead';
+        } else if (hpPercent <= 20) {
+            animClass = 'breathe-near-death';
+        } else {
+            // 根据元素添加光环
+            animClass = 'breathe-idle element-' + (enemy.element || 'neutral');
+        }
+        
         unit.innerHTML = 
-            '<div class="enemy-sprite" id="enemy-sprite-' + index + '">' +
-                '<img src="' + spriteUrl + '" alt="' + enemy.name + '" id="enemy-img-' + index + '">' +
+            '<div class="enemy-sprite ' + animClass + '" id="enemy-sprite-' + index + '">' +
+                '<img src="' + illustration + '" alt="' + enemy.name + '" id="enemy-img-' + index + '" class="character-illustration' + (isDynamic ? ' dynamic-illustration' : '') + '">' +
             '</div>' +
             '<div class="enemy-info">' +
                 '<div class="enemy-name">' + enemy.name + '</div>' +
@@ -142,10 +156,24 @@ var Battle2D = (function() {
         
         var hpPercent = Math.max(0, (ally.currentHp / ally.maxHp) * 100);
         
-        var spriteUrl = (ally && (ally.illustration || ally.avatar)) || '';
+        // 使用动态立绘（如果存在）
+        var illustration = ally.illustration || ally.avatar;
+        var isDynamic = illustration && illustration.includes('/dynamic/');
+        
+        // 根据HP状态设置动画类
+        var animClass = 'breathe-idle';
+        if (ally.currentHp <= 0) {
+            animClass = 'breathe-dead';
+        } else if (hpPercent <= 20) {
+            animClass = 'breathe-near-death';
+        } else {
+            // 根据元素添加光环
+            animClass = 'breathe-idle element-' + (ally.element || 'neutral');
+        }
+        
         unit.innerHTML = 
-            '<div class="ally-sprite" id="ally-sprite-' + index + '">' +
-                '<img src="' + spriteUrl + '" alt="' + ally.name + '" id="ally-img-' + index + '">' +
+            '<div class="ally-sprite ' + animClass + '" id="ally-sprite-' + index + '">' +
+                '<img src="' + illustration + '" alt="' + ally.name + '" id="ally-img-' + index + '" class="character-illustration' + (isDynamic ? ' dynamic-illustration' : '') + '">' +
             '</div>' +
             '<div class="ally-info">' +
                 '<div class="ally-name">' + ally.name + '</div>' +

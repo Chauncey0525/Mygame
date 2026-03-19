@@ -1,0 +1,328 @@
+/**
+ * 角色立绘呼吸动画效果
+ * 让静态立绘产生生动的呼吸感
+ */
+
+/* 基础呼吸动画 */
+.character-breathe {
+    animation: breathe 3s ease-in-out infinite;
+    transform-origin: center bottom;
+}
+
+@keyframes breathe {
+    0%, 100% {
+        transform: scale(1) translateY(0);
+        filter: brightness(1);
+    }
+    50% {
+        transform: scale(1.02) translateY(-5px);
+        filter: brightness(1.05);
+    }
+}
+
+/* 战斗中的动态效果 - 更激烈 */
+.character-breathe.battle-ready {
+    animation: breatheBattle 2s ease-in-out infinite;
+}
+
+@keyframes breatheBattle {
+    0%, 100% {
+        transform: scale(1) translateY(0);
+        filter: brightness(1) drop-shadow(0 0 0 transparent);
+    }
+    25% {
+        transform: scale(1.01) translateY(-2px);
+    }
+    50% {
+        transform: scale(1.03) translateY(-5px);
+        filter: brightness(1.1) drop-shadow(0 0 15px rgba(255, 255, 255, 0.3));
+    }
+    75% {
+        transform: scale(1.01) translateY(-2px);
+    }
+}
+
+/* 攻击时的动作 */
+.character-breathe.attacking {
+    animation: attackPose 0.6s ease-out;
+}
+
+@keyframes attackPose {
+    0% {
+        transform: scale(1) translateX(0);
+    }
+    30% {
+        transform: scale(1.1) translateX(30px) rotate(5deg);
+    }
+    60% {
+        transform: scale(1.05) translateX(10px) rotate(-3deg);
+    }
+    100% {
+        transform: scale(1) translateX(0) rotate(0);
+    }
+}
+
+/* 受击时的抖动 */
+.character-breathe.hit {
+    animation: hitShake 0.4s ease-out;
+}
+
+@keyframes hitShake {
+    0%, 100% {
+        transform: translateX(0) rotate(0);
+        filter: brightness(1);
+    }
+    20% {
+        transform: translateX(-15px) rotate(-5deg);
+        filter: brightness(2);
+    }
+    40% {
+        transform: translateX(10px) rotate(3deg);
+        filter: brightness(1.5);
+    }
+    60% {
+        transform: translateX(-5px) rotate(-2deg);
+        filter: brightness(1.2);
+    }
+    80% {
+        transform: translateX(3px) rotate(1deg);
+        filter: brightness(1);
+    }
+}
+
+/* 施法时的浮空效果 */
+.character-breathe.casting {
+    animation: castingFloat 1.5s ease-in-out infinite;
+}
+
+@keyframes castingFloat {
+    0%, 100% {
+        transform: translateY(0);
+        filter: brightness(1) drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        transform: translateY(-15px);
+        filter: brightness(1.2) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+    }
+}
+
+/* 治疗时的圣光效果 */
+.character-breathe.healing {
+    animation: healingGlow 1s ease-in-out infinite;
+}
+
+@keyframes healingGlow {
+    0%, 100% {
+        filter: brightness(1) drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: brightness(1.3) drop-shadow(0 0 30px rgba(34, 197, 94, 0.6));
+    }
+}
+
+/* 增益时的光芒效果 */
+.character-breathe.buffing {
+    animation: buffGlow 1.2s ease-in-out infinite;
+}
+
+@keyframes buffGlow {
+    0%, 100% {
+        filter: brightness(1) drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: brightness(1.4) drop-shadow(0 0 40px rgba(59, 130, 246, 0.5));
+    }
+}
+
+/* 减益时的暗影效果 */
+.character-breathe.debuffing {
+    animation: debuffShade 1.5s ease-in-out infinite;
+}
+
+@keyframes debuffShade {
+    0%, 100% {
+        filter: brightness(1) drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: brightness(0.7) drop-shadow(0 0 25px rgba(139, 92, 246, 0.5));
+    }
+}
+
+/* 濒死时的虚弱效果 */
+.character-breathe.critical {
+    animation: criticalBreath 1.5s ease-in-out infinite;
+}
+
+@keyframes criticalBreath {
+    0%, 100% {
+        transform: scale(1);
+        filter: brightness(0.8) saturate(0.8);
+    }
+    50% {
+        transform: scale(0.98);
+        filter: brightness(0.6) saturate(0.6) drop-shadow(0 0 20px rgba(239, 68, 68, 0.4));
+    }
+}
+
+/* 死亡效果 */
+.character-breathe.dead {
+    animation: deathFade 0.8s ease-out forwards;
+}
+
+@keyframes deathFade {
+    0% {
+        transform: scale(1) rotate(0);
+        opacity: 1;
+        filter: brightness(1);
+    }
+    50% {
+        transform: scale(0.95) rotate(-10deg);
+        opacity: 0.6;
+        filter: brightness(0.5) grayscale(0.5);
+    }
+    100% {
+        transform: scale(0.85) rotate(-20deg);
+        opacity: 0.3;
+        filter: brightness(0.3) grayscale(1);
+    }
+}
+
+/* 胜利姿态 */
+.character-breathe.victory {
+    animation: victoryPose 2s ease-in-out infinite;
+}
+
+@keyframes victoryPose {
+    0%, 100% {
+        transform: scale(1) translateY(0);
+        filter: brightness(1);
+    }
+    25% {
+        transform: scale(1.02) translateY(-3px);
+    }
+    50% {
+        transform: scale(1.05) translateY(-8px);
+        filter: brightness(1.2) drop-shadow(0 0 20px rgba(255, 215, 0, 0.4));
+    }
+    75% {
+        transform: scale(1.02) translateY(-3px);
+    }
+}
+
+/* 元素光环效果 */
+.character-breathe.element-fire {
+    animation: breathe 3s ease-in-out infinite, fireGlow 2s ease-in-out infinite;
+}
+
+.character-breathe.element-water {
+    animation: breathe 3s ease-in-out infinite, waterGlow 2s ease-in-out infinite;
+}
+
+.character-breathe.element-wind {
+    animation: breathe 3s ease-in-out infinite, windGlow 2s ease-in-out infinite;
+}
+
+.character-breathe.element-light {
+    animation: breathe 3s ease-in-out infinite, lightGlow 2s ease-in-out infinite;
+}
+
+.character-breathe.element-dark {
+    animation: breathe 3s ease-in-out infinite, darkGlow 2s ease-in-out infinite;
+}
+
+@keyframes fireGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: drop-shadow(0 0 25px rgba(239, 68, 68, 0.4));
+    }
+}
+
+@keyframes waterGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.4));
+    }
+}
+
+@keyframes windGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: drop-shadow(0 0 25px rgba(34, 197, 94, 0.4));
+    }
+}
+
+@keyframes lightGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.5));
+    }
+}
+
+@keyframes darkGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% {
+        filter: drop-shadow(0 0 25px rgba(139, 92, 246, 0.4));
+    }
+}
+
+/* 轻微摇摆效果（待机时） */
+.character-sway {
+    animation: sway 4s ease-in-out infinite;
+}
+
+@keyframes sway {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(1deg);
+    }
+    75% {
+        transform: rotate(-1deg);
+    }
+}
+
+/* 组合动画：呼吸 + 摇摆 */
+.character-alive {
+    animation: breathe 3s ease-in-out infinite, sway 4s ease-in-out infinite;
+}
+
+/* 眼睛闪烁效果（通过透明度变化模拟） */
+.character-blink {
+    animation: blink 4s ease-in-out infinite;
+}
+
+@keyframes blink {
+    0%, 45%, 55%, 100% {
+        filter: brightness(1);
+    }
+    50% {
+        filter: brightness(0.95);
+    }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .character-breathe {
+        animation: breatheMobile 3s ease-in-out infinite;
+    }
+    
+    @keyframes breatheMobile {
+        0%, 100% {
+            transform: scale(1) translateY(0);
+        }
+        50% {
+            transform: scale(1.01) translateY(-3px);
+        }
+    }
+}
