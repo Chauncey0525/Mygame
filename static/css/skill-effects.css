@@ -1,0 +1,675 @@
+/**
+ * 技能特效CSS动画系统
+ * 包含各种技能类型的视觉特效
+ */
+
+/* ==================== 基础特效容器 ==================== */
+.skill-effect {
+    position: absolute;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.skill-effect-container {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    transform: translate(-50%, -50%);
+}
+
+/* ==================== 元素颜色变量 ==================== */
+:root {
+    --fire-primary: #ff4500;
+    --fire-secondary: #ff6347;
+    --water-primary: #00bfff;
+    --water-secondary: #1e90ff;
+    --wind-primary: #90ee90;
+    --wind-secondary: #00ced1;
+    --earth-primary: #cd853f;
+    --earth-secondary: #8b4513;
+    --light-primary: #ffd700;
+    --light-secondary: #fffacd;
+    --dark-primary: #4b0082;
+    --dark-secondary: #2f0040;
+}
+
+/* ==================== 斩击特效 ==================== */
+.effect-slash {
+    overflow: visible;
+}
+
+.effect-slash .slash-line {
+    position: absolute;
+    width: 200px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--effect-color, #fff), transparent);
+    transform-origin: left center;
+    animation: slashAnim 0.4s ease-out forwards;
+}
+
+.effect-slash.intensity-strong .slash-line {
+    width: 280px;
+    height: 6px;
+    filter: drop-shadow(0 0 10px var(--effect-color, #fff));
+}
+
+.effect-slash.intensity-ultimate .slash-line {
+    width: 350px;
+    height: 8px;
+    filter: drop-shadow(0 0 20px var(--effect-color, #fff)) drop-shadow(0 0 40px var(--effect-color, #fff));
+    animation: slashUltimateAnim 0.6s ease-out forwards;
+}
+
+@keyframes slashAnim {
+    0% { transform: scaleX(0) rotate(-30deg); opacity: 1; }
+    50% { transform: scaleX(1) rotate(-30deg); opacity: 1; }
+    100% { transform: scaleX(1) rotate(-30deg); opacity: 0; }
+}
+
+@keyframes slashUltimateAnim {
+    0% { transform: scaleX(0) rotate(-30deg); opacity: 1; }
+    30% { transform: scaleX(1.2) rotate(-30deg); opacity: 1; }
+    60% { transform: scaleX(1) rotate(-25deg); opacity: 0.8; }
+    100% { transform: scaleX(0.8) rotate(-20deg); opacity: 0; }
+}
+
+/* 十字斩特效 */
+.special-cross_slash::before,
+.special-cross_slash::after {
+    content: '';
+    position: absolute;
+    background: linear-gradient(90deg, transparent, var(--effect-color, #fff), transparent);
+}
+
+.special-cross_slash::before {
+    width: 200px;
+    height: 4px;
+    transform: rotate(-30deg);
+    animation: crossSlash1 0.5s ease-out forwards;
+}
+
+.special-cross_slash::after {
+    width: 200px;
+    height: 4px;
+    transform: rotate(30deg);
+    animation: crossSlash2 0.5s ease-out 0.1s forwards;
+}
+
+@keyframes crossSlash1 {
+    0% { opacity: 0; transform: rotate(-30deg) scaleX(0); }
+    50% { opacity: 1; transform: rotate(-30deg) scaleX(1); }
+    100% { opacity: 0; transform: rotate(-30deg) scaleX(1); }
+}
+
+@keyframes crossSlash2 {
+    0% { opacity: 0; transform: rotate(30deg) scaleX(0); }
+    50% { opacity: 1; transform: rotate(30deg) scaleX(1); }
+    100% { opacity: 0; transform: rotate(30deg) scaleX(1); }
+}
+
+/* 龙形刀光特效 */
+.special-dragon_crescent {
+    animation: dragonAppear 0.8s ease-out forwards;
+}
+
+.special-dragon_crescent::before {
+    content: '🐉';
+    position: absolute;
+    font-size: 80px;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: dragonFly 0.8s ease-out forwards;
+    filter: drop-shadow(0 0 30px var(--fire-primary));
+}
+
+@keyframes dragonFly {
+    0% { transform: translateX(-50%) translateY(0) scale(0.5); opacity: 0; }
+    30% { transform: translateX(-50%) translateY(-20px) scale(1.2); opacity: 1; }
+    100% { transform: translateX(150px) translateY(-100px) scale(0.8); opacity: 0; }
+}
+
+/* ==================== 魔法特效 ==================== */
+.effect-magic {
+    border-radius: 50%;
+}
+
+.effect-magic .magic-circle {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    border: 3px solid var(--effect-color, #fff);
+    border-radius: 50%;
+    animation: magicCircleExpand 0.6s ease-out forwards;
+}
+
+.effect-magic.intensity-strong .magic-circle {
+    width: 200px;
+    height: 200px;
+    border-width: 4px;
+}
+
+.effect-magic.intensity-ultimate .magic-circle {
+    width: 280px;
+    height: 280px;
+    border-width: 5px;
+    box-shadow: 0 0 30px var(--effect-color, #fff), inset 0 0 30px var(--effect-color, #fff);
+    animation: magicCircleUltimate 1s ease-out forwards;
+}
+
+@keyframes magicCircleExpand {
+    0% { transform: scale(0); opacity: 1; }
+    70% { transform: scale(1.2); opacity: 0.8; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+@keyframes magicCircleUltimate {
+    0% { transform: scale(0) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.5) rotate(180deg); opacity: 1; }
+    100% { transform: scale(2) rotate(360deg); opacity: 0; }
+}
+
+/* 八卦阵特效 */
+.special-bagua_array {
+    animation: baguaRotate 1.5s linear forwards;
+}
+
+.special-bagua_array::before {
+    content: '☰';
+    position: absolute;
+    font-size: 60px;
+    top: -30px;
+    left: -30px;
+    animation: trigramRotate 1.5s linear forwards;
+    color: var(--water-primary);
+    text-shadow: 0 0 20px var(--water-primary);
+}
+
+.special-bagua_array::after {
+    content: '☷';
+    position: absolute;
+    font-size: 60px;
+    bottom: -30px;
+    right: -30px;
+    animation: trigramRotateReverse 1.5s linear forwards;
+    color: var(--water-primary);
+    text-shadow: 0 0 20px var(--water-primary);
+}
+
+@keyframes baguaRotate {
+    0% { transform: translate(-50%, -50%) rotate(0deg) scale(0); opacity: 0; }
+    20% { transform: translate(-50%, -50%) rotate(72deg) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) rotate(720deg) scale(1.5); opacity: 0; }
+}
+
+@keyframes trigramRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-720deg); }
+}
+
+@keyframes trigramRotateReverse {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(720deg); }
+}
+
+/* 火焰海洋特效 */
+.special-fire_ocean {
+    animation: fireOceanWave 1.8s ease-out forwards;
+}
+
+.special-fire_ocean::before {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 200px;
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        rgba(255, 69, 0, 0.8) 30%, 
+        rgba(255, 99, 71, 0.6) 60%, 
+        transparent 100%
+    );
+    animation: fireWave 1.8s ease-out forwards;
+    filter: blur(3px);
+}
+
+@keyframes fireWave {
+    0% { transform: translateX(-100%) scaleY(0.5); opacity: 0; }
+    30% { transform: translateX(0) scaleY(1); opacity: 1; }
+    70% { transform: translateX(50%) scaleY(1.2); opacity: 0.8; }
+    100% { transform: translateX(100%) scaleY(0.5); opacity: 0; }
+}
+
+/* 圣剑光束特效 */
+.has-beam {
+    overflow: visible;
+}
+
+.has-beam::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 400px;
+    background: linear-gradient(180deg, 
+        transparent, 
+        var(--effect-color, #ffd700), 
+        #fff,
+        var(--effect-color, #ffd700),
+        transparent
+    );
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: beamShoot 1.2s ease-out forwards;
+    filter: blur(2px);
+}
+
+.has-beam::after {
+    content: '';
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle, #fff, var(--effect-color, #ffd700), transparent);
+    border-radius: 50%;
+    animation: beamImpact 0.8s ease-out 0.3s forwards;
+}
+
+@keyframes beamShoot {
+    0% { transform: translateX(-50%) scaleY(0); opacity: 0; }
+    20% { transform: translateX(-50%) scaleY(0.1); opacity: 1; }
+    50% { transform: translateX(-50%) scaleY(1); opacity: 1; }
+    100% { transform: translateX(-50%) scaleY(0); opacity: 0; }
+}
+
+@keyframes beamImpact {
+    0% { transform: scale(0); opacity: 1; }
+    50% { transform: scale(3); opacity: 0.8; }
+    100% { transform: scale(5); opacity: 0; }
+}
+
+/* ==================== 投射物特效 ==================== */
+.effect-projectile {
+    animation: projectileFly var(--projectile-duration, 0.5s) ease-out forwards;
+}
+
+.effect-projectile .arrow {
+    width: 60px;
+    height: 6px;
+    background: linear-gradient(90deg, transparent, var(--effect-color, #fff));
+    border-radius: 3px;
+    animation: arrowGlow 0.3s ease-in-out infinite;
+}
+
+.effect-projectile.intensity-strong .arrow {
+    width: 80px;
+    height: 8px;
+    filter: drop-shadow(0 0 10px var(--effect-color, #fff));
+}
+
+.effect-projectile.intensity-ultimate .arrow {
+    width: 100px;
+    height: 10px;
+    filter: drop-shadow(0 0 20px var(--effect-color, #fff));
+}
+
+@keyframes projectileFly {
+    0% { transform: translateX(-100px); opacity: 1; }
+    100% { transform: translateX(100px); opacity: 0; }
+}
+
+@keyframes arrowGlow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.5); }
+}
+
+/* ==================== 治疗特效 ==================== */
+.effect-heal {
+    animation: healPulse 0.8s ease-out forwards;
+}
+
+.effect-heal .heal-ring {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: 2px solid var(--light-primary);
+    border-radius: 50%;
+    animation: healRingExpand 0.8s ease-out forwards;
+}
+
+.effect-heal .heal-cross {
+    position: absolute;
+    font-size: 40px;
+    color: var(--light-primary);
+    animation: healFloat 1s ease-out forwards;
+    text-shadow: 0 0 20px var(--light-primary);
+}
+
+.effect-heal.intensity-ultimate .heal-ring {
+    width: 200px;
+    height: 200px;
+    border-width: 4px;
+    box-shadow: 0 0 40px var(--light-primary);
+}
+
+@keyframes healPulse {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes healRingExpand {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes healFloat {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-50px); opacity: 0; }
+}
+
+/* ==================== 增益特效 ==================== */
+.effect-buff {
+    animation: buffApply 1s ease-out forwards;
+}
+
+.effect-buff .buff-aura {
+    position: absolute;
+    width: 120px;
+    height: 150px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: radial-gradient(ellipse at center bottom, 
+        var(--effect-color, #fff) 0%, 
+        transparent 70%
+    );
+    animation: auraPulse 1.5s ease-in-out infinite;
+    opacity: 0.6;
+}
+
+.effect-buff.has-aura .buff-aura {
+    animation: auraUltimate 2s ease-in-out infinite;
+}
+
+.effect-buff.intensity-ultimate .buff-aura {
+    width: 180px;
+    height: 220px;
+    opacity: 0.8;
+}
+
+@keyframes buffApply {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes auraPulse {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+@keyframes auraUltimate {
+    0%, 100% { transform: scale(1) translateY(0); opacity: 0.7; }
+    50% { transform: scale(1.15) translateY(-10px); opacity: 1; }
+}
+
+/* ==================== 减益特效 ==================== */
+.effect-debuff {
+    animation: debuffApply 0.8s ease-out forwards;
+}
+
+.effect-debuff .debuff-chains {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border: 3px dashed var(--dark-primary);
+    border-radius: 50%;
+    animation: chainsBind 1s ease-out forwards;
+}
+
+.effect-debuff.intensity-strong .debuff-chains {
+    width: 120px;
+    height: 120px;
+    border-width: 4px;
+}
+
+@keyframes debuffApply {
+    0% { transform: scale(1.5); opacity: 0; }
+    50% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.8); opacity: 0.6; }
+}
+
+@keyframes chainsBind {
+    0% { transform: rotate(0deg) scale(1.5); border-color: var(--dark-primary); }
+    50% { transform: rotate(180deg) scale(1); border-color: var(--dark-secondary); }
+    100% { transform: rotate(360deg) scale(0.8); border-color: var(--dark-primary); }
+}
+
+/* ==================== 连击特效 ==================== */
+.effect-combo {
+    animation: comboHit 0.3s ease-out forwards;
+}
+
+.effect-combo .combo-number {
+    position: absolute;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--effect-color, #fff);
+    animation: comboNumber 0.5s ease-out forwards;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+@keyframes comboHit {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes comboNumber {
+    0% { transform: translateY(0) scale(0.5); opacity: 1; }
+    100% { transform: translateY(-30px) scale(1.2); opacity: 0; }
+}
+
+/* ==================== 冲锋特效 ==================== */
+.effect-charge {
+    animation: chargeImpact 0.6s ease-out forwards;
+}
+
+.effect-charge .charge-trail {
+    position: absolute;
+    width: 150px;
+    height: 60px;
+    background: linear-gradient(90deg, transparent, var(--effect-color, #fff));
+    animation: trailFade 0.4s ease-out forwards;
+}
+
+@keyframes chargeImpact {
+    0% { transform: translateX(-50px); opacity: 0; }
+    30% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(0); opacity: 0; }
+}
+
+@keyframes trailFade {
+    0% { opacity: 1; transform: scaleX(1); }
+    100% { opacity: 0; transform: scaleX(0.5); }
+}
+
+/* ==================== 屏幕震动 ==================== */
+.has-shake {
+    animation: effectShake 0.5s ease-out;
+}
+
+@keyframes effectShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-10px); }
+    40% { transform: translateX(10px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+}
+
+/* ==================== 屏幕闪光 ==================== */
+.has-flash::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    animation: screenFlash 0.3s ease-out forwards;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes screenFlash {
+    0% { opacity: 0.6; }
+    100% { opacity: 0; }
+}
+
+/* ==================== 元素特效叠加 ==================== */
+.element-fire { --effect-color: var(--fire-primary); }
+.element-water { --effect-color: var(--water-primary); }
+.element-wind { --effect-color: var(--wind-primary); }
+.element-earth { --effect-color: var(--earth-primary); }
+.element-light { --effect-color: var(--light-primary); }
+.element-dark { --effect-color: var(--dark-primary); }
+.element-flying { --effect-color: var(--wind-primary); }
+
+/* ==================== 粒子效果 ==================== */
+.particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: particleFade var(--particle-life, 1s) ease-out forwards;
+}
+
+.particle.fire { background: var(--fire-primary); box-shadow: 0 0 6px var(--fire-primary); }
+.particle.water { background: var(--water-primary); box-shadow: 0 0 6px var(--water-primary); }
+.particle.wind { background: var(--wind-primary); box-shadow: 0 0 6px var(--wind-primary); }
+.particle.earth { background: var(--earth-primary); box-shadow: 0 0 6px var(--earth-primary); }
+.particle.light { background: var(--light-primary); box-shadow: 0 0 6px var(--light-primary); }
+.particle.dark { background: var(--dark-primary); box-shadow: 0 0 6px var(--dark-primary); }
+
+@keyframes particleFade {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    100% { transform: translate(var(--particle-vx, 0), var(--particle-vy, -50px)) scale(0); opacity: 0; }
+}
+
+/* ==================== 特效名称显示 ==================== */
+.skill-name-display {
+    position: absolute;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--effect-color, #fff);
+    text-shadow: 
+        2px 2px 4px rgba(0,0,0,0.8),
+        0 0 10px var(--effect-color, #fff);
+    animation: skillNameAppear 1.5s ease-out forwards;
+    white-space: nowrap;
+    z-index: 200;
+}
+
+.skill-name-display.intensity-ultimate {
+    font-size: 1.8rem;
+    animation: skillNameUltimate 2s ease-out forwards;
+}
+
+@keyframes skillNameAppear {
+    0% { transform: translateY(0) scale(0.5); opacity: 0; }
+    20% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+    80% { transform: translateY(-30px) scale(1); opacity: 1; }
+    100% { transform: translateY(-50px) scale(0.8); opacity: 0; }
+}
+
+@keyframes skillNameUltimate {
+    0% { transform: translateY(0) scale(0.3); opacity: 0; }
+    15% { transform: translateY(-30px) scale(1.5); opacity: 1; }
+    30% { transform: translateY(-40px) scale(1.2); opacity: 1; }
+    70% { transform: translateY(-50px) scale(1); opacity: 1; }
+    100% { transform: translateY(-80px) scale(0.6); opacity: 0; }
+}
+
+/* ==================== AOE范围特效 ==================== */
+.effect-magic_aoe {
+    animation: aoeExpand 1.5s ease-out forwards;
+}
+
+.effect-magic_aoe .aoe-circle {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border: 4px solid var(--effect-color, #fff);
+    border-radius: 50%;
+    animation: aoeCircleExpand 1.5s ease-out forwards;
+}
+
+@keyframes aoeExpand {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(1); opacity: 0; }
+}
+
+@keyframes aoeCircleExpand {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; border-width: 8px; }
+    50% { opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; border-width: 2px; }
+}
+
+/* ==================== 双刀特效 ==================== */
+.effect-dual_slash {
+    animation: dualSlashAnim 0.8s ease-out forwards;
+}
+
+.effect-dual_slash::before,
+.effect-dual_slash::after {
+    content: '';
+    position: absolute;
+    width: 150px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--effect-color, #fff), transparent);
+}
+
+.effect-dual_slash::before {
+    transform: rotate(-45deg);
+    animation: dualSlash1 0.6s ease-out forwards;
+}
+
+.effect-dual_slash::after {
+    transform: rotate(45deg);
+    animation: dualSlash2 0.6s ease-out 0.1s forwards;
+}
+
+@keyframes dualSlashAnim {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes dualSlash1 {
+    0% { transform: rotate(-45deg) scaleX(0); opacity: 1; }
+    100% { transform: rotate(-45deg) scaleX(1.5); opacity: 0; }
+}
+
+@keyframes dualSlash2 {
+    0% { transform: rotate(45deg) scaleX(0); opacity: 1; }
+    100% { transform: rotate(45deg) scaleX(1.5); opacity: 0; }
+}
+
+/* ==================== 突刺特效 ==================== */
+.effect-thrust {
+    animation: thrustAnim 0.4s ease-out forwards;
+}
+
+.effect-thrust .thrust-line {
+    width: 120px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--effect-color, #fff), transparent);
+    animation: thrustLine 0.3s ease-out forwards;
+}
+
+@keyframes thrustAnim {
+    0% { transform: translateX(-30px); opacity: 0; }
+    50% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(20px); opacity: 0; }
+}
+
+@keyframes thrustLine {
+    0% { transform: scaleX(0); }
+    50% { transform: scaleX(1); }
+    100% { transform: scaleX(0); }
+}
