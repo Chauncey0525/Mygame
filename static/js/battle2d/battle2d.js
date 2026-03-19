@@ -103,15 +103,14 @@ var Battle2D = (function() {
         var illustration = enemy.illustration || enemy.avatar;
         var isDynamic = illustration && illustration.includes('/dynamic/');
         
-        // 根据HP状态设置动画类
-        var animClass = 'breathe-idle';
+        // 根据HP状态设置动画类（对应 character-breathe.css）
+        var animClass = 'character-breathe';
         if (enemy.currentHp <= 0) {
-            animClass = 'breathe-dead';
+            animClass = 'character-breathe dead';
         } else if (hpPercent <= 20) {
-            animClass = 'breathe-near-death';
+            animClass = 'character-breathe critical';
         } else {
-            // 根据元素添加光环
-            animClass = 'breathe-idle element-' + (enemy.element || 'neutral');
+            animClass = 'character-breathe element-' + (enemy.element || 'neutral');
         }
         
         unit.innerHTML = 
@@ -160,15 +159,14 @@ var Battle2D = (function() {
         var illustration = ally.illustration || ally.avatar;
         var isDynamic = illustration && illustration.includes('/dynamic/');
         
-        // 根据HP状态设置动画类
-        var animClass = 'breathe-idle';
+        // 根据HP状态设置动画类（对应 character-breathe.css）
+        var animClass = 'character-breathe';
         if (ally.currentHp <= 0) {
-            animClass = 'breathe-dead';
+            animClass = 'character-breathe dead';
         } else if (hpPercent <= 20) {
-            animClass = 'breathe-near-death';
+            animClass = 'character-breathe critical';
         } else {
-            // 根据元素添加光环
-            animClass = 'breathe-idle element-' + (ally.element || 'neutral');
+            animClass = 'character-breathe element-' + (ally.element || 'neutral');
         }
         
         unit.innerHTML = 
@@ -252,7 +250,24 @@ var Battle2D = (function() {
             textEl.textContent = Math.floor(entity.currentHp) + '/' + entity.maxHp;
         }
         
-        // 更新死亡状态
+        // 根据HP更新呼吸动画状态
+        var sprite = document.getElementById(side + '-sprite-' + index);
+        if (sprite) {
+            var el = (side === 'enemy' ? enemies[index] : allies[index]) || {};
+            var elemClass = 'element-' + (el.element || 'neutral');
+            sprite.classList.remove('dead', 'critical');
+            // 移除旧的元素类
+            sprite.className.split(' ').forEach(function(c) {
+                if (c.indexOf('element-') === 0) sprite.classList.remove(c);
+            });
+            if (percent <= 0) {
+                sprite.classList.add('dead');
+            } else if (percent <= 0.2) {
+                sprite.classList.add('critical');
+            } else {
+                sprite.classList.add(elemClass);
+            }
+        }
         if (percent <= 0) {
             var unit = document.getElementById(side + '-unit-' + index);
             if (unit) {
@@ -266,16 +281,15 @@ var Battle2D = (function() {
      */
     function playAttack(attackerSide, attackerIndex, targetSide, targetIndex) {
         return new Promise(function(resolve) {
-            var attackerUnit = document.getElementById(attackerSide + '-unit-' + attackerIndex);
-            if (attackerUnit) {
-                attackerUnit.classList.add('attacking');
-                setTimeout(function() {
-                    attackerUnit.classList.remove('attacking');
-                    resolve();
-                }, getDelay(400));
-            } else {
+            var unit = document.getElementById(attackerSide + '-unit-' + attackerIndex);
+            var sprite = document.getElementById(attackerSide + '-sprite-' + attackerIndex);
+            if (unit) unit.classList.add('attacking');
+            if (sprite) sprite.classList.add('attacking');
+            setTimeout(function() {
+                if (unit) unit.classList.remove('attacking');
+                if (sprite) sprite.classList.remove('attacking');
                 resolve();
-            }
+            }, getDelay(400));
         });
     }
     
@@ -284,12 +298,13 @@ var Battle2D = (function() {
      */
     function playHit(side, index) {
         var unit = document.getElementById(side + '-unit-' + index);
-        if (unit) {
-            unit.classList.add('hit');
-            setTimeout(function() {
-                unit.classList.remove('hit');
-            }, getDelay(300));
-        }
+        var sprite = document.getElementById(side + '-sprite-' + index);
+        if (unit) unit.classList.add('hit');
+        if (sprite) sprite.classList.add('hit');
+        setTimeout(function() {
+            if (unit) unit.classList.remove('hit');
+            if (sprite) sprite.classList.remove('hit');
+        }, getDelay(300));
     }
     
     /**
@@ -338,18 +353,37 @@ var Battle2D = (function() {
      * 播放死亡动画
      */
     function playDeath(side, index) {
+        var sprite = document.getElementById(side + '-sprite-' + index);
+        if (sprite) {
+            sprite.classList.remove('character-breathe', 'critical');
+            sprite.classList.add('character-breathe', 'dead');
+        }
         var unit = document.getElementById(side + '-unit-' + index);
         if (unit) {
-            unit.style.transition = 'opacity 0.5s, transform 0.5s';
-            unit.style.opacity = '0.3';
-            unit.style.transform = 'scale(0.8)';
+            unit.classList.add('dead');
         }
     }
     
     /**
      * 播放技能特效
      */
-    function playSkillEffect(element, attackerSide, attackerIndex, targetSide, targetIndex) {
+    function _buildSkillEffectInnerHtml(effect) {
+        var t = (effect && effect.type) ? effect.type : 'slash';
+        if (t === 'slash') return '<div class="skill-effect-container"><div class="slash-line"></div></div>';
+        if (t === 'thrust') return '<div class="skill-effect-container"><div class="thrust-line"></div></div>';
+        if (t === 'magic') return '<div class="skill-effect-container"><div class="magic-circle"></div></div>';
+        if (t === 'magic_aoe') return '<div class="skill-effect-container"><div class="aoe-circle"></div></div>';
+        if (t === 'projectile') return '<div class="skill-effect-container"><div class="arrow"></div></div>';
+        if (t === 'heal') return '<div class="skill-effect-container"><div class="heal-ring"></div><div class="heal-cross"></div></div>';
+        if (t === 'buff') return '<div class="skill-effect-container"><div class="buff-aura"></div></div>';
+        if (t === 'debuff') return '<div class="skill-effect-container"><div class="debuff-chains"></div></div>';
+        if (t === 'combo') return '<div class="skill-effect-container"><div class="combo-number">×</div></div>';
+        if (t === 'charge') return '<div class="skill-effect-container"><div class="charge-trail"></div></div>';
+        if (t === 'dual_slash') return '<div class="skill-effect-container"></div>';
+        return '<div class="skill-effect-container"></div>';
+    }
+
+    function playSkillEffect(skillOrElement, attackerSide, attackerIndex, targetSide, targetIndex) {
         return new Promise(function(resolve) {
             var targetSprite = document.getElementById(targetSide + '-sprite-' + targetIndex);
             if (!targetSprite) {
@@ -359,14 +393,49 @@ var Battle2D = (function() {
             
             var rect = targetSprite.getBoundingClientRect();
             var arenaRect = arena.getBoundingClientRect();
-            
-            // 创建元素特效
-            var effect = document.createElement('div');
-            effect.className = 'element-effect ' + (element || 'neutral');
-            effect.style.left = (rect.left - arenaRect.left + rect.width / 2 - 100) + 'px';
-            effect.style.top = (rect.top - arenaRect.top + rect.height / 2 - 100) + 'px';
-            
-            arena.appendChild(effect);
+
+            var isObj = typeof skillOrElement === 'object' && skillOrElement;
+            var element = isObj ? (skillOrElement.element || 'neutral') : (skillOrElement || 'neutral');
+
+            // 先尝试每技能特效（SkillEffects），失败则退回元素特效
+            var dom = document.createElement('div');
+            var usedSkillFx = false;
+            try {
+                if (isObj && window.SkillEffects) {
+                    var attacker = (attackerSide === 'ally' ? allies[attackerIndex] : enemies[attackerIndex]) || {};
+                    var cid = attacker.character_id || attacker.characterId || attacker.id || '';
+                    var skName = skillOrElement.name || '';
+                    var cfg = window.SkillEffects.getSkillEffect(cid, skName);
+                    var cls = window.SkillEffects.getEffectCSSClass(cfg);
+                    dom.className = cls;
+                    dom.style.left = (rect.left - arenaRect.left + rect.width / 2) + 'px';
+                    dom.style.top = (rect.top - arenaRect.top + rect.height / 2) + 'px';
+                    dom.style.setProperty('--effect-color', cfg.color || '#94a3b8');
+                    dom.innerHTML = _buildSkillEffectInnerHtml(cfg);
+                    arena.appendChild(dom);
+                    usedSkillFx = true;
+
+                    if (cfg.screenFlash) {
+                        var flash2 = document.getElementById('effect-flash');
+                        if (flash2) {
+                            flash2.classList.add('active');
+                            setTimeout(function() { flash2.classList.remove('active'); }, getDelay(150));
+                        }
+                    }
+                    if (cfg.shake) cameraShake(0.12);
+
+                    var dur = window.SkillEffects.getEffectDuration(cfg, animSpeed);
+                    setTimeout(function() { dom.remove(); resolve(); }, Math.max(150, dur));
+                }
+            } catch (e) {}
+
+            if (usedSkillFx) return;
+
+            // 创建元素特效（兜底）
+            dom.className = 'element-effect ' + (element || 'neutral');
+            dom.style.left = (rect.left - arenaRect.left + rect.width / 2 - 100) + 'px';
+            dom.style.top = (rect.top - arenaRect.top + rect.height / 2 - 100) + 'px';
+            arena.appendChild(dom);
             
             // 闪光效果
             var flash = document.getElementById('effect-flash');
@@ -378,7 +447,7 @@ var Battle2D = (function() {
             }
             
             setTimeout(function() {
-                effect.remove();
+                dom.remove();
                 resolve();
             }, getDelay(600));
         });

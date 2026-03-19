@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/skill-effects.css') }}">
 <style>
 .battle-screen{display:flex;flex-direction:column;height:calc(100vh - 56px);overflow:hidden;position:relative}
 
@@ -46,42 +47,42 @@
 }
 
 /* 敌方区域（上方） */
-.enemy-area{position:absolute;top:20px;left:20px;right:20px;display:flex;flex-direction:column;gap:8px}
-.enemy-row{display:flex;justify-content:center;gap:20px;flex-wrap:wrap}
-.enemy-unit{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .2s}
+.enemy-area{position:absolute;top:0;left:0;right:0;height:46%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 10px 4px}
+.enemy-row{display:flex;justify-content:center;gap:10px;flex-wrap:nowrap;align-items:flex-end}
+.enemy-unit{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:transform .2s;max-width:30%}
 .enemy-unit:hover{transform:scale(1.05)}
 .enemy-unit.selected{filter:drop-shadow(0 0 12px #ef4444)}
 .enemy-unit.dead{opacity:0.4;pointer-events:none}
-.enemy-sprite{width:120px;height:120px;position:relative;display:flex;align-items:center;justify-content:center}
-.enemy-sprite img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));transition:transform .3s}
+.enemy-sprite{width:100%;height:36vh;position:relative;display:flex;align-items:flex-end;justify-content:center}
+.enemy-sprite img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:auto;filter:drop-shadow(0 4px 12px rgba(0,0,0,.7));transition:transform .3s}
 .enemy-unit.attacking .enemy-sprite img{animation:enemyAttack .5s ease-out}
 .enemy-unit.hit .enemy-sprite img{animation:hitShake .3s ease-out}
 @keyframes enemyAttack{0%,100%{transform:translateY(0)}50%{transform:translateY(20px) scale(1.1)}}
 @keyframes hitShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.enemy-info{background:rgba(15,23,42,.85);padding:6px 12px;border-radius:8px;border:1px solid #334155;min-width:140px}
-.enemy-name{font-size:.8rem;font-weight:700;color:#f1f5f9;text-align:center;margin-bottom:4px}
-.enemy-hp-bar{height:6px;background:#334155;border-radius:3px;overflow:hidden}
+.enemy-info{background:rgba(15,23,42,.85);padding:3px 8px;border-radius:6px;border:1px solid #334155;width:100%;max-width:160px}
+.enemy-name{font-size:.75rem;font-weight:700;color:#f1f5f9;text-align:center;margin-bottom:2px}
+.enemy-hp-bar{height:5px;background:#334155;border-radius:3px;overflow:hidden}
 .enemy-hp-fill{height:100%;border-radius:3px;transition:width .3s}
 .enemy-hp-fill.high{background:linear-gradient(90deg,#22c55e,#4ade80)}
 .enemy-hp-fill.mid{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
 .enemy-hp-fill.low{background:linear-gradient(90deg,#ef4444,#f87171)}
-.enemy-hp-text{font-size:.65rem;color:#94a3b8;text-align:center;margin-top:2px}
+.enemy-hp-text{font-size:.6rem;color:#94a3b8;text-align:center;margin-top:1px}
 
 /* 己方区域（下方） */
-.ally-area{position:absolute;bottom:20px;left:20px;right:20px;display:flex;justify-content:center;gap:30px}
-.ally-unit{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .2s}
+.ally-area{position:absolute;bottom:0;left:0;right:0;height:54%;display:flex;justify-content:center;align-items:flex-end;gap:10px;padding:0 10px 6px}
+.ally-unit{display:flex;flex-direction:column;align-items:center;gap:2px;transition:transform .2s;max-width:24%}
 .ally-unit.active{transform:scale(1.05)}
 .ally-unit.dead{opacity:0.4;pointer-events:none}
-.ally-sprite{width:100px;height:100px;position:relative;display:flex;align-items:center;justify-content:center}
-.ally-sprite img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));transition:transform .3s}
+.ally-sprite{width:100%;height:28vh;position:relative;display:flex;align-items:flex-end;justify-content:center}
+.ally-sprite img{max-width:100%;max-height:100%;object-fit:contain;image-rendering:auto;filter:drop-shadow(0 4px 12px rgba(0,0,0,.7));transition:transform .3s}
 .ally-unit.attacking .ally-sprite img{animation:allyAttack .4s ease-out}
 .ally-unit.hit .ally-sprite img{animation:hitShake .3s ease-out}
 @keyframes allyAttack{0%,100%{transform:translateY(0)}50%{transform:translateY(-30px) scale(1.1)}}
-.ally-info{background:rgba(251,191,36,.1);padding:6px 12px;border-radius:8px;border:1px solid #fbbf2440;min-width:120px}
-.ally-name{font-size:.75rem;font-weight:700;color:#fbbf24;text-align:center;margin-bottom:4px}
+.ally-info{background:rgba(251,191,36,.1);padding:3px 8px;border-radius:6px;border:1px solid #fbbf2440;width:100%;max-width:150px}
+.ally-name{font-size:.7rem;font-weight:700;color:#fbbf24;text-align:center;margin-bottom:2px}
 .ally-hp-bar{height:5px;background:#334155;border-radius:3px;overflow:hidden}
 .ally-hp-fill{height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);border-radius:3px;transition:width .3s}
-.ally-hp-text{font-size:.6rem;color:#94a3b8;text-align:center;margin-top:2px}
+.ally-hp-text{font-size:.55rem;color:#94a3b8;text-align:center;margin-top:1px}
 
 /* 伤害数字飘字 */
 .damage-float{position:absolute;font-weight:900;pointer-events:none;z-index:100;animation:damageFloat 1s ease-out forwards}
@@ -311,6 +312,8 @@
     </div>
 </div>
 
+<!-- 技能特效配置（每技能） -->
+<script src="{{ url_for('static', filename='js/battle2d/skill-effects.js') }}"></script>
 <!-- 2D战斗特效引擎 -->
 <script src="{{ url_for('static', filename='js/battle2d/skill-effects.js') }}"></script>
 <script src="{{ url_for('static', filename='js/battle2d/battle2d.js') }}"></script>
@@ -829,7 +832,6 @@ async function useSkill(skillIndex){
         var skillEl=(skill&&skill.element)?skill.element:attacker.element;
         for(var ai=0;ai<aliveItems.length;ai++){
             var x=aliveItems[ai];
-            // 使用高级特效系统
             if(Battle2D.ready && attacker.character_id && skill && skill.name) {
                 await Battle2D.playAdvancedSkillEffect(attacker.character_id, skill.name, 'ally', gameState.currentAllyIndex, 'enemy', x.i);
             } else if(Battle2D.ready) {
@@ -849,7 +851,6 @@ async function useSkill(skillIndex){
         var tgtIdx=gameState.selectedTargetIndex;
         var tgt=gameState.enemies[tgtIdx];
         if(skill){
-            // 使用高级特效系统
             if(Battle2D.ready && attacker.character_id && skill.name) {
                 await Battle2D.playAdvancedSkillEffect(attacker.character_id, skill.name, 'ally', gameState.currentAllyIndex, 'enemy', tgtIdx);
             } else {
@@ -945,7 +946,6 @@ async function useAwakeningSkill(){
         var skillEl=awk.element||attacker.element;
         for(var ai=0;ai<aliveItems.length;ai++){
             var x=aliveItems[ai];
-            // 觉醒技能使用高级特效（传入觉醒技能ID）
             if(Battle2D.ready && attacker.character_id && awk.id) {
                 await Battle2D.playAdvancedSkillEffect(attacker.character_id, awk.id, 'ally', ci, 'enemy', x.i);
             } else if(Battle2D.ready) {
@@ -963,7 +963,6 @@ async function useAwakeningSkill(){
         var tgtIdx=gameState.selectedTargetIndex;
         var tgt=gameState.enemies[tgtIdx];
         var sEl2=awk.element||attacker.element;
-        // 觉醒技能使用高级特效（传入觉醒技能ID）
         if(Battle2D.ready && attacker.character_id && awk.id) {
             await Battle2D.playAdvancedSkillEffect(attacker.character_id, awk.id, 'ally', ci, 'enemy', tgtIdx);
         } else if(Battle2D.ready) {
@@ -1094,6 +1093,7 @@ async function enemyTurn(){
     var aliveAllies=gameState.allies.filter(function(a){return a.currentHp>0});
     if(aliveAllies.length===0){endBattle(false);return;}
 
+    try{
     for(var idx=0;idx<gameState.enemies.length;idx++){
         var enemy=gameState.enemies[idx];
         if(enemy.currentHp<=0||gameState.battleEnded) continue;
@@ -1112,7 +1112,6 @@ async function enemyTurn(){
         }
 
         if(eSkill){
-            // 使用高级特效系统
             if(Battle2D.ready && enemy.character_id && eSkill.name) {
                 await Battle2D.playAdvancedSkillEffect(enemy.character_id, eSkill.name, 'enemy', idx, 'ally', ti);
             } else {
@@ -1136,6 +1135,7 @@ async function enemyTurn(){
         if(tgt.currentHp<=0){addLog('💔 '+tgt.name+' 被击败！');if(Battle2D.ready)Battle2D.playDeath('ally',ti);}
         await new Promise(function(res){setTimeout(res,getDelay(350));});
     }
+    }catch(e){console.error('enemyTurn error:',e);addLog('⚠️ 敌方行动异常，跳过');}
 
     var aliveAfter=gameState.allies.filter(function(a){return a.currentHp>0});
     if(aliveAfter.length===0){setTimeout(function(){endBattle(false)},getDelay(500));return;}

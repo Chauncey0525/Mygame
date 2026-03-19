@@ -48,6 +48,7 @@ from game_data import (
     BATTLE_MODES, BATTLE_ITEMS, DAILY_DUNGEONS, HERO_TRIALS, HARD_DUNGEONS,
     get_skills_for_character,
     get_skill_unlock_preview,
+    get_dynamic_illustration,
     get_skill_icon, SKILL_TYPE_ICONS,
 )
 
@@ -1124,7 +1125,7 @@ def get_battle_character(character_instance):
         'element': template['element'],
         'role_type': template['role_type'],
         'avatar': template['avatar'],
-        'illustration': template.get('illustration', template.get('avatar')),
+        'illustration': get_dynamic_illustration(template['id'], template.get('illustration', template.get('avatar'))),
         'rarity': rarity,
         'level': character_instance.level,
         'stars': star_soul_level,  # 星魂等级（复用 stars 字段语义）
@@ -1991,7 +1992,7 @@ def battle(stage_id):
                 'element': template['element'],
                 'role_type': template.get('role_type', 'warrior'),
                 'avatar': template['avatar'],
-                'illustration': template.get('illustration', template.get('avatar')),
+                'illustration': get_dynamic_illustration(template['id'], template.get('illustration', template.get('avatar'))),
                 'level': level,
                 'stats': stats,
                 'current_stats': stats.copy(),
