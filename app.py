@@ -1014,6 +1014,9 @@ def get_battle_character(character_instance):
     # 星魂：每角色 1/3/5 效果（可配置/可覆盖）
     from game_data import get_star_soul_effects
     star_soul_effects = get_star_soul_effects(template)
+    # Flask/Jinja 的 tojson 可能会 sort_keys；若同时存在 int/str key 会导致排序报错
+    if isinstance(star_soul_effects, dict):
+        star_soul_effects = {str(k): v for k, v in star_soul_effects.items()}
 
     def _merge_mods(*mods):
         out = {}
@@ -1272,6 +1275,7 @@ def index():
 
         d['roles'] = st.roles or ''
         d['character_id'] = st.character_id or ''
+        d['icon'] = get_skill_icon(d, d.get('character_id'))
         all_skill_templates.append(d)
 
     skill_elements = sorted({s['element'] for s in all_skill_templates if s.get('element')})
@@ -1387,56 +1391,6 @@ def characters():
     )
 
 
-@app.route('/character/preview/<character_id>')
-@login_required
-def character_preview(character_id):
-    """角色预览页面 - 根据角色模板ID预览"""
-    from game_data import ALL_CHARACTERS, get_skill_icon, SKILL_ELEMENT_ICONS
-    
-    # 查找角色模板
-    char_template = None
-    for char in ALL_CHARACTERS:
-        if char['id'] == character_id:
-            char_template = char.copy()
-            break
-    
-    if not char_template:
-        flash('角色不存在', 'error')
-        return redirect(url_for('characters'))
-    
-    player = current_user
-    
-    # 检查是否已拥有该角色
-    owned_char = PlayerCharacter.query.filter_by(
-        player_id=player.id,
-        character_id=character_id
-    ).first()
-    
-    if owned_char:
-        # 如果已拥有，跳转到角色详情
-        return redirect(url_for('character_detail', instance_id=owned_char.id))
-    
-    # 为技能添加图标
-    if 'skills' in char_template:
-        skills_with_icons = []
-        for skill in char_template['skills']:
-            skill_copy = skill.copy()
-            skill_copy['icon'] = get_skill_icon(skill, character_id)
-            skills_with_icons.append(skill_copy)
-        char_template['skills'] = skills_with_icons
-    
-    # 返回预览模板
-    return render_template('character_preview.html',
-        player=player,
-        character=char_template,
-        rarity_names=RARITY_NAMES,
-        rarity_colors=RARITY_COLORS,
-        element_names=ELEMENT_NAMES,
-        element_colors=ELEMENT_COLORS,
-        role_names=ROLE_NAMES
-    )
-
-
 @app.route('/character/<int:instance_id>')
 @login_required
 def character_detail(instance_id):
@@ -1501,6 +1455,58 @@ def skill_preview(skill_id: str):
     else:
         d['kind'] = 'shared'
 
+    d['icon'] = get_skill_icon(d, d.get('character_id'))
+
+    # 结构化效果：转为玩家可读文本（不展示 JSON）
+    def _effects_to_text(effects):
+        out = []
+        if not effects:
+            return out
+        for eff in effects:
+            if not isinstance(eff, dict):
+                continue
+            t = eff.get('type') or eff.get('effect') or ''
+            v = eff.get('value')
+            dur = eff.get('duration')
+
+            # 常见效果的玩家向描述
+            if t == 'heal_all_pct':
+                out.append(f'为全体友方回复 {v}% 生命')
+            elif t == 'heal_pct':
+                out.append(f'回复目标 {v}% 生命')
+            elif t == 'buff_atk':
+                out.append(f'攻击提升 {v}%{f"（{dur}回合）" if dur else ""}')
+            elif t == 'buff_def':
+                out.append(f'防御提升 {v}%{f"（{dur}回合）" if dur else ""}')
+            elif t == 'buff_spd':
+                out.append(f'速度提升 {v}%{f"（{dur}回合）" if dur else ""}')
+            elif t == 'buff_mdef':
+                out.append(f'魔防提升 {v}%{f"（{dur}回合）" if dur else ""}')
+            elif t == 'debuff_atk':
+                out.append(f'攻击降低 {v}%{f"（{dur}回合）" if dur else ""}')
+            elif t == 'debuff_def':
+                out.append(f'防御降低 {v}%{f"（{dur}回合）" if dur else ""}')
+            elif t == 'debuff_spd':
+                out.append(f'速度降低 {v}%{f"（{dur}回合）" if dur else ""}')
+            elif t == 'debuff_mdef':
+                out.append(f'魔防降低 {v}%{f"（{dur}回合）" if dur else ""}')
+            elif t == 'shield':
+                out.append(f'获得护盾（减伤 {v}%）{f"（{dur}回合）" if dur else ""}')
+            else:
+                # 兜底：不抛 JSON，但保留关键信息
+                parts = []
+                if t:
+                    parts.append(t)
+                if v is not None:
+                    parts.append(f'值:{v}')
+                if dur:
+                    parts.append(f'{dur}回合')
+                if parts:
+                    out.append(' · '.join(parts))
+        return out
+
+    d['effects_text'] = _effects_to_text(d.get('effects'))
+
     # 返回链接：尽量回到来源页
     back_url = request.referrer or url_for('index')
 
@@ -1520,12 +1526,34 @@ def skill_preview(skill_id: str):
 @app.route('/character-preview/<string:character_id>')
 @login_required
 def character_preview(character_id: str):
-    """角色预览（不依赖玩家是否拥有，也不含出战/养成状态）"""
+    """角色预览（不依赖玩家是否拥有；已拥有则跳转详情）"""
     player = current_user
     tpl = get_character_by_id(character_id)
     if not tpl:
         flash('角色不存在', 'error')
         return redirect(url_for('index'))
+
+    # 已拥有则跳转到角色详情
+    owned = PlayerCharacter.query.filter_by(
+        player_id=player.id,
+        character_id=character_id
+    ).first()
+    if owned:
+        return redirect(url_for('character_detail', instance_id=owned.id))
+
+    # 模板用 base_stats，与 get_character_by_id 返回的 stats 对齐
+    if 'stats' in tpl and 'base_stats' not in tpl:
+        tpl = dict(tpl)
+        tpl['base_stats'] = tpl['stats']
+
+    # 技能列表加图标
+    from game_data import get_skill_icon, get_star_soul_effects
+    if tpl.get('skills'):
+        tpl = dict(tpl)
+        tpl['skills'] = [
+            dict(s, icon=get_skill_icon(s, character_id))
+            for s in tpl['skills']
+        ]
 
     skill_unlock_preview = get_skill_unlock_preview(
         character_id=tpl['id'],
@@ -1533,7 +1561,6 @@ def character_preview(character_id: str):
         role_type=tpl.get('role_type'),
         element=tpl.get('element'),
     )
-    from game_data import get_star_soul_effects
     star_soul_effects = get_star_soul_effects(tpl)
 
     return render_template(
@@ -1963,6 +1990,7 @@ def battle(stage_id):
                 'element': template['element'],
                 'role_type': template.get('role_type', 'warrior'),
                 'avatar': template['avatar'],
+                'illustration': template.get('illustration', template.get('avatar')),
                 'level': level,
                 'stats': stats,
                 'current_stats': stats.copy(),

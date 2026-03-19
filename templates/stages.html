@@ -215,8 +215,9 @@
                             </div>
                             <div class="sr-reward">
                                 {% for k,v in level.rewards.items() %}
-                                {% if k == 'star_soul' %}{% continue %}{% endif %}
-                                {% if k == 'gold' %}💰{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}💎{% endif %}{{ v }} 
+                                {% if k != 'star_soul' %}
+                                    {% if k == 'gold' %}💰{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}💎{% endif %}{{ v }} 
+                                {% endif %}
                                 {% endfor %}
                             </div>
                         </div>
@@ -275,8 +276,9 @@
                             </div>
                             <div class="sr-reward">
                                 {% for k,v in boss.rewards.items() %}
-                                {% if k == 'star_soul' %}{% continue %}{% endif %}
-                                {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
+                                {% if k != 'star_soul' %}
+                                    {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
+                                {% endif %}
                                 {% endfor %}
                             </div>
                         </div>
@@ -335,8 +337,9 @@
                             </div>
                             <div class="sr-reward">
                                 {% for k,v in level.rewards.items() %}
-                                {% if k == 'star_soul' %}{% continue %}{% endif %}
-                                {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
+                                {% if k != 'star_soul' %}
+                                    {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
+                                {% endif %}
                                 {% endfor %}
                             </div>
                         </div>

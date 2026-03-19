@@ -99,9 +99,10 @@ var Battle2D = (function() {
         var hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
         var hpClass = hpPercent > 50 ? 'high' : (hpPercent > 25 ? 'mid' : 'low');
         
+        var spriteUrl = (enemy && (enemy.illustration || enemy.avatar)) || '';
         unit.innerHTML = 
             '<div class="enemy-sprite" id="enemy-sprite-' + index + '">' +
-                '<img src="' + enemy.avatar + '" alt="' + enemy.name + '" id="enemy-img-' + index + '">' +
+                '<img src="' + spriteUrl + '" alt="' + enemy.name + '" id="enemy-img-' + index + '">' +
             '</div>' +
             '<div class="enemy-info">' +
                 '<div class="enemy-name">' + enemy.name + '</div>' +
@@ -141,9 +142,10 @@ var Battle2D = (function() {
         
         var hpPercent = Math.max(0, (ally.currentHp / ally.maxHp) * 100);
         
+        var spriteUrl = (ally && (ally.illustration || ally.avatar)) || '';
         unit.innerHTML = 
             '<div class="ally-sprite" id="ally-sprite-' + index + '">' +
-                '<img src="' + ally.avatar + '" alt="' + ally.name + '" id="ally-img-' + index + '">' +
+                '<img src="' + spriteUrl + '" alt="' + ally.name + '" id="ally-img-' + index + '">' +
             '</div>' +
             '<div class="ally-info">' +
                 '<div class="ally-name">' + ally.name + '</div>' +

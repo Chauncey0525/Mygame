@@ -371,8 +371,10 @@ def get_skill_icon(skill, character_id=None):
     Returns:
         图标路径字符串
     """
-    # 1. 觉醒技能
+    # 1. 觉醒技能（优先使用角色专属图标）
     if skill.get('is_awakening'):
+        if character_id and character_id in CHARACTER_SKILL_ICONS:
+            return CHARACTER_SKILL_ICONS[character_id]
         return AWAKENING_SKILL_ICON
     
     # 2. 专属技能 - 使用角色专属图标

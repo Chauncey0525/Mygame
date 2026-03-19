@@ -1085,7 +1085,9 @@ async function claimAllDailyTasks() {
                          onclick="location.href='{{ url_for('skill_preview', skill_id=s.id) }}'">
                         <div class="book-card-avatar"
                              style="border-color: {{ element_colors[s.element] if s.element else '#475569' }}; background:rgba(0,0,0,0.12);">
-                            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#e2e8f0;font-weight:900;font-size:.65rem;">
+                            <img src="{{ s.icon }}" alt="{{ s.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"
+                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                            <div style="width:100%;height:100%;display:none;align-items:center;justify-content:center;color:#e2e8f0;font-weight:900;font-size:.65rem;">
                                 {{ {'physical':'物理','magic':'魔法','heal':'治疗','buff':'增益','debuff':'减益','passive':'被动'}.get(s.type,'技能') }}
                             </div>
                         </div>
@@ -1951,14 +1953,14 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSevenDayGoals();
     loadMainQuests();
     
-    // 首次本次会话显示公告
-    var hasSeenAnnouncement = sessionStorage.getItem('hasSeenAnnouncement');
-    if (!hasSeenAnnouncement) {
-        setTimeout(function() {
-            openTownModal('announcementModal');
-            sessionStorage.setItem('hasSeenAnnouncement', 'true');
-        }, 1000);
-    }
+    // 暂时关闭：进入游戏时自动弹出公告（仍可通过底部「公告」按钮查看）
+    // var hasSeenAnnouncement = sessionStorage.getItem('hasSeenAnnouncement');
+    // if (!hasSeenAnnouncement) {
+    //     setTimeout(function() {
+    //         openTownModal('announcementModal');
+    //         sessionStorage.setItem('hasSeenAnnouncement', 'true');
+    //     }, 1000);
+    // }
 
     // 新手礼包弹窗（仅未领取时显示）
     {% if not player.newbie_pack_claimed %}
