@@ -140,8 +140,11 @@ class PlayerCharacter(db.Model):
     # 养成数据
     level = db.Column(db.Integer, nullable=False, default=1)
     exp = db.Column(db.Integer, nullable=False, default=0)
-    stars = db.Column(db.Integer, nullable=False, default=1)
+    # stars 复用为“星魂等级”（类似命座），首次获得默认 0
+    stars = db.Column(db.Integer, nullable=False, default=0)
     breakthrough = db.Column(db.Integer, nullable=False, default=0)
+    # 每个角色独立魂力：重复抽取该角色 +1；每 1 魂力可提升 1 星魂（最多 5）
+    soul_power = db.Column(db.Integer, nullable=False, default=0)
     
     # 羁绊
     bond_level = db.Column(db.Integer, nullable=False, default=1)
@@ -165,6 +168,7 @@ class PlayerCharacter(db.Model):
             'stars': self.stars,
             'breakthrough': self.breakthrough,
             'bond_level': self.bond_level,
+            'soul_power': self.soul_power,
         }
 
 

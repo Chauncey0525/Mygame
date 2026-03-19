@@ -337,6 +337,38 @@ gameState.allies.forEach(function(ally, i){
     gameState.buffs[i] = [];
     gameState.awakeningUsed[i] = false;
 });
+
+// ========== 被动技能在战斗开始时生效 ==========
+// 用于让“星魂5大幅强化被动技能”的数值真正进入战斗表现
+gameState.allies.forEach(function(ally, i){
+    if(!ally.skills) return;
+    ally.skills.forEach(function(skill){
+        if(!skill) return;
+        if(!(skill.is_passive || skill.type === 'passive')) return;
+        var effects = (skill.effects && skill.effects.length) ? skill.effects : [];
+        if(!effects.length) return;
+
+        // 只处理当前战斗引擎已支持的 buff/debuff 效果
+        var hasBuff = effects.some(function(eff){
+            return eff && (
+                (eff.type && eff.type.indexOf('buff_') === 0) ||
+                eff.type === 'evasion_up' ||
+                eff.type === 'shield' ||
+                eff.type === 'heal_pct'
+            );
+        });
+        var hasDebuff = effects.some(function(eff){
+            return eff && eff.type && eff.type.indexOf('debuff_') === 0;
+        });
+
+        if(hasBuff){
+            applyBuff(ally, [{char: ally, side: 'ally', idx: i}], skill);
+        }
+        if(hasDebuff){
+            applyDebuff(ally, [{char: ally, side: 'ally', idx: i}], skill);
+        }
+    });
+});
 gameState.enemyAwakeningUsed = {};
 gameState.enemies.forEach(function(enemy, i){
     enemy.currentHp = enemy.stats.max_hp;
@@ -680,6 +712,34 @@ async function useSkill(skillIndex){
     if(skill&&skill.cooldown)gameState.skillCooldowns[gameState.currentAllyIndex][skillIndex]=skill.cooldown;
     var skillName=skill?skill.name:'普通攻击';
 
+    function _getStarSoulMods(att){
+        try{
+            var sse = att && att.star_soul_effects ? att.star_soul_effects : null;
+            if(!sse) return {};
+            // Python dict 的 int key 经过 JSON 后通常会变成字符串 key
+            var l3 = sse['3'] || sse[3] || null;
+            var mods = (l3 && l3.modifiers) ? l3.modifiers : {};
+            return mods || {};
+        }catch(e){return {};}
+    }
+
+    function applyStarSoulOnCast(att){
+        try{
+            var mods=_getStarSoulMods(att);
+            var pct=Number(mods.cast_self_heal_pct||0);
+            if(!(pct>0)) return;
+            var maxHp = att.stats.hp||att.stats.max_hp||1;
+            var heal = Math.max(1, Math.floor(maxHp*pct));
+            att.currentHp = Math.min(maxHp, att.currentHp + heal);
+            updateHpDisplay('ally',gameState.currentAllyIndex);
+            if(Battle3D.ready){
+                Battle3D.playHeal('ally',gameState.currentAllyIndex);
+                Battle3D.showDamage('ally',gameState.currentAllyIndex,heal,true);
+            }
+            addLog('💚 星魂共鸣：'+att.name+' 回复 '+heal+' HP');
+        }catch(e){}
+    }
+
     /* --- 治疗技能 --- */
     if(sType==='heal'){
         addLog('💚 '+attacker.name+' 使用 '+skillName);
@@ -695,6 +755,7 @@ async function useSkill(skillIndex){
         }
         applyHeal(attacker,healTargets,skill);
         if(window.AudioManager) window.AudioManager.playSfx('hit');
+        applyStarSoulOnCast(attacker);
         setTimeout(nextAlly,getDelay(400));
         return;
     }
@@ -713,6 +774,7 @@ async function useSkill(skillIndex){
         applyBuff(attacker,buffTargets,skill);
         if(window.AudioManager) window.AudioManager.playSfx('hit');
         updateActorInfo();
+        applyStarSoulOnCast(attacker);
         setTimeout(nextAlly,getDelay(400));
         return;
     }
@@ -733,6 +795,7 @@ async function useSkill(skillIndex){
         }
         applyDebuff(attacker,dbTargets,skill);
         if(window.AudioManager) window.AudioManager.playSfx('hit');
+        applyStarSoulOnCast(attacker);
         setTimeout(nextAlly,getDelay(400));
         return;
     }
@@ -756,6 +819,7 @@ async function useSkill(skillIndex){
             checkBossPhase(x.e,x.i);
             if(x.e.currentHp<=0){addLog('💀 '+x.e.name+' 被击败！');if(Battle2D.ready)Battle2D.playDeath('enemy',x.i);}
         }
+        if(skill) applyStarSoulOnCast(attacker);
     }else{
         var tgtIdx=gameState.selectedTargetIndex;
         var tgt=gameState.enemies[tgtIdx];
@@ -776,6 +840,7 @@ async function useSkill(skillIndex){
         if(Battle2D.ready) Battle2D.cameraShake(r2.isCrit?0.15:0.06);
         checkBossPhase(tgt,tgtIdx);
         if(tgt.currentHp<=0){addLog('💀 '+tgt.name+' 被击败！');if(Battle2D.ready)Battle2D.playDeath('enemy',tgtIdx);}
+        if(skill) applyStarSoulOnCast(attacker);
     }
     if(window.AudioManager) window.AudioManager.playSfx('hit');
     var alive=gameState.enemies.filter(function(e){return e.currentHp>0});
@@ -1069,7 +1134,6 @@ async function endBattle(victory){
             if(result.rewards.exp)rh+='<p>📖 经验 +'+result.rewards.exp+'</p>';
             if(result.rewards.gems)rh+='<p>💎 钻石 +'+result.rewards.gems+'</p>';
             if(result.rewards.exp_books)rh+='<p>📚 经验书 +'+result.rewards.exp_books+'</p>';
-            if(result.rewards.star_soul)rh+='<p>⭐ 星魂 +'+result.rewards.star_soul+'</p>';
             if(result.rewards.breakthrough_stone)rh+='<p>🔮 突破石 +'+result.rewards.breakthrough_stone+'</p>';
             content.innerHTML='<div style="margin-bottom:1rem">'+starsHtml+'</div><p style="font-size:1.25rem;color:white">恭喜通关！</p><div style="margin-top:1rem">'+rh+'</div><div style="margin-top:.5rem;font-size:.85rem;color:#94a3b8">回合: '+turns+' | 阵亡: '+casualties+'</div>';
         }else{

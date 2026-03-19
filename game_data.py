@@ -1340,7 +1340,6 @@ SHOP_ITEMS = [
     {'id': 'shop-energy-1',  'name': '体力药水',   'description': '恢复 50 点体力', 'price_type': 'gems', 'price': 30,  'reward_type': 'energy',         'reward_amount': 50,    'daily_limit': 5, 'category': 'resource'},
     {'id': 'shop-ticket-1',  'name': '召唤券',     'description': '获得 1 张召唤券', 'price_type': 'gems', 'price': 80,  'reward_type': 'summon_tickets', 'reward_amount': 1,     'daily_limit': 3, 'category': 'summon'},
     {'id': 'shop-ticket-5',  'name': '召唤券礼包', 'description': '获得 5 张召唤券', 'price_type': 'gems', 'price': 350, 'reward_type': 'summon_tickets', 'reward_amount': 5,     'daily_limit': 1, 'category': 'summon'},
-    {'id': 'shop-starsoul-1','name': '星魂碎片',   'description': '获得 5 个星魂', 'price_type': 'gold', 'price': 10000, 'reward_type': 'star_soul',     'reward_amount': 5,     'daily_limit': 3, 'category': 'upgrade'},
 ]
 
 # 主线任务配置
@@ -1451,6 +1450,149 @@ def get_all_characters():
     
     # 降级到静态数据
     return ALL_CHARACTERS
+
+
+# ==================== 星魂（命座）系统：1/3/5阶效果 ====================
+#
+# 说明：
+# - 每个角色都会生成一套 1/3/5 阶星魂效果（名称/描述/参数）
+# - 如果需要“为某个角色手写专属效果”，在 STAR_SOUL_OVERRIDES 里覆盖即可
+#
+# 生效入口：
+# - 角色页/预览页用于展示
+# - 战斗与技能系统读取 modifiers/hook 参数
+#
+STAR_SOUL_OVERRIDES = {
+    # 示例：
+    # 'hua-mulan': {
+    #   1: {'name':'从军之志', 'desc':'...','modifiers':{...}},
+    #   3: {...},
+    #   5: {...},
+    # }
+}
+
+_ROLE_CN = {
+    'warrior': '战士',
+    'tank': '坦克',
+    'mage': '法师',
+    'assassin': '刺客',
+    'support': '辅助',
+}
+
+_ELEMENT_CN = ELEMENT_NAMES
+
+
+def get_star_soul_effects(character: dict) -> dict:
+    """
+    为角色生成 1/3/5 星魂效果配置。
+
+    返回结构：
+    {
+      1: {name, desc, modifiers: {...}},
+      3: {...},
+      5: {...},
+      meta: {role_type, element}
+    }
+    """
+    cid = (character or {}).get('id') or (character or {}).get('character_id') or ''
+    if cid in STAR_SOUL_OVERRIDES:
+        return STAR_SOUL_OVERRIDES[cid]
+
+    name = (character or {}).get('name') or cid
+    role = (character or {}).get('role_type') or 'warrior'
+    element = (character or {}).get('element') or ''
+    role_cn = _ROLE_CN.get(role, role)
+    element_cn = _ELEMENT_CN.get(element, element or '无元素')
+
+    # 让每个角色“看起来”都不同：用 id 的简单散列挑选风格词
+    seed = sum(ord(c) for c in cid) % 7
+    flair = [
+        '誓约', '回响', '余烬', '星轨', '战意', '秘印', '共鸣'
+    ][seed]
+
+    # 通用可实现的 modifiers：
+    # - cooldown_delta: 主动技能 CD 变化（负数=减少）
+    # - cast_self_heal_pct: 施放技能后自愈（按最大生命百分比）
+    # - effect_duration_bonus: skills.effects[].duration +N
+    # - power_mult: 技能 power 倍率
+    # - passive_effect_mult: 被动效果 value 倍率
+    #
+    # 这里按定位/元素生成“偏向不同”的组合，保证每个角色都有独立三阶描述与参数
+
+    # 星魂1：技能强化（更偏向“手感”，比如 CD / 持续 / 触发）
+    if role in ('assassin',):
+        s1 = {
+            'name': f'{flair}·疾影',
+            'desc': f'【{name}】的主动技能更利落：冷却时间-1（最低为0）。',
+            'modifiers': {'cooldown_delta': -1},
+        }
+    elif role in ('support', 'mage'):
+        s1 = {
+            'name': f'{flair}·灵息',
+            'desc': f'【{name}】的术式更持久：技能效果持续回合数+1（对含 duration 的效果生效）。',
+            'modifiers': {'effect_duration_bonus': 1},
+        }
+    else:
+        s1 = {
+            'name': f'{flair}·锋芒',
+            'desc': f'【{name}】的战技更凌厉：主动技能威力提升（基础倍率+10%）。',
+            'modifiers': {'power_mult': 1.10},
+        }
+
+    # 星魂2：属性提升（固定与战斗实现一致：+5%）
+    s2 = {
+        'name': f'{flair}·淬体',
+        'desc': '基础属性提升：生命、攻防、速度等主要属性 +5%（已直接计入战斗属性）。',
+        'modifiers': {'attr_bonus_pct': 0.05},
+    }
+
+    # 星魂3：技能强化（更偏向“战斗收益”）
+    if role in ('tank',):
+        s3 = {
+            'name': f'{element_cn}·守护之印',
+            'desc': f'施放任意技能后，自身回复最大生命的5%。',
+            'modifiers': {'cast_self_heal_pct': 0.05},
+        }
+    elif role in ('support',):
+        s3 = {
+            'name': f'{element_cn}·济世回响',
+            'desc': f'施放任意技能后，自身回复最大生命的5%（后续可扩展为“友方最低血量目标回复”）。',
+            'modifiers': {'cast_self_heal_pct': 0.05},
+        }
+    else:
+        s3 = {
+            'name': f'{element_cn}·战意回流',
+            'desc': f'施放任意技能后，自身回复最大生命的5%。',
+            'modifiers': {'cast_self_heal_pct': 0.05},
+        }
+
+    # 星魂4：属性提升（固定与战斗实现一致：再 +5%）
+    s4 = {
+        'name': f'{flair}·铸魂',
+        'desc': '基础属性再次提升：主要属性额外 +5%（与 2★叠加）。',
+        'modifiers': {'attr_bonus_pct': 0.05},
+    }
+
+    # 星魂5：大幅强化被动技能（仅被动 value / 等效强度倍增）
+    s5 = {
+        'name': f'{flair}·命定',
+        'desc': f'大幅强化被动天赋：被动效果数值提升（约 +75%）。',
+        'modifiers': {'passive_effect_mult': 1.75},
+    }
+
+    return {
+        1: s1,
+        2: s2,
+        3: s3,
+        4: s4,
+        5: s5,
+        'meta': {
+            'role_type': role,
+            'element': element,
+            'role_cn': role_cn,
+            'element_cn': element_cn,
+        }
+    }
 
 
 def get_stage_by_id(stage_id):

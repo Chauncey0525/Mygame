@@ -771,6 +771,48 @@ async function claimTask(taskId) {
         ToastManager.error('领取失败：' + (result.error || '请稍后重试'));
     }
 }
+
+// 一键领取每日任务奖励
+async function claimAllDailyTasks() {
+    const btn = document.getElementById('claim-all-daily-btn');
+    const modal = document.getElementById('townTasksModal');
+    const taskButtons = modal ? modal.querySelectorAll('button[data-task-id]') : [];
+    const taskIds = Array.from(taskButtons).map(b => b.getAttribute('data-task-id')).filter(Boolean);
+
+    if (!taskIds.length) {
+        ToastManager.info('暂无可领取的每日任务');
+        return;
+    }
+
+    if (btn) btn.disabled = true;
+    const totals = { gold: 0, gems: 0 };
+    try {
+        for (const taskId of taskIds) {
+            const result = await apiCall('/api/daily/claim', { task_id: taskId });
+            if (result && result.success && result.rewards) {
+                totals.gold += result.rewards.gold || 0;
+                totals.gems += result.rewards.gems || 0;
+            }
+        }
+
+        ToastManager.success(`一键领取成功：金币 +${totals.gold}，钻石 +${totals.gems}`);
+        try {
+            if (totals.gold) {
+                const el = document.getElementById('hud-gold');
+                if (el) showResourceFloat(totals.gold, el, true);
+            }
+            if (totals.gems) {
+                const el = document.getElementById('hud-gems');
+                if (el) showResourceFloat(totals.gems, el, true);
+            }
+        } catch (e) {}
+
+        setTimeout(() => location.reload(), 1200);
+    } catch (e) {
+        ToastManager.error('一键领取失败：' + (e && e.message ? e.message : '请稍后重试'));
+        if (btn) btn.disabled = false;
+    }
+}
 </script>
 
 <!-- 弹窗：队伍府 -->
@@ -791,7 +833,7 @@ async function claimTask(taskId) {
                     {% for char in team %}
                     <div class="card" style="width: 140px; background: rgba(51, 65, 85, 0.55);">
                         <div class="card-body" style="text-align:center; padding: 0.75rem;">
-                            <div style="width: 70px; height: 70px; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px solid {{ element_colors[char.element] if element_colors else '#475569' }};">
+                            <div style="width: 70px; height: 70px; border-radius: 50%; overflow: hidden; margin: 0 auto; border: 3px solid {{ rarity_colors[char.rarity] if rarity_colors else (element_colors[char.element] if element_colors else '#475569') }};">
                                 <img src="{{ char.avatar }}" alt="{{ char.name }}" style="width: 100%; height: 100%; object-fit: cover; object-position: top;">
                             </div>
                             <div style="font-weight: 900; color: white; margin-top: 0.5rem;">{{ char.name }}</div>
@@ -819,6 +861,11 @@ async function claimTask(taskId) {
             {% if not daily_tasks %}
             <p style="text-align: center; color: #94a3b8; padding: 2rem;">今日暂无任务，明天再来看看吧。</p>
             {% else %}
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <button type="button" id="claim-all-daily-btn" class="btn btn-primary" onclick="claimAllDailyTasks()" style="padding: 0.5rem 1rem;">
+                    一键领取
+                </button>
+            </div>
             {% for task in daily_tasks %}
             <div class="task-card" style="{% if task.claimed %}opacity: 0.5;{% elif task.completed %}border: 2px solid #22c55e;{% endif %}">
                 <div class="task-info">
@@ -835,7 +882,7 @@ async function claimTask(taskId) {
                     {% if task.claimed %}
                         <span class="badge" style="background: #475569;">已领取</span>
                     {% elif task.completed %}
-                        <button onclick="claimTask('{{ task.id }}')" class="btn btn-success" style="padding: 0.5rem 1rem;">
+                        <button onclick="claimTask('{{ task.id }}')" class="btn btn-success" style="padding: 0.5rem 1rem;" data-task-id="{{ task.id }}">
                             领取
                         </button>
                     {% else %}
@@ -860,6 +907,11 @@ async function claimTask(taskId) {
             <div class="quest-center-tabs">
                 <button type="button" class="quest-tab active" data-quest-tab="main">主线任务</button>
                 <button type="button" class="quest-tab" data-quest-tab="daily">每日任务</button>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <button type="button" id="claim-all-main-quests-btn" class="btn btn-primary" onclick="claimAllMainQuests()" style="padding: 0.5rem 1rem;">
+                    一键领取
+                </button>
             </div>
             <div id="quest-main-content">
                 <div style="text-align: center; color: #94a3b8; padding: 2rem;">加载中...</div>
@@ -897,64 +949,163 @@ async function claimTask(taskId) {
             <button class="modal-close" type="button" onclick="closeTownModal('townBookModal')">&times;</button>
         </div>
         <div class="modal-body">
-            <div class="book-filters">
-                <div class="book-filter-row">
-                    <span class="book-filter-label">拥有状态</span>
-                    <select id="book-filter-owned" class="book-select">
-                        <option value="">全部</option>
-                        <option value="1">已拥有</option>
-                        <option value="0">未拥有</option>
-                    </select>
-                </div>
-                <div class="book-filter-row">
-                    <span class="book-filter-label">属性</span>
-                    <select id="book-filter-element" class="book-select">
-                        <option value="">全部</option>
-                        {% for key, name in element_names.items() %}
-                        <option value="{{ key }}">{{ name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="book-filter-row">
-                    <span class="book-filter-label">稀有度</span>
-                    <select id="book-filter-rarity" class="book-select">
-                        <option value="">全部</option>
-                        {% for key, name in rarity_names.items() %}
-                        <option value="{{ key }}">{{ name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="book-filter-row">
-                    <span class="book-filter-label">定位</span>
-                    <select id="book-filter-role" class="book-select">
-                        <option value="">全部</option>
-                        {% for key, name in role_names.items() %}
-                        <option value="{{ key }}">{{ name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
+            <div class="book-tabs" style="display:flex;gap:.6rem;margin-bottom:1rem;">
+                <button id="book-tab-role" type="button" class="btn btn-block" style="flex:1;max-width:220px;background:var(--medieval-parchment);border:1px solid var(--medieval-border);color:var(--medieval-text);"
+                        onclick="switchBookTab('role')">角色图鉴</button>
+                <button id="book-tab-skill" type="button" class="btn btn-block" style="flex:1;max-width:220px;background:rgba(0,0,0,0.15);border:1px solid rgba(148,163,184,0.22);color:#94a3b8;"
+                        onclick="switchBookTab('skill')">技能图鉴</button>
             </div>
-            <div class="book-stats" style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.75rem;">
-                已收集 {{ owned_character_ids|length }} / {{ all_character_templates|length }}
-            </div>
-            <p id="book-no-results" class="book-no-results" style="display: none;">没有匹配的角色，试试调整筛选条件。</p>
-            <div id="book-grid" class="book-grid">
-                {% for c in all_character_templates %}
-                <div class="book-card" data-owned="{{ '1' if c.id in owned_character_ids else '0' }}" data-element="{{ c.element }}" data-rarity="{{ c.rarity }}" data-role="{{ c.role_type }}">
-                    <div class="book-card-avatar" style="border-color: {{ element_colors[c.element] }};">
-                        <img src="{{ c.avatar }}" alt="{{ c.name }}">
-                        {% if c.id not in owned_character_ids %}
-                        <div class="book-card-lock">未获得</div>
-                        {% endif %}
+
+            <!-- 角色图鉴 -->
+            <div id="book-role-panel">
+                <div class="book-filters">
+                    <div class="book-filter-row">
+                        <span class="book-filter-label">拥有状态</span>
+                        <select id="book-filter-owned" class="book-select">
+                            <option value="">全部</option>
+                            <option value="1">已拥有</option>
+                            <option value="0">未拥有</option>
+                        </select>
                     </div>
-                    <div class="book-card-name">{{ c.name }}</div>
-                    <div class="book-card-badges">
-                        <span class="badge bg-rarity-{{ c.rarity }}" style="font-size: 0.65rem;">{{ rarity_names[c.rarity] }}</span>
-                        <span class="badge" style="background: {{ element_colors[c.element] }}; font-size: 0.65rem;">{{ element_names[c.element] }}</span>
-                        <span class="badge" style="background: #475569; font-size: 0.65rem;">{{ role_names[c.role_type] }}</span>
+                    <div class="book-filter-row">
+                        <span class="book-filter-label">属性</span>
+                        <select id="book-filter-element" class="book-select">
+                            <option value="">全部</option>
+                            {% for key, name in element_names.items() %}
+                            <option value="{{ key }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="book-filter-row">
+                        <span class="book-filter-label">稀有度</span>
+                        <select id="book-filter-rarity" class="book-select">
+                            <option value="">全部</option>
+                            {% for key, name in rarity_names.items() %}
+                            <option value="{{ key }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="book-filter-row">
+                        <span class="book-filter-label">定位</span>
+                        <select id="book-filter-role" class="book-select">
+                            <option value="">全部</option>
+                            {% for key, name in role_names.items() %}
+                            <option value="{{ key }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
-                {% endfor %}
+                <div class="book-stats" style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.75rem;">
+                    已收集 {{ owned_character_ids|length }} / {{ all_character_templates|length }}
+                </div>
+                <p id="book-no-results" class="book-no-results" style="display: none;">没有匹配的角色，试试调整筛选条件。</p>
+                <div id="book-grid" class="book-grid">
+                    {% for c in all_character_templates %}
+                    <div class="book-card" data-owned="{{ '1' if c.id in owned_character_ids else '0' }}" data-element="{{ c.element }}" data-rarity="{{ c.rarity }}" data-role="{{ c.role_type }}" onclick="location.href='{{ url_for('character_preview', character_id=c.id) }}'">
+                        <div class="book-card-avatar" style="border-color: {{ rarity_colors[c.rarity] if rarity_colors else element_colors[c.element] }};">
+                            <img src="{{ c.avatar }}" alt="{{ c.name }}">
+                            {% if c.id not in owned_character_ids %}
+                            <div class="book-card-lock">未获得</div>
+                            {% endif %}
+                        </div>
+                        <div class="book-card-name">{{ c.name }}</div>
+                        <div class="book-card-badges">
+                            <span class="badge bg-rarity-{{ c.rarity }}" style="font-size: 0.65rem;">{{ rarity_names[c.rarity] }}</span>
+                            <span class="badge" style="background: {{ element_colors[c.element] }}; font-size: 0.65rem;">{{ element_names[c.element] }}</span>
+                            <span class="badge" style="background: #475569; font-size: 0.65rem;">{{ role_names[c.role_type] }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 技能图鉴 -->
+            <div id="book-skill-panel" style="display:none;">
+                <div class="book-filters">
+                    <div class="book-filter-row">
+                        <span class="book-filter-label">元素</span>
+                        <select id="skill-filter-element" class="book-select">
+                            {% for el in skill_elements %}
+                                {% if el == '' %}
+                                <option value="">全部</option>
+                                {% else %}
+                                <option value="{{ el }}">{{ element_names[el] if el in element_names else el }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="book-filter-row">
+                        <span class="book-filter-label">技能类型</span>
+                        <select id="skill-filter-type" class="book-select">
+                            {% for t in skill_types %}
+                                {% if t == '' %}
+                                <option value="">全部</option>
+                                {% else %}
+                                <option value="{{ t }}">{{ {'physical':'物理','magic':'魔法','heal':'治疗','buff':'增益','debuff':'减益','passive':'被动'}.get(t,'技能') }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="book-filter-row">
+                        <span class="book-filter-label">目标</span>
+                        <select id="skill-filter-target" class="book-select">
+                            {% for tt in skill_targets %}
+                                {% if tt == '' %}
+                                <option value="">全部</option>
+                                {% else %}
+                                <option value="{{ tt }}">{{ {'all':'全体','ally_all':'友方全体','ally_single':'友方单体','self':'自身','single':'单体'}.get(tt, tt) }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="book-filter-row">
+                        <span class="book-filter-label">技能来源</span>
+                        <select id="skill-filter-kind" class="book-select">
+                            {% for k in skill_kinds %}
+                                {% if k == '' %}
+                                <option value="">全部</option>
+                                {% else %}
+                                <option value="{{ k }}">{{ {'shared':'通用技能','exclusive':'专属技能','awakening':'觉醒技能','passive':'被动天赋'}.get(k,'技能') }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="book-stats" style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.75rem;">
+                    技能数量 {{ all_skill_templates|length }}
+                </div>
+                <p id="skill-book-no-results" class="book-no-results" style="display: none;">没有匹配的技能，试试调整筛选条件。</p>
+                <div id="skill-book-grid" class="book-grid">
+                    {% for s in all_skill_templates %}
+                    <div class="skill-book-card book-card"
+                         data-element="{{ s.element or '' }}"
+                         data-type="{{ s.type or '' }}"
+                         data-target="{{ s.target or '' }}"
+                         data-kind="{{ s.kind or '' }}"
+                         onclick="location.href='{{ url_for('skill_preview', skill_id=s.id) }}'">
+                        <div class="book-card-avatar"
+                             style="border-color: {{ element_colors[s.element] if s.element else '#475569' }}; background:rgba(0,0,0,0.12);">
+                            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#e2e8f0;font-weight:900;font-size:.65rem;">
+                                {{ {'physical':'物理','magic':'魔法','heal':'治疗','buff':'增益','debuff':'减益','passive':'被动'}.get(s.type,'技能') }}
+                            </div>
+                        </div>
+                        <div class="book-card-name">{{ s.name }}</div>
+                        <div class="book-card-badges">
+                            <span class="badge" style="font-size: 0.65rem;background:rgba(0,0,0,0.25);">
+                                {{ {'shared':'通用技能','exclusive':'专属技能','awakening':'觉醒技能','passive':'被动天赋'}.get(s.kind,'技能') }}
+                            </span>
+                            {% if s.element %}
+                            <span class="badge" style="font-size: 0.65rem;background: {{ element_colors[s.element] }};">
+                                {{ element_names[s.element] if s.element in element_names else s.element }}
+                            </span>
+                            {% endif %}
+                            <span class="badge" style="font-size: 0.65rem;background:#475569;">
+                                Lv.{{ s.unlock_level }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
@@ -991,6 +1142,68 @@ async function claimTask(taskId) {
         if (el) el.addEventListener('change', applyBookFilters);
     });
 })();
+
+function switchBookTab(tab) {
+    var rolePanel = document.getElementById('book-role-panel');
+    var skillPanel = document.getElementById('book-skill-panel');
+    var btnRole = document.getElementById('book-tab-role');
+    var btnSkill = document.getElementById('book-tab-skill');
+    if (!rolePanel || !skillPanel) return;
+
+    var isRole = tab === 'role';
+    rolePanel.style.display = isRole ? '' : 'none';
+    skillPanel.style.display = isRole ? 'none' : '';
+
+    if (btnRole && btnSkill) {
+        if (isRole) {
+            btnRole.style.background = 'var(--medieval-parchment)';
+            btnRole.style.color = 'var(--medieval-text)';
+            btnSkill.style.background = 'rgba(0,0,0,0.15)';
+            btnSkill.style.color = '#94a3b8';
+        } else {
+            btnSkill.style.background = 'var(--medieval-parchment)';
+            btnSkill.style.color = 'var(--medieval-text)';
+            btnRole.style.background = 'rgba(0,0,0,0.15)';
+            btnRole.style.color = '#94a3b8';
+        }
+    }
+}
+
+(function() {
+    var grid = document.getElementById('skill-book-grid');
+    var filterElement = document.getElementById('skill-filter-element');
+    var filterType = document.getElementById('skill-filter-type');
+    var filterTarget = document.getElementById('skill-filter-target');
+    var filterKind = document.getElementById('skill-filter-kind');
+    if (!grid) return;
+
+    var cards = grid.querySelectorAll('.skill-book-card');
+    var noResultsEl = document.getElementById('skill-book-no-results');
+
+    function applySkillFilters() {
+        var el = (filterElement && filterElement.value) || '';
+        var t = (filterType && filterType.value) || '';
+        var tt = (filterTarget && filterTarget.value) || '';
+        var k = (filterKind && filterKind.value) || '';
+        var visibleCount = 0;
+
+        cards.forEach(function(card) {
+            var show = true;
+            if (el && card.getAttribute('data-element') !== el) show = false;
+            if (t && card.getAttribute('data-type') !== t) show = false;
+            if (tt && card.getAttribute('data-target') !== tt) show = false;
+            if (k && card.getAttribute('data-kind') !== k) show = false;
+            card.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        if (noResultsEl) noResultsEl.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    [filterElement, filterType, filterTarget, filterKind].forEach(function(el) {
+        if (el) el.addEventListener('change', applySkillFilters);
+    });
+})();
 </script>
 
 <!-- 公告弹窗 -->
@@ -1015,6 +1228,11 @@ async function claimTask(taskId) {
         </div>
         <div class="modal-body">
             <div id="seven-day-tabs" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <button type="button" id="seven-day-claim-all-btn" class="btn btn-primary" onclick="claimAllSevenDayGoals()" style="padding: 0.5rem 1rem;">
+                    一键领取
+                </button>
+            </div>
             <div id="seven-day-content"></div>
         </div>
     </div>
@@ -1460,6 +1678,62 @@ async function claimSevenDayGoal(goalId) {
     }
 }
 
+// 一键领取七日目标奖励
+async function claimAllSevenDayGoals() {
+    const btn = document.getElementById('seven-day-claim-all-btn');
+    if (btn) btn.disabled = true;
+
+    try {
+        const result = await apiCall('/api/seven-day-goals', {}, 'GET');
+        if (!result || !result.success) {
+            ToastManager.error('一键领取失败：加载七日目标失败');
+            if (btn) btn.disabled = false;
+            return;
+        }
+
+        const goals = [];
+        const goalsByDay = result.goals_by_day || {};
+        Object.keys(goalsByDay).forEach(function(dayKey) {
+            (goalsByDay[dayKey] || []).forEach(function(g) {
+                if (g.completed && !g.claimed) goals.push(g);
+            });
+        });
+
+        if (!goals.length) {
+            ToastManager.info('暂无可领取的七日目标');
+            if (btn) btn.disabled = false;
+            return;
+        }
+
+        const totals = { gold: 0, gems: 0 };
+        for (const g of goals) {
+            const claimRes = await apiCall('/api/seven-day-goals/claim', { goal_id: g.id }, 'POST');
+            if (claimRes && claimRes.success && claimRes.rewards) {
+                totals.gold += claimRes.rewards.gold || 0;
+                totals.gems += claimRes.rewards.gems || 0;
+            }
+        }
+
+        ToastManager.success(`一键领取成功：金币 +${totals.gold}，钻石 +${totals.gems}`);
+        try {
+            if (totals.gold) {
+                const el = document.getElementById('hud-gold');
+                if (el) showResourceFloat(totals.gold, el, true);
+            }
+            if (totals.gems) {
+                const el = document.getElementById('hud-gems');
+                if (el) showResourceFloat(totals.gems, el, true);
+            }
+        } catch (e) {}
+
+        setTimeout(() => loadSevenDayGoals(), 800);
+    } catch (e) {
+        ToastManager.error('一键领取失败：' + (e && e.message ? e.message : '请稍后重试'));
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
 // ==================== 任务中心 ====================
 var _mainQuestsCache = null;
 var _mainQuestsHasUnclaimed = false;
@@ -1554,6 +1828,55 @@ async function claimMainQuest(questId) {
         setTimeout(function() { loadMainQuests(); }, 800);
     } else {
         ToastManager.error('领取失败：' + (result.error || '请稍后重试'));
+    }
+}
+
+// 一键领取主线任务奖励
+async function claimAllMainQuests() {
+    const btn = document.getElementById('claim-all-main-quests-btn');
+    if (btn) btn.disabled = true;
+
+    try {
+        const result = await apiCall('/api/main-quests', {}, 'GET');
+        if (!result || !result.success) {
+            ToastManager.error('一键领取失败：加载主线任务失败');
+            if (btn) btn.disabled = false;
+            return;
+        }
+
+        const quests = (result.quests || []).filter(q => q.completed && !q.claimed);
+        if (!quests.length) {
+            ToastManager.info('暂无可领取的主线任务');
+            if (btn) btn.disabled = false;
+            return;
+        }
+
+        const totals = { gold: 0, gems: 0 };
+        for (const q of quests) {
+            const claimRes = await apiCall('/api/main-quests/claim', { quest_id: q.id }, 'POST');
+            if (claimRes && claimRes.success && claimRes.rewards) {
+                totals.gold += claimRes.rewards.gold || 0;
+                totals.gems += claimRes.rewards.gems || 0;
+            }
+        }
+
+        ToastManager.success(`一键领取成功：金币 +${totals.gold}，钻石 +${totals.gems}`);
+        try {
+            if (totals.gold) {
+                const el = document.getElementById('hud-gold');
+                if (el) showResourceFloat(totals.gold, el, true);
+            }
+            if (totals.gems) {
+                const el2 = document.getElementById('hud-gems');
+                if (el2) showResourceFloat(totals.gems, el2, true);
+            }
+        } catch (e) {}
+
+        setTimeout(() => loadMainQuests(), 800);
+    } catch (e) {
+        ToastManager.error('一键领取失败：' + (e && e.message ? e.message : '请稍后重试'));
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 

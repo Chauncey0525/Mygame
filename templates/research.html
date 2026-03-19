@@ -86,15 +86,13 @@
                                 {% if r.equipped_character_instance_id %}
                                     <button class="btn btn-danger" style="padding: 0.45rem 0.75rem;" onclick="unequipRune({{ r.id }})">卸下</button>
                                 {% else %}
-                                    <select class="input" style="height: 34px; padding: 0 10px; border-radius: 10px; background: rgba(15,23,42,0.45); border: 1px solid rgba(148,163,184,0.35); color: #e2e8f0;"
-                                            id="rune-target-{{ r.id }}">
+                                    <select class="book-select" id="rune-target-{{ r.id }}">
                                         <option value="">选择角色</option>
                                         {% for c in owned_chars %}
                                             <option value="{{ c.instance_id }}">{{ c.name }}（Lv.{{ c.level }}）</option>
                                         {% endfor %}
                                     </select>
-                                    <select class="input" style="height: 34px; padding: 0 10px; border-radius: 10px; background: rgba(15,23,42,0.45); border: 1px solid rgba(148,163,184,0.35); color: #e2e8f0;"
-                                            id="rune-slot-{{ r.id }}">
+                                    <select class="book-select" id="rune-slot-{{ r.id }}">
                                         <option value="1">槽位1</option>
                                         <option value="2">槽位2</option>
                                     </select>

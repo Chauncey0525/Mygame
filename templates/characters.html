@@ -39,6 +39,17 @@
             <!-- 角色信息 -->
             <div class="character-info">
                 <div class="character-name">{{ char.name }}</div>
+                <div style="color:#94a3b8;font-size:.78rem;margin-top:.25rem;line-height:1.2;">
+                    {{ char.title }}
+                </div>
+                <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-top:.35rem;">
+                    <span class="badge" style="background: {{ element_colors[char.element] }};">
+                        {{ element_names[char.element] }}
+                    </span>
+                    <span class="badge" style="background:#475569;">
+                        {{ role_names[char.role_type] }}
+                    </span>
+                </div>
                 <div class="character-stars">
                     {% for i in range(char.stars) %}★{% endfor %}
                 </div>

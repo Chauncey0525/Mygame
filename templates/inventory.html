@@ -57,8 +57,7 @@
                                 {% if e.equipped_character_instance_id %}
                                     <button class="btn btn-danger" style="padding: 0.45rem 0.75rem;" onclick="unequip({{ e.id }})">卸下</button>
                                 {% else %}
-                                    <select class="input" style="height: 34px; padding: 0 10px; border-radius: 10px; background: rgba(15,23,42,0.45); border: 1px solid rgba(148,163,184,0.35); color: #e2e8f0;"
-                                            id="equip-target-{{ e.id }}">
+                                    <select class="book-select" id="equip-target-{{ e.id }}">
                                         <option value="">选择角色</option>
                                         {% for c in owned_chars %}
                                             <option value="{{ c.instance_id }}">{{ c.name }}（Lv.{{ c.level }}）</option>

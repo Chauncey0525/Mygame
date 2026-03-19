@@ -81,7 +81,7 @@
         {% if team %}
             {% for char in team %}
             <div class="team-member">
-                <img src="{{ char.avatar }}" alt="{{ char.name }}" style="border-color:{{ element_colors[char.element] }}">
+                <img src="{{ char.avatar }}" alt="{{ char.name }}" style="border-color:{{ rarity_colors[char.rarity] if rarity_colors else element_colors[char.element] }}">
                 <span class="tm-info">{{ char.name }}<br>Lv.{{ char.level }}</span>
             </div>
             {% endfor %}
@@ -143,7 +143,7 @@
                         <div class="sr-enemies">
                             {% for eid in stage.enemy_ids %}
                             {% set e = get_character_by_id(eid) %}
-                            {% if e %}<img src="{{ e.avatar }}" alt="{{ e.name }}" style="border-color:{{ element_colors[e.element] }}">{% endif %}
+                            {% if e %}<img src="{{ e.avatar }}" alt="{{ e.name }}" style="border-color:{{ rarity_colors[e.rarity] if rarity_colors else element_colors[e.element] }}">{% endif %}
                             {% endfor %}
                         </div>
                         <div>
@@ -215,7 +215,8 @@
                             </div>
                             <div class="sr-reward">
                                 {% for k,v in level.rewards.items() %}
-                                {% if k == 'gold' %}💰{% elif k == 'exp_books' %}📖{% elif k == 'star_soul' %}⭐{% elif k == 'breakthrough_stone' %}💎{% endif %}{{ v }} 
+                                {% if k == 'star_soul' %}{% continue %}{% endif %}
+                                {% if k == 'gold' %}💰{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}💎{% endif %}{{ v }} 
                                 {% endfor %}
                             </div>
                         </div>
@@ -265,7 +266,7 @@
                             {% if is_done %}✓{% else %}⚡{{ boss.energy_cost }}{% endif %}
                         </div>
                         {% if boss_char %}
-                        <img src="{{ boss_char.avatar }}" style="width:40px;height:40px;border-radius:50%;border:3px solid {{ element_colors[boss_char.element] }};object-fit:cover;flex-shrink:0">
+                        <img src="{{ boss_char.avatar }}" style="width:40px;height:40px;border-radius:50%;border:3px solid {{ rarity_colors[boss_char.rarity] if rarity_colors else element_colors[boss_char.element] }};object-fit:cover;flex-shrink:0">
                         {% endif %}
                         <div class="sr-info">
                             <div class="sr-name">{{ boss.name }}</div>
@@ -274,7 +275,8 @@
                             </div>
                             <div class="sr-reward">
                                 {% for k,v in boss.rewards.items() %}
-                                {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'star_soul' %}⭐{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
+                                {% if k == 'star_soul' %}{% continue %}{% endif %}
+                                {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
                                 {% endfor %}
                             </div>
                         </div>
@@ -333,7 +335,8 @@
                             </div>
                             <div class="sr-reward">
                                 {% for k,v in level.rewards.items() %}
-                                {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'star_soul' %}⭐{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
+                                {% if k == 'star_soul' %}{% continue %}{% endif %}
+                                {% if k == 'gold' %}💰{% elif k == 'gems' %}💎{% elif k == 'exp_books' %}📖{% elif k == 'breakthrough_stone' %}🔮{% endif %}{{ v }} 
                                 {% endfor %}
                             </div>
                         </div>
@@ -342,7 +345,7 @@
                         <div class="sr-enemies">
                             {% for eid in level.enemy_ids %}
                             {% set e = get_character_by_id(eid) %}
-                            {% if e %}<img src="{{ e.avatar }}" alt="{{ e.name }}" style="border-color:{{ element_colors[e.element] }}">{% endif %}
+                            {% if e %}<img src="{{ e.avatar }}" alt="{{ e.name }}" style="border-color:{{ rarity_colors[e.rarity] if rarity_colors else element_colors[e.element] }}">{% endif %}
                             {% endfor %}
                         </div>
                         <div>

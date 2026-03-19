@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}{{ skill.name }} - 技能预览{% endblock %}
+
+{% block back_link %}
+<div class="back-bar"><a href="{{ back_url }}" class="back-btn">← 返回</a></div>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+    <div class="card">
+        <div class="card-body" style="padding: 1.5rem;">
+            <div style="display:flex;flex-direction:column;gap:.75rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+                    <div style="display:flex;flex-direction:column;gap:.25rem;">
+                        <h2 style="margin:0;color:white;font-size:1.5rem;font-weight:900;">{{ skill.name }}</h2>
+                        <div style="color:#94a3b8;font-size:.78rem;">
+                            ID: <span style="color:#e2e8f0;font-weight:800;">{{ skill.id }}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+                        {% if skill.kind == 'shared' %}
+                        <span class="badge" style="background:rgba(148,163,184,0.22);border:1px solid rgba(148,163,184,0.45);color:#e2e8f0;">通用技能</span>
+                        {% elif skill.kind == 'exclusive' %}
+                        <span class="badge" style="background:rgba(245,158,11,0.22);border:1px solid rgba(245,158,11,0.45);color:#fbbf24;">专属技能</span>
+                        {% elif skill.kind == 'awakening' %}
+                        <span class="badge" style="background:rgba(239,68,68,0.22);border:1px solid rgba(239,68,68,0.45);color:#f87171;">觉醒技能</span>
+                        {% else %}
+                        <span class="badge" style="background:rgba(100,116,139,0.22);border:1px solid rgba(100,116,139,0.45);color:#d1d5db;">被动天赋</span>
+                        {% endif %}
+
+                        <span class="badge" style="background:#475569;">{{ {'physical':'物理','magic':'魔法','heal':'治疗','buff':'增益','debuff':'减益','passive':'被动'}.get(skill.type,'物理') }}</span>
+
+                        {% if skill.element %}
+                        <span class="badge" style="background: {{ element_colors[skill.element] if element_colors else '#475569' }};">
+                            {{ element_names[skill.element] if element_names else skill.element }}
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background:rgba(0,0,0,0.25);">无元素</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:260px;">
+                        <div style="color:#94a3b8;font-weight:800;font-size:.85rem;margin-bottom:.45rem;">技能属性</div>
+                        <div style="display:flex;flex-direction:column;gap:.35rem;">
+                            <div style="display:flex;justify-content:space-between;gap:.8rem;border-bottom:1px solid #475569;padding:.35rem 0;">
+                                <span style="color:#94a3b8;">解锁等级</span>
+                                <span style="color:#fbbf24;font-weight:900;">Lv.{{ skill.unlock_level }}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;gap:.8rem;border-bottom:1px solid #475569;padding:.35rem 0;">
+                                <span style="color:#94a3b8;">目标</span>
+                                <span style="color:#e2e8f0;font-weight:800;">
+                                    {{ {'all':'全体','ally_all':'友方全体','ally_single':'友方单体','self':'自身','single':'单体'}.get(skill.target, skill.target) }}
+                                </span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;gap:.8rem;border-bottom:1px solid #475569;padding:.35rem 0;">
+                                <span style="color:#94a3b8;">冷却（CD）</span>
+                                <span style="color:#ef4444;font-weight:900;">{{ skill.cooldown }} 回合</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;gap:.8rem;border-bottom:1px solid #475569;padding:.35rem 0;">
+                                <span style="color:#94a3b8;">威力/强度</span>
+                                <span style="color:#e2e8f0;font-weight:900;">{% if skill.power and skill.power>0 %}{{ skill.power }}{% else %}-{% endif %}</span>
+                            </div>
+                            {% if skill.roles %}
+                            <div style="display:flex;justify-content:space-between;gap:.8rem;border-bottom:1px solid #475569;padding:.35rem 0;">
+                                <span style="color:#94a3b8;">适用定位</span>
+                                <span style="color:#e2e8f0;font-weight:800;">
+                                    {% for r in skill.roles.split(',') %}
+                                        {% if r %}
+                                            {{ role_names[r] if role_names and r in role_names else r }}{% if not loop.last %}、{% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
+                            </div>
+                            {% endif %}
+                            {% if skill.character_id and skill.kind == 'exclusive' %}
+                            <div style="display:flex;justify-content:space-between;gap:.8rem;border-bottom:1px solid #475569;padding:.35rem 0;">
+                                <span style="color:#94a3b8;">专属角色</span>
+                                <span style="color:#e2e8f0;font-weight:800;">{{ skill.character_id }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div style="flex:1;min-width:260px;">
+                        <div style="color:#94a3b8;font-weight:800;font-size:.85rem;margin-bottom:.45rem;">效果描述</div>
+                        <div style="color:#e2e8f0;line-height:1.6;font-size:.92rem;background:rgba(0,0,0,0.10);border:1px solid rgba(148,163,184,0.18);border-radius:10px;padding:1rem;">
+                            {{ skill.description }}
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="color:#94a3b8;font-weight:800;font-size:.85rem;margin:.1rem 0 .5rem;">技能效果（结构化）</div>
+                    <div style="overflow:auto;max-height:320px;border:1px solid rgba(148,163,184,0.18);border-radius:10px;">
+                        <table style="width:100%;border-collapse:collapse;">
+                            <thead>
+                                <tr style="background:rgba(71,85,105,0.35);">
+                                    <th style="text-align:left;padding:.7rem;color:#94a3b8;border-bottom:1px solid #475569;">效果类型</th>
+                                    <th style="text-align:left;padding:.7rem;color:#94a3b8;border-bottom:1px solid #475569;">详情</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if skill.effects and skill.effects|length > 0 %}
+                                    {% for eff in skill.effects %}
+                                    <tr>
+                                        <td style="padding:.55rem .7rem;border-bottom:1px solid rgba(71,85,105,0.35);color:#e2e8f0;font-weight:700;">
+                                            {{ eff.type if eff.type else '-' }}
+                                        </td>
+                                        <td style="padding:.55rem .7rem;border-bottom:1px solid rgba(71,85,105,0.35);color:#94a3b8;">
+                                            <pre style="margin:0;white-space:pre-wrap;font-family:inherit;">{{ eff | tojson(indent=0) }}</pre>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="2" style="padding:1rem;color:#94a3b8;">该技能未配置结构化效果。</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

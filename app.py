@@ -47,6 +47,7 @@ from game_data import (
     FEATURE_UNLOCK, DEFAULT_SEVEN_DAY_GOALS,
     BATTLE_MODES, BATTLE_ITEMS, DAILY_DUNGEONS, HERO_TRIALS, HARD_DUNGEONS,
     get_skills_for_character,
+    get_skill_unlock_preview,
 )
 
 # ==================== 账号工具 ====================
@@ -201,11 +202,8 @@ def ensure_db_migrations():
                     db.session.execute(text("ALTER TABLE player_completed_stages ADD COLUMN stars INTEGER DEFAULT 1"))
                     db.session.commit()
 
-                # players.star_soul（升星材料）
-                cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(players)")).fetchall()]
-                if "star_soul" not in cols:
-                    db.session.execute(text("ALTER TABLE players ADD COLUMN star_soul INTEGER DEFAULT 0"))
-                    db.session.commit()
+                # players.star_soul（历史字段，已弃用：旧版升星材料）
+                # 旧库可能存在该字段；新版星魂体系改为“角色独立魂力”，这里不再强制新增
 
                 # 新增字段：新手引导/统计/竞技场/突破石
                 cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(players)")).fetchall()]
@@ -228,6 +226,10 @@ def ensure_db_migrations():
                 pc_cols = [row[1] for row in db.session.execute(text("PRAGMA table_info(player_characters)")).fetchall()]
                 if "equipped_skills" not in pc_cols:
                     db.session.execute(text("ALTER TABLE player_characters ADD COLUMN equipped_skills TEXT"))
+
+                # player_characters.soul_power（角色独立魂力）
+                if "soul_power" not in pc_cols:
+                    db.session.execute(text("ALTER TABLE player_characters ADD COLUMN soul_power INTEGER DEFAULT 0"))
                     db.session.commit()
 
                 # 为所有玩家关联表添加 player_uid 冗余字段，用于数据统计
@@ -294,13 +296,8 @@ def ensure_db_migrations():
                         db.session.execute(text("UPDATE players SET uid=%s WHERE id=%s"), (f"{next_n:08d}", pid))
                         next_n += 1
                 db.session.commit()
-                row = db.session.execute(text(
-                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
-                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME='players' AND COLUMN_NAME='star_soul'"
-                )).scalar()
-                if int(row or 0) == 0:
-                    db.session.execute(text("ALTER TABLE players ADD COLUMN star_soul INT NOT NULL DEFAULT 0"))
-                    db.session.commit()
+                # players.star_soul（历史字段，已弃用：旧版升星材料）
+                # 旧库可能存在该字段；新版星魂体系改为“角色独立魂力”，这里不再强制新增
 
                 row = db.session.execute(text(
                     "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
@@ -916,11 +913,24 @@ def get_battle_character(character_instance):
         return None
     
     rarity = template['rarity']
+
+    # ============ 星魂系统（复用 stars 字段）============
+    # 定义：
+    # - 2/4星魂：增加属性
+    # - 1/3星魂：强化技能
+    # - 5星魂：大幅强化被动技能
+    raw_star_soul = int(getattr(character_instance, 'stars', 0) or 0)
+    star_soul_level = max(0, min(raw_star_soul, 5))
+    # 蓝卡以上才有星魂（稀有 rare 及以上；common 视为无星魂）
+    if rarity == 'common':
+        star_soul_level = 0
+
+    # 属性基数：忽略突破与旧星级倍率，星魂相关属性由下面手动增幅
     stats = calculate_stats(
         template['stats'],
         character_instance.level,
-        character_instance.stars,
-        character_instance.breakthrough,
+        0,
+        0,
         rarity=rarity,
     )
 
@@ -977,6 +987,18 @@ def get_battle_character(character_instance):
     except Exception:
         pass
 
+    # 星魂：2/4 星魂增加属性（cumulative）
+    attr_bonus_pct = 0.0
+    if star_soul_level >= 2:
+        attr_bonus_pct += 0.05
+    if star_soul_level >= 4:
+        attr_bonus_pct += 0.05
+    if attr_bonus_pct > 0:
+        mult = 1.0 + attr_bonus_pct
+        for k in ('hp', 'max_hp', 'attack', 'defense', 'magic_attack', 'magic_defense', 'speed'):
+            if k in stats:
+                stats[k] = int(round(stats[k] * mult))
+
     # 动态生成技能列表（新技能系统）
     all_skills = get_skills_for_character(
         template['id'],
@@ -987,6 +1009,81 @@ def get_battle_character(character_instance):
     )
     if not all_skills:
         all_skills = template.get('skills', [])
+
+    # 星魂：每角色 1/3/5 效果（可配置/可覆盖）
+    from game_data import get_star_soul_effects
+    star_soul_effects = get_star_soul_effects(template)
+
+    def _merge_mods(*mods):
+        out = {}
+        for m in mods:
+            if isinstance(m, dict):
+                out.update(m)
+        return out
+
+    mods_1 = (star_soul_effects.get(1) or {}).get('modifiers', {}) if star_soul_level >= 1 else {}
+    mods_3 = (star_soul_effects.get(3) or {}).get('modifiers', {}) if star_soul_level >= 3 else {}
+    mods_5 = (star_soul_effects.get(5) or {}).get('modifiers', {}) if star_soul_level >= 5 else {}
+    active_mods = _merge_mods(mods_1, mods_3)
+    passive_mods = _merge_mods(mods_5)
+
+    def _scale_effects(effects, factor):
+        if not effects or factor == 1.0:
+            return
+        for eff in effects:
+            if not isinstance(eff, dict):
+                continue
+            # 绝大多数效果在战斗里使用 eff.value 作为百分比增减
+            if 'value' in eff and isinstance(eff['value'], (int, float)):
+                # 保留为百分比的整数表现（更符合战斗脚本的假设）
+                if isinstance(eff['value'], int):
+                    eff['value'] = int(round(eff['value'] * factor))
+                else:
+                    eff['value'] = round(eff['value'] * factor, 3)
+            if 'damage_pct' in eff and isinstance(eff['damage_pct'], (int, float)):
+                eff['damage_pct'] = int(round(eff['damage_pct'] * factor))
+            if 'heal_pct' in eff and isinstance(eff['heal_pct'], (int, float)):
+                eff['heal_pct'] = int(round(eff['heal_pct'] * factor))
+            if 'shield' in eff and isinstance(eff['shield'], (int, float)):
+                eff['shield'] = int(round(eff['shield'] * factor))
+            if 'chance' in eff and isinstance(eff['chance'], (int, float)):
+                # chance 可能为 0~1，也可能是 0~0.99，做一个上限保护
+                eff['chance'] = min(1.0, round(eff['chance'] * factor, 3))
+
+    # 先对 all_skills 做星魂强化（1/3：主动；5：被动），再由后续逻辑分出 passives/equipable
+    if star_soul_level > 0:
+        cd_delta = int(active_mods.get('cooldown_delta', 0) or 0)
+        power_mult = float(active_mods.get('power_mult', 1.0) or 1.0)
+        dur_bonus = int(active_mods.get('effect_duration_bonus', 0) or 0)
+
+        passive_mult = float(passive_mods.get('passive_effect_mult', 1.0) or 1.0)
+
+        def _apply_duration_bonus(effects, bonus):
+            if not effects or bonus == 0:
+                return
+            for eff in effects:
+                if not isinstance(eff, dict):
+                    continue
+                if 'duration' in eff and isinstance(eff['duration'], int) and eff['duration'] > 0:
+                    eff['duration'] = max(0, eff['duration'] + bonus)
+
+        for sk in all_skills:
+            is_passive = bool(sk.get('is_passive') or sk.get('type') == 'passive')
+            if is_passive:
+                if passive_mult != 1.0:
+                    _scale_effects(sk.get('effects'), passive_mult)
+                    if sk.get('power') and isinstance(sk.get('power'), (int, float)) and sk['power'] > 0:
+                        sk['power'] = int(round(sk['power'] * passive_mult))
+                continue
+
+            # 主动技能：CD/威力/持续回合加成（不影响觉醒）
+            if not sk.get('is_awakening'):
+                if cd_delta != 0 and isinstance(sk.get('cooldown'), int):
+                    sk['cooldown'] = max(0, sk['cooldown'] + cd_delta)
+                if power_mult != 1.0 and sk.get('power') and isinstance(sk.get('power'), (int, float)) and sk['power'] > 0:
+                    sk['power'] = int(round(sk['power'] * power_mult))
+                if dur_bonus != 0:
+                    _apply_duration_bonus(sk.get('effects'), dur_bonus)
 
     passives = [s for s in all_skills if s.get('is_passive') or s.get('type') == 'passive']
     awakening = next((s for s in all_skills if s.get('is_awakening')), None)
@@ -1022,9 +1119,13 @@ def get_battle_character(character_instance):
         'element': template['element'],
         'role_type': template['role_type'],
         'avatar': template['avatar'],
+        'illustration': template.get('illustration', template.get('avatar')),
         'rarity': rarity,
         'level': character_instance.level,
-        'stars': character_instance.stars,
+        'stars': star_soul_level,  # 星魂等级（复用 stars 字段语义）
+        'soul_power': int(getattr(character_instance, 'soul_power', 0) or 0),
+        'star_soul_level': star_soul_level,
+        'star_soul_effects': star_soul_effects,
         'stats': stats,
         'current_stats': stats.copy(),
         'skills': battle_skills,
@@ -1087,7 +1188,7 @@ def seed_starter_character(player: Player) -> None:
         character_id=starter_char['id'],
         level=1,
         exp=0,
-        stars=1,
+        stars=0,
         breakthrough=0
     )
     db.session.add(char_instance)
@@ -1150,6 +1251,35 @@ def index():
     # 图鉴：全角色模板 + 已拥有 id 列表
     all_character_templates = get_all_characters()
     owned_character_ids = [c.character_id for c in player.characters]
+
+    # 图鉴：全技能模板（用于技能图鉴筛选/预览）
+    all_skill_templates = []
+    skill_kind_order = ['shared', 'exclusive', 'awakening', 'passive']
+    # 直接查模板表，按需拼装给前端（这里模板量较小，适合一次性加载）
+    for st in SkillTemplate.query.order_by(SkillTemplate.unlock_level.asc()).all():
+        d = st.to_skill_dict()
+        d['element'] = st.element
+
+        if st.is_passive:
+            d['kind'] = 'passive'
+        elif st.is_awakening:
+            d['kind'] = 'awakening'
+        elif st.is_exclusive or st.category == 'exclusive':
+            d['kind'] = 'exclusive'
+        else:
+            d['kind'] = 'shared'
+
+        d['roles'] = st.roles or ''
+        d['character_id'] = st.character_id or ''
+        all_skill_templates.append(d)
+
+    skill_elements = sorted({s['element'] for s in all_skill_templates if s.get('element')})
+    skill_elements_with_all = [''] + skill_elements
+    skill_types = sorted({s['type'] for s in all_skill_templates if s.get('type')})
+    skill_types_with_all = [''] + skill_types
+    skill_targets = sorted({s['target'] for s in all_skill_templates if s.get('target')})
+    skill_targets_with_all = [''] + skill_targets
+    skill_kinds_with_all = [''] + skill_kind_order
     
     # 计算功能解锁状态
     claimed_quest_ids = set()
@@ -1177,6 +1307,11 @@ def index():
         daily_tasks=daily_tasks,
         all_character_templates=all_character_templates,
         owned_character_ids=owned_character_ids,
+        all_skill_templates=all_skill_templates,
+        skill_elements=skill_elements_with_all,
+        skill_types=skill_types_with_all,
+        skill_targets=skill_targets_with_all,
+        skill_kinds=skill_kinds_with_all,
         unlocked_features=unlocked_features,
         rarity_names=RARITY_NAMES,
         rarity_colors=RARITY_COLORS,
@@ -1241,6 +1376,13 @@ def character_detail(instance_id):
     battle_char['breakthrough'] = char_instance.breakthrough
     is_in_team = any(t.character_instance_id == instance_id for t in player.team)
     team_ids = [t.character_instance_id for t in player.team]
+
+    skill_unlock_preview = get_skill_unlock_preview(
+        char_instance.character_id,
+        battle_char['rarity'],
+        battle_char['role_type'],
+        battle_char['element'],
+    )
     
     return render_template('character_detail.html',
         player=player,
@@ -1251,7 +1393,79 @@ def character_detail(instance_id):
         rarity_colors=RARITY_COLORS,
         element_names=ELEMENT_NAMES,
         element_colors=ELEMENT_COLORS,
-        role_names=ROLE_NAMES
+        role_names=ROLE_NAMES,
+        skill_unlock_preview=skill_unlock_preview,
+    )
+
+
+@app.route('/skill-preview/<string:skill_id>')
+@login_required
+def skill_preview(skill_id: str):
+    """技能预览（模板技能，不依赖玩家拥有/养成状态）"""
+    player = current_user
+    st = SkillTemplate.query.get_or_404(skill_id)
+
+    d = st.to_skill_dict()
+    d['element'] = st.element
+    d['roles'] = st.roles or ''
+    d['character_id'] = st.character_id or ''
+    d['category'] = st.category
+
+    if st.is_passive:
+        d['kind'] = 'passive'
+    elif st.is_awakening:
+        d['kind'] = 'awakening'
+    elif st.is_exclusive or st.category == 'exclusive':
+        d['kind'] = 'exclusive'
+    else:
+        d['kind'] = 'shared'
+
+    # 返回链接：尽量回到来源页
+    back_url = request.referrer or url_for('index')
+
+    return render_template(
+        'skill_preview.html',
+        player=player,
+        skill=d,
+        back_url=back_url,
+        rarity_names=RARITY_NAMES,
+        rarity_colors=RARITY_COLORS,
+        element_names=ELEMENT_NAMES,
+        element_colors=ELEMENT_COLORS,
+        role_names=ROLE_NAMES,
+    )
+
+
+@app.route('/character-preview/<string:character_id>')
+@login_required
+def character_preview(character_id: str):
+    """角色预览（不依赖玩家是否拥有，也不含出战/养成状态）"""
+    player = current_user
+    tpl = get_character_by_id(character_id)
+    if not tpl:
+        flash('角色不存在', 'error')
+        return redirect(url_for('index'))
+
+    skill_unlock_preview = get_skill_unlock_preview(
+        character_id=tpl['id'],
+        rarity=tpl.get('rarity', 'common'),
+        role_type=tpl.get('role_type'),
+        element=tpl.get('element'),
+    )
+    from game_data import get_star_soul_effects
+    star_soul_effects = get_star_soul_effects(tpl)
+
+    return render_template(
+        'character_preview.html',
+        player=player,
+        character=tpl,
+        rarity_names=RARITY_NAMES,
+        rarity_colors=RARITY_COLORS,
+        element_names=ELEMENT_NAMES,
+        element_colors=ELEMENT_COLORS,
+        role_names=ROLE_NAMES,
+        skill_unlock_preview=skill_unlock_preview,
+        star_soul_effects=star_soul_effects,
     )
 
 
@@ -1868,14 +2082,10 @@ def api_summon():
         ).first()
         
         if existing:
-            # 重复获得：转化为星魂（用于升星），避免“自动升星”跳过系统
-            ss_gain = {
-                'common': 1,
-                'rare': 3,
-                'epic': 8,
-                'legendary': 15,
-            }.get(rarity, 1)
-            player.star_soul = (player.star_soul or 0) + ss_gain
+            # 重复获得：给该角色增加魂力（每次+1）
+            # 蓝卡以上才有星魂/魂力体系；普通品质重复不计入魂力
+            if rarity != 'common':
+                existing.soul_power = int(getattr(existing, 'soul_power', 0) or 0) + 1
             is_new = False
             instance_id = existing.id
         else:
@@ -1884,7 +2094,8 @@ def api_summon():
                 player_id=player.id,
                 player_uid=player.uid,
                 character_id=char_template['id'],
-                stars=2 if rarity == 'legendary' else (1 if rarity == 'epic' else 1)
+                stars=0,
+                soul_power=0,
             )
             db.session.add(new_char)
             db.session.flush()
@@ -1936,13 +2147,14 @@ def api_summon():
                 if existing_epic:
                     is_new = False
                     inst_id = existing_epic.id
-                    player.star_soul = (player.star_soul or 0) + 8
+                    existing_epic.soul_power = int(getattr(existing_epic, 'soul_power', 0) or 0) + 1
                 else:
                     new_epic = PlayerCharacter(
                         player_id=player.id,
                         player_uid=player.uid,
                         character_id=epic_pick['id'],
-                        stars=1,
+                        stars=0,
+                        soul_power=0,
                     )
                     db.session.add(new_epic)
                     db.session.flush()
@@ -1993,7 +2205,7 @@ def api_summon():
 @app.route('/api/starup', methods=['POST'])
 @login_required
 def api_starup():
-    """升星角色：消耗星魂材料，提升星级"""
+    """星魂提升：消耗该角色魂力，提升星魂等级"""
     player = current_user
     data = request.get_json(silent=True) or {}
     instance_id = data.get('instance_id')
@@ -2009,25 +2221,27 @@ def api_starup():
     tpl = get_character_by_id(char.character_id) or {}
     rarity = tpl.get('rarity') or 'common'
 
-    if char.stars >= 6:
-        return jsonify({'success': False, 'error': '已达最大星级'}), 400
+    # 星魂系统：普通品质没有星魂
+    if rarity == 'common':
+        return jsonify({'success': False, 'error': '普通品质无法提升星魂'}), 400
 
-    # 成本：随稀有度与当前星级递增
-    base = {'common': 5, 'rare': 10, 'epic': 18, 'legendary': 30}.get(rarity, 5)
-    cost = base * char.stars  # 1->2：base*1，2->3：base*2...
+    if char.stars >= 5:
+        return jsonify({'success': False, 'error': '已达最大星魂等级'}), 400
 
-    if (player.star_soul or 0) < cost:
-        return jsonify({'success': False, 'error': f'星魂不足（需要 {cost}）'}), 400
+    # 消耗：每个魂力提升一次星魂
+    cur_power = int(getattr(char, 'soul_power', 0) or 0)
+    if cur_power < 1:
+        return jsonify({'success': False, 'error': '魂力不足（需要 1）'}), 400
 
-    player.star_soul -= cost
+    char.soul_power = cur_power - 1
     char.stars += 1
     db.session.commit()
 
     return jsonify({
         'success': True,
         'stars': char.stars,
-        'star_soul': player.star_soul,
-        'cost': cost,
+        'soul_power': char.soul_power,
+        'cost': 1,
     })
 
 
@@ -2257,8 +2471,6 @@ def api_battle_complete():
             player.gems += rewards['gems']
         if rewards.get('exp_books'):
             player.exp_books = (player.exp_books or 0) + rewards['exp_books']
-        if rewards.get('star_soul'):
-            player.star_soul = (player.star_soul or 0) + rewards['star_soul']
         if rewards.get('breakthrough_stone'):
             player.breakthrough_stone = (player.breakthrough_stone or 0) + rewards['breakthrough_stone']
         
@@ -2368,8 +2580,6 @@ def api_sweep():
         player.gems += rewards['gems']
     if rewards.get('exp_books'):
         player.exp_books = (player.exp_books or 0) + rewards['exp_books']
-    if rewards.get('star_soul'):
-        player.star_soul = (player.star_soul or 0) + rewards['star_soul']
     if rewards.get('breakthrough_stone'):
         player.breakthrough_stone = (player.breakthrough_stone or 0) + rewards['breakthrough_stone']
     grant_player_exp(player, rewards.get('exp', 0), source='sweep')
@@ -2709,6 +2919,8 @@ def api_shop_buy():
 
     reward_type = item_cfg['reward_type']
     reward_amount = item_cfg['reward_amount']
+    if reward_type == 'star_soul':
+        return jsonify({'success': False, 'error': '该道具已弃用：星魂体系改为“重复角色→角色魂力”'}), 400
     if reward_type == 'gold':
         player.gold += reward_amount
     elif reward_type == 'gems':
@@ -2717,8 +2929,6 @@ def api_shop_buy():
         player.exp_books += reward_amount
     elif reward_type == 'summon_tickets':
         player.summon_tickets += reward_amount
-    elif reward_type == 'star_soul':
-        player.star_soul = (player.star_soul or 0) + reward_amount
     elif reward_type == 'energy':
         player.energy += reward_amount
 
@@ -2738,7 +2948,6 @@ def api_shop_buy():
         'exp_books': player.exp_books,
         'summon_tickets': player.summon_tickets,
         'energy': player.energy,
-        'star_soul': player.star_soul or 0,
     })
 
 
