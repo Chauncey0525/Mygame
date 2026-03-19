@@ -112,7 +112,7 @@
                 {% set sse = character.star_soul_effects %}
                 <details id="star-soul-details">
                     <summary style="cursor:pointer;color:#fbbf24;font-weight:900;">
-                        点击展开查看（默认收起）
+                        点击展开查看
                     </summary>
                     <div style="margin-top:.75rem;">
                         {% for lv in [1,2,3,4,5] %}
@@ -132,7 +132,7 @@
                             </div>
                         {% endfor %}
                         <div style="color:#94a3b8;font-size:.78rem;">
-                            提示：2★ 与 4★ 为属性提升（已计入基础属性）；1★/3★ 强化技能，5★ 大幅强化被动天赋。
+                            2★/4★：属性提升；1★/3★：强化技能；5★：强化被动
                         </div>
                     </div>
                 </details>
@@ -148,7 +148,7 @@
         <div class="card-body">
             <details id="skill-unlock-details">
                 <summary style="cursor:pointer;color:#fbbf24;font-weight:900;">
-                    点击展开查看（默认收起）
+                    点击展开查看
                 </summary>
                 <div id="skill-unlock-list" style="margin-top:.75rem;"></div>
                 <div style="margin-top:.6rem;color:#94a3b8;font-size:.78rem;">
@@ -737,16 +737,6 @@ function skipSwap(skillId) {
 function closeSkillUnlockModal() {
     document.getElementById('skillUnlockModal').classList.remove('active');
     setTimeout(function(){ location.reload(); }, 300);
-}
-
-async function breakthrough() {
-    const result = await apiCall('/api/breakthrough', { instance_id: instanceId });
-    if (result.success) {
-        ToastManager.success(`突破成功！当前突破：+${result.breakthrough}`, 1500);
-        setTimeout(() => location.reload(), 900);
-    } else {
-        ToastManager.error(result.error || '突破失败');
-    }
 }
 
 async function starUp() {
