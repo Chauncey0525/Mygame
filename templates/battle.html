@@ -309,6 +309,7 @@
 </div>
 
 <!-- 2D战斗特效引擎 -->
+<script src="{{ url_for('static', filename='js/battle2d/skill-effects.js') }}"></script>
 <script src="{{ url_for('static', filename='js/battle2d/battle2d.js') }}"></script>
 
 <script>
@@ -825,7 +826,12 @@ async function useSkill(skillIndex){
         var skillEl=(skill&&skill.element)?skill.element:attacker.element;
         for(var ai=0;ai<aliveItems.length;ai++){
             var x=aliveItems[ai];
-            if(Battle2D.ready) await Battle2D.playSkillEffect(skillEl,'ally',gameState.currentAllyIndex,'enemy',x.i);
+            // 使用高级特效系统
+            if(Battle2D.ready && attacker.character_id && skill && skill.name) {
+                await Battle2D.playAdvancedSkillEffect(attacker.character_id, skill.name, 'ally', gameState.currentAllyIndex, 'enemy', x.i);
+            } else if(Battle2D.ready) {
+                await Battle2D.playSkillEffect(skillEl,'ally',gameState.currentAllyIndex,'enemy',x.i);
+            }
             var r=calculateDamage(attacker,x.e,skill);
             x.e.currentHp-=r.damage;
             updateHpDisplay('enemy',x.i);
@@ -840,8 +846,13 @@ async function useSkill(skillIndex){
         var tgtIdx=gameState.selectedTargetIndex;
         var tgt=gameState.enemies[tgtIdx];
         if(skill){
-            var sEl=(skill.element)?skill.element:attacker.element;
-            if(Battle2D.ready) await Battle2D.playSkillEffect(sEl,'ally',gameState.currentAllyIndex,'enemy',tgtIdx);
+            // 使用高级特效系统
+            if(Battle2D.ready && attacker.character_id && skill.name) {
+                await Battle2D.playAdvancedSkillEffect(attacker.character_id, skill.name, 'ally', gameState.currentAllyIndex, 'enemy', tgtIdx);
+            } else {
+                var sEl=(skill.element)?skill.element:attacker.element;
+                if(Battle2D.ready) await Battle2D.playSkillEffect(sEl,'ally',gameState.currentAllyIndex,'enemy',tgtIdx);
+            }
         }else{
             if(Battle2D.ready) await Battle2D.playAttack('ally',gameState.currentAllyIndex,'enemy',tgtIdx);
         }
@@ -931,7 +942,12 @@ async function useAwakeningSkill(){
         var skillEl=awk.element||attacker.element;
         for(var ai=0;ai<aliveItems.length;ai++){
             var x=aliveItems[ai];
-            if(Battle2D.ready) await Battle2D.playSkillEffect(skillEl,'ally',ci,'enemy',x.i);
+            // 觉醒技能使用高级特效（传入觉醒技能ID）
+            if(Battle2D.ready && attacker.character_id && awk.id) {
+                await Battle2D.playAdvancedSkillEffect(attacker.character_id, awk.id, 'ally', ci, 'enemy', x.i);
+            } else if(Battle2D.ready) {
+                await Battle2D.playSkillEffect(skillEl,'ally',ci,'enemy',x.i);
+            }
             var r=calculateDamage(attacker,x.e,awk);
             x.e.currentHp-=r.damage;
             updateHpDisplay('enemy',x.i);
@@ -944,7 +960,12 @@ async function useAwakeningSkill(){
         var tgtIdx=gameState.selectedTargetIndex;
         var tgt=gameState.enemies[tgtIdx];
         var sEl2=awk.element||attacker.element;
-        if(Battle2D.ready) await Battle2D.playSkillEffect(sEl2,'ally',ci,'enemy',tgtIdx);
+        // 觉醒技能使用高级特效（传入觉醒技能ID）
+        if(Battle2D.ready && attacker.character_id && awk.id) {
+            await Battle2D.playAdvancedSkillEffect(attacker.character_id, awk.id, 'ally', ci, 'enemy', tgtIdx);
+        } else if(Battle2D.ready) {
+            await Battle2D.playSkillEffect(sEl2,'ally',ci,'enemy',tgtIdx);
+        }
         var r2=calculateDamage(attacker,tgt,awk);
         tgt.currentHp-=r2.damage;
         var msg2='→ '+tgt.name+' -'+r2.damage+(r2.isCrit?' 暴击!':'')+(r2.elementText?' '+r2.elementText:'');
@@ -1088,8 +1109,13 @@ async function enemyTurn(){
         }
 
         if(eSkill){
-            var eEl=(eSkill.element)?eSkill.element:enemy.element;
-            if(Battle2D.ready) await Battle2D.playSkillEffect(eEl,'enemy',idx,'ally',ti);
+            // 使用高级特效系统
+            if(Battle2D.ready && enemy.character_id && eSkill.name) {
+                await Battle2D.playAdvancedSkillEffect(enemy.character_id, eSkill.name, 'enemy', idx, 'ally', ti);
+            } else {
+                var eEl=(eSkill.element)?eSkill.element:enemy.element;
+                if(Battle2D.ready) await Battle2D.playSkillEffect(eEl,'enemy',idx,'ally',ti);
+            }
         }else{
             if(Battle2D.ready) await Battle2D.playAttack('enemy',idx,'ally',ti);
         }

@@ -357,6 +357,272 @@ var Battle2D = (function() {
     }
     
     /**
+     * 播放高级技能特效（根据角色ID和技能名称）
+     * @param {string} characterId - 角色ID（如 'guan-yu', 'zhuge-liang'）
+     * @param {string} skillName - 技能名称（如 '青龙偃月斩', '八卦阵'）
+     * @param {string} attackerSide - 攻击方阵营 ('ally' 或 'enemy')
+     * @param {number} attackerIndex - 攻击方索引
+     * @param {string} targetSide - 目标方阵营
+     * @param {number} targetIndex - 目标索引
+     */
+    function playAdvancedSkillEffect(characterId, skillName, attackerSide, attackerIndex, targetSide, targetIndex) {
+        return new Promise(function(resolve) {
+            if (!window.SkillEffects) {
+                // 如果SkillEffects未加载，回退到基础特效
+                var elem = getElementFromCharacterId(characterId);
+                playSkillEffect(elem, attackerSide, attackerIndex, targetSide, targetIndex).then(resolve);
+                return;
+            }
+            
+            var effectConfig = SkillEffects.getSkillEffect(characterId, skillName);
+            var targetSprite = document.getElementById(targetSide + '-sprite-' + targetIndex);
+            
+            if (!targetSprite) {
+                resolve();
+                return;
+            }
+            
+            var rect = targetSprite.getBoundingClientRect();
+            var arenaRect = arena.getBoundingClientRect();
+            var centerX = rect.left - arenaRect.left + rect.width / 2;
+            var centerY = rect.top - arenaRect.top + rect.height / 2;
+            
+            // 检查是否是觉醒技能
+            var awakeningConfig = SkillEffects.getAwakeningEffect(skillName);
+            if (awakeningConfig && awakeningConfig.id) {
+                playAwakeningEffect(awakeningConfig, centerX, centerY, effectConfig).then(resolve);
+                return;
+            }
+            
+            // 创建特效容器
+            var effectContainer = document.createElement('div');
+            effectContainer.className = SkillEffects.getEffectCSSClass(effectConfig);
+            effectContainer.style.setProperty('--effect-color', effectConfig.color);
+            effectContainer.style.left = (centerX - 150) + 'px';
+            effectContainer.style.top = (centerY - 150) + 'px';
+            effectContainer.style.width = '300px';
+            effectContainer.style.height = '300px';
+            
+            // 添加技能名称显示
+            if (skillName && (effectConfig.intensity === 'ultimate' || effectConfig.intensity === 'awakening')) {
+                var nameDisplay = document.createElement('div');
+                nameDisplay.className = 'skill-name-display' + (effectConfig.intensity === 'ultimate' ? ' intensity-ultimate' : '');
+                nameDisplay.textContent = skillName;
+                nameDisplay.style.setProperty('--effect-color', effectConfig.color);
+                nameDisplay.style.left = '50%';
+                nameDisplay.style.top = '-60px';
+                nameDisplay.style.transform = 'translateX(-50%)';
+                effectContainer.appendChild(nameDisplay);
+            }
+            
+            // 根据特效类型创建内容
+            var effectContent = createEffectContent(effectConfig);
+            if (effectContent) {
+                effectContainer.innerHTML += effectContent;
+            }
+            
+            // 添加粒子效果
+            var particles = SkillEffects.generateElementParticles(effectConfig.element, effectConfig.intensity);
+            particles.forEach(function(p) {
+                var particle = document.createElement('div');
+                particle.className = 'particle ' + effectConfig.element;
+                particle.style.left = (centerX + p.x) + 'px';
+                particle.style.top = (centerY + p.y) + 'px';
+                particle.style.width = p.size + 'px';
+                particle.style.height = p.size + 'px';
+                particle.style.setProperty('--particle-vx', p.vx + 'px');
+                particle.style.setProperty('--particle-vy', p.vy + 'px');
+                particle.style.setProperty('--particle-life', p.life + 's');
+                particle.style.background = p.color;
+                arena.appendChild(particle);
+                
+                setTimeout(function() {
+                    particle.remove();
+                }, getDelay(p.life * 1000));
+            });
+            
+            arena.appendChild(effectContainer);
+            
+            // 屏幕闪光效果
+            if (effectConfig.screenFlash) {
+                var flash = document.getElementById('effect-flash');
+                if (flash) {
+                    flash.classList.add('active');
+                    setTimeout(function() {
+                        flash.classList.remove('active');
+                    }, getDelay(300));
+                }
+            }
+            
+            // 屏幕震动效果
+            if (effectConfig.shake) {
+                cameraShake(effectConfig.intensity === 'ultimate' ? 0.2 : 0.1);
+            }
+            
+            // 清理特效
+            var duration = SkillEffects.getEffectDuration(effectConfig, animSpeed);
+            setTimeout(function() {
+                effectContainer.remove();
+                resolve();
+            }, getDelay(duration));
+        });
+    }
+    
+    /**
+     * 播放觉醒技能特效
+     */
+    function playAwakeningEffect(awakeningConfig, centerX, centerY, baseConfig) {
+        return new Promise(function(resolve) {
+            // 创建全屏遮罩
+            var overlay = document.createElement('div');
+            overlay.className = 'screen-effect-overlay darken';
+            document.body.appendChild(overlay);
+            
+            // 创建觉醒特效容器
+            var effectContainer = document.createElement('div');
+            effectContainer.className = 'skill-effect effect-awakening';
+            effectContainer.style.setProperty('--effect-color', awakeningConfig.color);
+            
+            // 创建觉醒特效内容
+            var content = '<div class="awakening-container">';
+            content += '<div class="awakening-bg"></div>';
+            content += '<div class="awakening-circle"></div>';
+            content += '</div>';
+            effectContainer.innerHTML = content;
+            
+            // 添加特殊效果
+            if (awakeningConfig.special) {
+                effectContainer.classList.add('special-' + awakeningConfig.special);
+            }
+            
+            document.body.appendChild(effectContainer);
+            
+            // 屏幕震动
+            cameraShake(0.25);
+            
+            // 清理
+            var duration = awakeningConfig.duration || 3000;
+            setTimeout(function() {
+                overlay.remove();
+                effectContainer.remove();
+                resolve();
+            }, getDelay(duration));
+        });
+    }
+    
+    /**
+     * 创建特效内容HTML
+     */
+    function createEffectContent(config) {
+        var html = '';
+        
+        switch(config.type) {
+            case 'slash':
+            case 'dual_slash':
+                html = '<div class="slash-container">';
+                html += '<div class="slash-line"></div>';
+                if (config.type === 'dual_slash') {
+                    html += '<div class="slash-line second"></div>';
+                }
+                html += '</div>';
+                break;
+                
+            case 'magic':
+            case 'magic_aoe':
+                html = '<div class="magic-container">';
+                html += '<div class="magic-circle"></div>';
+                if (config.aoe) {
+                    html += '<div class="magic-circle outer"></div>';
+                }
+                html += '</div>';
+                break;
+                
+            case 'projectile':
+            case 'aoe_projectile':
+                html = '<div class="projectile-container">';
+                html += '<div class="arrow"></div>';
+                if (config.intensity === 'ultimate') {
+                    html += '<div class="arrow-trail"></div>';
+                }
+                html += '</div>';
+                break;
+                
+            case 'heal':
+            case 'heal_aoe':
+                html = '<div class="heal-container">';
+                html += '<div class="heal-ring"></div>';
+                html += '<div class="heal-cross">+</div>';
+                if (config.intensity === 'ultimate') {
+                    html += '<div class="heal-ring outer"></div>';
+                }
+                html += '</div>';
+                break;
+                
+            case 'buff':
+            case 'team_buff':
+                html = '<div class="buff-container">';
+                html += '<div class="buff-aura"></div>';
+                if (config.teamEffect) {
+                    html += '<div class="buff-wave"></div>';
+                }
+                html += '</div>';
+                break;
+                
+            case 'debuff':
+            case 'debuff_aoe':
+                html = '<div class="debuff-container">';
+                html += '<div class="debuff-chains"></div>';
+                if (config.aoe) {
+                    html += '<div class="debuff-wave"></div>';
+                }
+                html += '</div>';
+                break;
+                
+            case 'charge':
+            case 'charge_aoe':
+                html = '<div class="charge-container">';
+                html += '<div class="charge-trail"></div>';
+                html += '<div class="charge-impact"></div>';
+                html += '</div>';
+                break;
+                
+            case 'combo':
+                var hits = config.hits || 3;
+                html = '<div class="combo-container">';
+                for (var i = 0; i < hits; i++) {
+                    html += '<div class="combo-hit" style="animation-delay: ' + (i * 0.15) + 's"></div>';
+                }
+                html += '</div>';
+                break;
+                
+            default:
+                html = '<div class="magic-container"><div class="magic-circle"></div></div>';
+        }
+        
+        return html;
+    }
+    
+    /**
+     * 根据角色ID获取默认元素
+     */
+    function getElementFromCharacterId(characterId) {
+        var elementMap = {
+            'miyamoto': 'wind',
+            'viking-ragnar': 'fire',
+            'robin-hood': 'wind',
+            'guan-yu': 'fire',
+            'hua-mulan': 'wind',
+            'arthur': 'light',
+            'cao-cao': 'dark',
+            'cleopatra': 'water',
+            'zhuge-liang': 'water',
+            'joan-of-arc': 'light',
+            'genghis-khan': 'fire'
+        };
+        return elementMap[characterId] || 'neutral';
+    }
+    
+    /**
      * 显示元素特效
      */
     function showElementEffect(element, side, index) {
@@ -425,6 +691,7 @@ var Battle2D = (function() {
         playHeal: playHeal,
         playDeath: playDeath,
         playSkillEffect: playSkillEffect,
+        playAdvancedSkillEffect: playAdvancedSkillEffect,
         cameraShake: cameraShake,
         get ready() { return ready; },
         get animSpeed() { return animSpeed; },
