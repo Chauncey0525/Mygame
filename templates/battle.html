@@ -24,9 +24,79 @@
 .bt-speed button{padding:2px 6px;border-radius:4px;font-size:.65rem;background:rgba(51,65,85,.6);color:#94a3b8;border:1px solid #475569;cursor:pointer}
 .bt-speed button.active{background:#fbbf2430;color:#fbbf24;border-color:#fbbf24}
 
-/* 3D画布容器 */
-.battle-canvas-wrap{flex:1;position:relative;overflow:hidden;background:#0c1222}
-#battle3d-canvas-container{width:100%;height:100%}
+/* 宝可梦风格2D战斗场景 */
+.battle-arena{flex:1;position:relative;overflow:hidden;background:linear-gradient(180deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)}
+.battle-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.6}
+.battle-effects-layer{position:absolute;inset:0;pointer-events:none;z-index:20}
+
+/* 敌方区域（上方） */
+.enemy-area{position:absolute;top:20px;left:20px;right:20px;display:flex;flex-direction:column;gap:8px}
+.enemy-row{display:flex;justify-content:center;gap:20px;flex-wrap:wrap}
+.enemy-unit{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .2s}
+.enemy-unit:hover{transform:scale(1.05)}
+.enemy-unit.selected{filter:drop-shadow(0 0 12px #ef4444)}
+.enemy-unit.dead{opacity:0.4;pointer-events:none}
+.enemy-sprite{width:120px;height:120px;position:relative;display:flex;align-items:center;justify-content:center}
+.enemy-sprite img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));transition:transform .3s}
+.enemy-unit.attacking .enemy-sprite img{animation:enemyAttack .5s ease-out}
+.enemy-unit.hit .enemy-sprite img{animation:hitShake .3s ease-out}
+@keyframes enemyAttack{0%,100%{transform:translateY(0)}50%{transform:translateY(20px) scale(1.1)}}
+@keyframes hitShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.enemy-info{background:rgba(15,23,42,.85);padding:6px 12px;border-radius:8px;border:1px solid #334155;min-width:140px}
+.enemy-name{font-size:.8rem;font-weight:700;color:#f1f5f9;text-align:center;margin-bottom:4px}
+.enemy-hp-bar{height:6px;background:#334155;border-radius:3px;overflow:hidden}
+.enemy-hp-fill{height:100%;border-radius:3px;transition:width .3s}
+.enemy-hp-fill.high{background:linear-gradient(90deg,#22c55e,#4ade80)}
+.enemy-hp-fill.mid{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.enemy-hp-fill.low{background:linear-gradient(90deg,#ef4444,#f87171)}
+.enemy-hp-text{font-size:.65rem;color:#94a3b8;text-align:center;margin-top:2px}
+
+/* 己方区域（下方） */
+.ally-area{position:absolute;bottom:20px;left:20px;right:20px;display:flex;justify-content:center;gap:30px}
+.ally-unit{display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .2s}
+.ally-unit.active{transform:scale(1.05)}
+.ally-unit.dead{opacity:0.4;pointer-events:none}
+.ally-sprite{width:100px;height:100px;position:relative;display:flex;align-items:center;justify-content:center}
+.ally-sprite img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));transition:transform .3s}
+.ally-unit.attacking .ally-sprite img{animation:allyAttack .4s ease-out}
+.ally-unit.hit .ally-sprite img{animation:hitShake .3s ease-out}
+@keyframes allyAttack{0%,100%{transform:translateY(0)}50%{transform:translateY(-30px) scale(1.1)}}
+.ally-info{background:rgba(251,191,36,.1);padding:6px 12px;border-radius:8px;border:1px solid #fbbf2440;min-width:120px}
+.ally-name{font-size:.75rem;font-weight:700;color:#fbbf24;text-align:center;margin-bottom:4px}
+.ally-hp-bar{height:5px;background:#334155;border-radius:3px;overflow:hidden}
+.ally-hp-fill{height:100%;background:linear-gradient(90deg,#22c55e,#4ade80);border-radius:3px;transition:width .3s}
+.ally-hp-text{font-size:.6rem;color:#94a3b8;text-align:center;margin-top:2px}
+
+/* 伤害数字飘字 */
+.damage-float{position:absolute;font-weight:900;pointer-events:none;z-index:100;animation:damageFloat 1s ease-out forwards}
+.damage-float.physical{color:#ef4444;text-shadow:0 0 10px #ef444480}
+.damage-float.magic{color:#a855f7;text-shadow:0 0 10px #a855f780}
+.damage-float.heal{color:#22c55e;text-shadow:0 0 10px #22c55e80}
+.damage-float.critical{font-size:1.5em;animation:critFloat 1s ease-out forwards}
+@keyframes damageFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(0.8)}}
+@keyframes critFloat{0%{opacity:1;transform:translateY(0) scale(1.5)}50%{transform:translateY(-30px) scale(1.2)}100%{opacity:0;transform:translateY(-80px) scale(0.8)}}
+
+/* 技能特效 */
+.skill-effect{position:absolute;pointer-events:none;z-index:15}
+.effect-flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:50}
+.effect-flash.active{animation:flashBang .15s ease-out}
+@keyframes flashBang{0%{opacity:.6}100%{opacity:0}}
+
+/* 元素特效 */
+.element-effect{position:absolute;width:200px;height:200px;pointer-events:none;z-index:18}
+.element-effect.fire{background:radial-gradient(circle,#ff6b3500 0%,#ff6b3580 30%,#f7931e40 60%,#f7931e00 100%);animation:fireEffect .6s ease-out}
+.element-effect.water{background:radial-gradient(circle,#00d4ff00 0%,#00d4ff80 30%,#0099cc40 60%,#0099cc00 100%);animation:waterEffect .6s ease-out}
+.element-effect.wind{background:radial-gradient(circle,#90ee9000 0%,#90ee9080 30%,#228b2240 60%,#228b2200 100%);animation:windEffect .6s ease-out}
+.element-effect.earth{background:radial-gradient(circle,#daa52000 0%,#daa52080 30%,#b8860b40 60%,#b8860b00 100%);animation:earthEffect .6s ease-out}
+.element-effect.light{background:radial-gradient(circle,#fffacd00 0%,#fffacd80 30%,#ffd70040 60%,#ffd70000 100%);animation:lightEffect .6s ease-out}
+.element-effect.dark{background:radial-gradient(circle,#4b008200 0%,#4b008280 30%,#2f004040 60%,#2f004000 100%);animation:darkEffect .6s ease-out}
+@keyframes fireEffect{0%{transform:scale(0);opacity:1}100%{transform:scale(2);opacity:0}}
+@keyframes waterEffect{0%{transform:scale(0) rotate(0deg);opacity:1}100%{transform:scale(2) rotate(180deg);opacity:0}}
+@keyframes windEffect{0%{transform:scale(0) rotate(0deg);opacity:1}100%{transform:scale(2.5) rotate(360deg);opacity:0}}
+@keyframes earthEffect{0%{transform:scale(0);opacity:1}100%{transform:scale(1.5);opacity:0}}
+@keyframes lightEffect{0%{transform:scale(0);opacity:1}50%{opacity:.8}100%{transform:scale(3);opacity:0}}
+@keyframes darkEffect{0%{transform:scale(1);opacity:1}100%{transform:scale(0);opacity:0}}
+
 .auto-battle-fab{position:absolute;top:8px;right:12px;display:flex;align-items:center;gap:6px;z-index:12}
 .auto-btn{padding:4px 10px;border-radius:6px;font-size:.7rem;font-weight:600;cursor:pointer;border:1px solid #475569;background:rgba(51,65,85,.7);color:#94a3b8;transition:all .2s}
 .auto-btn.active{background:#fbbf2430;color:#fbbf24;border-color:#fbbf24}
@@ -133,7 +203,7 @@
     </div>
 </div>
 
-<!-- ========== 3D 战斗主界面 ========== -->
+<!-- ========== 宝可梦风格2D战斗界面 ========== -->
 <div class="battle-screen">
     <!-- 顶栏 -->
     <div class="battle-topbar">
@@ -151,9 +221,26 @@
         </div>
     </div>
 
-    <!-- 3D 画布 -->
-    <div class="battle-canvas-wrap">
-        <div id="battle3d-canvas-container"></div>
+    <!-- 2D战斗场景 -->
+    <div class="battle-arena" id="battle-arena">
+        <!-- 战斗背景 -->
+        <div class="battle-bg" id="battle-bg"></div>
+        
+        <!-- 技能特效层 -->
+        <div class="battle-effects-layer" id="effects-layer"></div>
+        <div class="effect-flash" id="effect-flash"></div>
+        
+        <!-- 敌方区域 -->
+        <div class="enemy-area" id="enemy-area">
+            <!-- 敌方角色将由JS动态生成 -->
+        </div>
+        
+        <!-- 己方区域 -->
+        <div class="ally-area" id="ally-area">
+            <!-- 己方角色将由JS动态生成 -->
+        </div>
+        
+        <!-- 自动战斗按钮 -->
         <div class="auto-battle-fab">
             <button class="auto-btn" id="auto-toggle" onclick="toggleAutoBattle()">自动</button>
             <select class="auto-select" id="auto-mode" onchange="changeAutoMode(this.value)" disabled>
@@ -207,16 +294,15 @@
     </div>
 </div>
 
-<!-- Three.js CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<!-- 3D Engine -->
-<script src="{{ url_for('static', filename='js/battle3d/battle3d.js') }}"></script>
+<!-- 2D战斗特效引擎 -->
+<script src="{{ url_for('static', filename='js/battle2d/battle2d.js') }}"></script>
 
 <script>
 /* ========== 数据初始化 ========== */
 var battleMode = '{{ battle_mode|default("3v3") }}';
 var dungeonType = '{{ dungeon_type|default("main") }}';
 var stageId = '{{ stage.id }}';
+var stageElement = '{{ stage.element|default("neutral") }}';
 
 var gameState = {
     allies: {{ team | tojson }},
@@ -263,14 +349,16 @@ battleItems.forEach(function(item){
 });
 if(gameState.enemies.length > 0) gameState.selectedTargetIndex = 0;
 
-/* ========== 3D 初始化 ========== */
+/* ========== 2D战斗场景初始化 ========== */
 document.addEventListener('DOMContentLoaded', function(){
-    var container = document.getElementById('battle3d-canvas-container');
-    if(container && typeof THREE !== 'undefined' && window.Battle3D){
-        Battle3D.init(container, gameState.allies, gameState.enemies, battleMode);
-        if(gameState.selectedTargetIndex !== null)
-            Battle3D.selectTarget('enemy', gameState.selectedTargetIndex);
-    }
+    // 初始化2D战斗场景
+    Battle2D.init('battle-arena', gameState.allies, gameState.enemies, battleMode, stageElement);
+    // 渲染角色
+    Battle2D.renderAll();
+    // 选中默认目标
+    if(gameState.selectedTargetIndex !== null)
+        Battle2D.selectTarget('enemy', gameState.selectedTargetIndex);
+    
     updateActorInfo();
     try{
         var pre = (chapterDialogue && chapterDialogue.pre) ? chapterDialogue.pre : [];
@@ -357,7 +445,7 @@ function selectTarget(type, index){
         if(!enemy||enemy.currentHp<=0) return;
         gameState.selectedTargetIndex=index;
         updateStatus('目标: '+enemy.name);
-        if(Battle3D.ready) Battle3D.selectTarget('enemy',index);
+        if(Battle2D.ready) Battle2D.selectTarget('enemy',index);
     }
     if(window.AudioManager) window.AudioManager.playSfx('click');
 }
@@ -366,7 +454,7 @@ function autoSelectTarget(){
     if(alive.length>0){
         alive.sort(function(a,b){return a.e.currentHp-b.e.currentHp});
         gameState.selectedTargetIndex=alive[0].i;
-        if(Battle3D.ready) Battle3D.selectTarget('enemy',alive[0].i);
+        if(Battle2D.ready) Battle2D.selectTarget('enemy',alive[0].i);
     }
 }
 
@@ -376,7 +464,7 @@ function updateStatus(text){ document.getElementById('actor-status').textContent
 function updateHpDisplay(type,index){
     var entity=type==='ally'?gameState.allies[index]:gameState.enemies[index];
     var pct=Math.max(0,entity.currentHp/entity.maxHp);
-    if(Battle3D.ready) Battle3D.updateHp(type,index,pct);
+    if(Battle2D.ready) Battle2D.updateHp(type,index,pct);
 }
 
 function updateActorInfo(){
@@ -387,7 +475,7 @@ function updateActorInfo(){
     document.getElementById('actor-hp-fill').style.width=pct+'%';
     document.getElementById('actor-hp-text').textContent=Math.max(0,Math.floor(actor.currentHp))+'/'+actor.maxHp;
     var img=document.getElementById('actor-avatar-img');if(img)img.src=actor.avatar;
-    if(Battle3D.ready) Battle3D.highlight('ally',ci);
+    if(Battle2D.ready) Battle2D.highlight('ally',ci);
     var awk=actor.awakening_skill;
     var bar=document.getElementById('awakening-bar');
     var btn=document.getElementById('awakening-btn');
@@ -413,7 +501,7 @@ function addLog(message){
 /* ========== 倍速 ========== */
 function setBattleSpeed(speed){
     gameState.battleSpeed=speed;
-    if(Battle3D.ready) Battle3D.animSpeed=speed;
+    if(Battle2D.ready) Battle2D.animSpeed=speed;
     document.querySelectorAll('.bt-speed button').forEach(function(btn){
         btn.classList.toggle('active',parseFloat(btn.dataset.speed)===speed);
     });
@@ -504,12 +592,12 @@ function checkBossPhase(enemy,idx){
         showBossPhaseAlert(enemy.name,2,'Boss进入狂暴状态，攻击力提升！');
         enemy.stats.attack=Math.floor(enemy.stats.attack*1.3);
         enemy.stats.magic_attack=Math.floor(enemy.stats.magic_attack*1.3);
-        if(Battle3D.ready) Battle3D.cameraShake(0.2);
+        if(Battle2D.ready) Battle2D.cameraShake(0.2);
     }else if(phase===2&&pct<25){
         gameState.bossPhases[idx]=3;
         showBossPhaseAlert(enemy.name,3,'Boss进入绝境，速度大幅提升！');
         enemy.stats.speed=Math.floor(enemy.stats.speed*1.5);
-        if(Battle3D.ready) Battle3D.cameraShake(0.3);
+        if(Battle2D.ready) Battle2D.cameraShake(0.3);
     }
 }
 function showBossPhaseAlert(name,phase,msg){
@@ -528,7 +616,7 @@ function applyHeal(caster,targets,skill){
         var heal=Math.floor(maxHp*healPct/100);
         t.char.currentHp=Math.min(maxHp,t.char.currentHp+heal);
         updateHpDisplay(t.side,t.idx);
-        if(Battle3D.ready){Battle3D.playHeal(t.side,t.idx);Battle3D.showDamage(t.side,t.idx,heal,true);}
+        if(Battle2D.ready){Battle2D.playHeal(t.side,t.idx);Battle2D.showDamage(t.side,t.idx,heal,true);}
         addLog('💚 '+t.char.name+' 恢复 '+heal+' HP');
     });
 }
@@ -546,7 +634,7 @@ function applyBuff(caster,targets,skill){
             else if(eff.type==='shield'){addLog('🛡️ '+t.char.name+' 获得护盾(减伤'+val+'%)');}
             else if(eff.type==='heal_pct'){var h=Math.floor((t.char.stats.hp||1)*val/100);t.char.currentHp=Math.min(t.char.stats.hp,t.char.currentHp+h);updateHpDisplay(t.side,t.idx);}
         });
-        if(Battle3D.ready) Battle3D.playHeal(t.side,t.idx);
+        if(Battle2D.ready) Battle2D.playHeal(t.side,t.idx);
     });
     if(!effects.length) addLog('✨ '+caster.name+' 使用 '+skill.name+'，效果激活！');
 }
@@ -560,7 +648,7 @@ function applyDebuff(caster,targets,skill){
             else if(eff.type==='debuff_mdef'){t.char.stats.magic_defense=Math.max(1,Math.floor(t.char.stats.magic_defense*(1-val/100)));}
             else if(eff.type==='debuff_spd'){t.char.stats.speed=Math.max(1,Math.floor(t.char.stats.speed*(1-val/100)));addLog('⬇️ '+t.char.name+' 速度-'+val+'%');}
         });
-        if(Battle3D.ready){Battle3D.playHit(t.side,t.idx);Battle3D.showDamage(t.side,t.idx,0,false,false);}
+        if(Battle2D.ready){Battle2D.playHit(t.side,t.idx);Battle2D.showDamage(t.side,t.idx,0,false,false);}
     });
     if(!effects.length) addLog('🔻 '+caster.name+' 对目标施加了 '+skill.name);
 }
@@ -658,24 +746,24 @@ async function useSkill(skillIndex){
         var skillEl=(skill&&skill.element)?skill.element:attacker.element;
         for(var ai=0;ai<aliveItems.length;ai++){
             var x=aliveItems[ai];
-            if(Battle3D.ready) await Battle3D.playSkillEffect(skillEl,'ally',gameState.currentAllyIndex,'enemy',x.i);
+            if(Battle2D.ready) await Battle2D.playSkillEffect(skillEl,'ally',gameState.currentAllyIndex,'enemy',x.i);
             var r=calculateDamage(attacker,x.e,skill);
             x.e.currentHp-=r.damage;
             updateHpDisplay('enemy',x.i);
-            if(Battle3D.ready){Battle3D.playHit('enemy',x.i);Battle3D.showDamage('enemy',x.i,r.damage,false,r.isCrit);}
+            if(Battle2D.ready){Battle2D.playHit('enemy',x.i);Battle2D.showDamage('enemy',x.i,r.damage,false,r.isCrit);}
             var logMsg='→ '+x.e.name+' -'+r.damage+(r.isCrit?' 暴击!':'')+(r.elementText?' '+r.elementText:'');
             addLog(logMsg);
             checkBossPhase(x.e,x.i);
-            if(x.e.currentHp<=0){addLog('💀 '+x.e.name+' 被击败！');if(Battle3D.ready)Battle3D.playDeath('enemy',x.i);}
+            if(x.e.currentHp<=0){addLog('💀 '+x.e.name+' 被击败！');if(Battle2D.ready)Battle2D.playDeath('enemy',x.i);}
         }
     }else{
         var tgtIdx=gameState.selectedTargetIndex;
         var tgt=gameState.enemies[tgtIdx];
         if(skill){
             var sEl=(skill.element)?skill.element:attacker.element;
-            if(Battle3D.ready) await Battle3D.playSkillEffect(sEl,'ally',gameState.currentAllyIndex,'enemy',tgtIdx);
+            if(Battle2D.ready) await Battle2D.playSkillEffect(sEl,'ally',gameState.currentAllyIndex,'enemy',tgtIdx);
         }else{
-            if(Battle3D.ready) await Battle3D.playAttack('ally',gameState.currentAllyIndex,'enemy',tgtIdx);
+            if(Battle2D.ready) await Battle2D.playAttack('ally',gameState.currentAllyIndex,'enemy',tgtIdx);
         }
         var r2=calculateDamage(attacker,tgt,skill);
         tgt.currentHp-=r2.damage;
@@ -684,10 +772,10 @@ async function useSkill(skillIndex){
         if(r2.elementText) msg2+=' '+r2.elementText;
         addLog(msg2);
         updateHpDisplay('enemy',tgtIdx);
-        if(Battle3D.ready){Battle3D.playHit('enemy',tgtIdx);Battle3D.showDamage('enemy',tgtIdx,r2.damage,false,r2.isCrit);}
-        if(Battle3D.ready) Battle3D.cameraShake(r2.isCrit?0.15:0.06);
+        if(Battle2D.ready){Battle2D.playHit('enemy',tgtIdx);Battle2D.showDamage('enemy',tgtIdx,r2.damage,false,r2.isCrit);}
+        if(Battle2D.ready) Battle2D.cameraShake(r2.isCrit?0.15:0.06);
         checkBossPhase(tgt,tgtIdx);
-        if(tgt.currentHp<=0){addLog('💀 '+tgt.name+' 被击败！');if(Battle3D.ready)Battle3D.playDeath('enemy',tgtIdx);}
+        if(tgt.currentHp<=0){addLog('💀 '+tgt.name+' 被击败！');if(Battle2D.ready)Battle2D.playDeath('enemy',tgtIdx);}
     }
     if(window.AudioManager) window.AudioManager.playSfx('hit');
     var alive=gameState.enemies.filter(function(e){return e.currentHp>0});
@@ -762,29 +850,29 @@ async function useAwakeningSkill(){
         var skillEl=awk.element||attacker.element;
         for(var ai=0;ai<aliveItems.length;ai++){
             var x=aliveItems[ai];
-            if(Battle3D.ready) await Battle3D.playSkillEffect(skillEl,'ally',ci,'enemy',x.i);
+            if(Battle2D.ready) await Battle2D.playSkillEffect(skillEl,'ally',ci,'enemy',x.i);
             var r=calculateDamage(attacker,x.e,awk);
             x.e.currentHp-=r.damage;
             updateHpDisplay('enemy',x.i);
-            if(Battle3D.ready){Battle3D.playHit('enemy',x.i);Battle3D.showDamage('enemy',x.i,r.damage,false,r.isCrit);}
+            if(Battle2D.ready){Battle2D.playHit('enemy',x.i);Battle2D.showDamage('enemy',x.i,r.damage,false,r.isCrit);}
             addLog('→ '+x.e.name+' -'+r.damage+(r.isCrit?' 暴击!':'')+(r.elementText?' '+r.elementText:''));
             checkBossPhase(x.e,x.i);
-            if(x.e.currentHp<=0){addLog('💀 '+x.e.name+' 被击败！');if(Battle3D.ready)Battle3D.playDeath('enemy',x.i);}
+            if(x.e.currentHp<=0){addLog('💀 '+x.e.name+' 被击败！');if(Battle2D.ready)Battle2D.playDeath('enemy',x.i);}
         }
     }else{
         var tgtIdx=gameState.selectedTargetIndex;
         var tgt=gameState.enemies[tgtIdx];
         var sEl2=awk.element||attacker.element;
-        if(Battle3D.ready) await Battle3D.playSkillEffect(sEl2,'ally',ci,'enemy',tgtIdx);
+        if(Battle2D.ready) await Battle2D.playSkillEffect(sEl2,'ally',ci,'enemy',tgtIdx);
         var r2=calculateDamage(attacker,tgt,awk);
         tgt.currentHp-=r2.damage;
         var msg2='→ '+tgt.name+' -'+r2.damage+(r2.isCrit?' 暴击!':'')+(r2.elementText?' '+r2.elementText:'');
         addLog(msg2);
         updateHpDisplay('enemy',tgtIdx);
-        if(Battle3D.ready){Battle3D.playHit('enemy',tgtIdx);Battle3D.showDamage('enemy',tgtIdx,r2.damage,false,r2.isCrit);}
-        if(Battle3D.ready) Battle3D.cameraShake(r2.isCrit?0.15:0.08);
+        if(Battle2D.ready){Battle2D.playHit('enemy',tgtIdx);Battle2D.showDamage('enemy',tgtIdx,r2.damage,false,r2.isCrit);}
+        if(Battle2D.ready) Battle2D.cameraShake(r2.isCrit?0.15:0.08);
         checkBossPhase(tgt,tgtIdx);
-        if(tgt.currentHp<=0){addLog('💀 '+tgt.name+' 被击败！');if(Battle3D.ready)Battle3D.playDeath('enemy',tgtIdx);}
+        if(tgt.currentHp<=0){addLog('💀 '+tgt.name+' 被击败！');if(Battle2D.ready)Battle2D.playDeath('enemy',tgtIdx);}
     }
     if(window.AudioManager) window.AudioManager.playSfx('hit');
     var alive=gameState.enemies.filter(function(e){return e.currentHp>0});
@@ -811,7 +899,7 @@ function useItem(itemId){
             var heal=Math.floor(actor.maxHp*item.value);
             actor.currentHp=Math.min(actor.maxHp,actor.currentHp+heal);
             updateHpDisplay('ally',gameState.currentAllyIndex);updateActorInfo();
-            if(Battle3D.ready){Battle3D.playHeal('ally',gameState.currentAllyIndex);Battle3D.showDamage('ally',gameState.currentAllyIndex,heal,true);}
+            if(Battle2D.ready){Battle2D.playHeal('ally',gameState.currentAllyIndex);Battle2D.showDamage('ally',gameState.currentAllyIndex,heal,true);}
             logMsg='💊 '+actor.name+' 使用 '+item.name+'，恢复 '+heal+' HP';
             break;
         case 'buff_atk':case 'buff_def':case 'buff_speed':
@@ -827,7 +915,7 @@ function useItem(itemId){
             var revived=deadAllies[0];
             revived.a.currentHp=Math.floor(revived.a.maxHp*item.value);
             updateHpDisplay('ally',revived.i);
-            if(Battle3D.ready){Battle3D.playHeal('ally',revived.i);Battle3D.showDamage('ally',revived.i,Math.floor(revived.a.currentHp),true);}
+            if(Battle2D.ready){Battle2D.playHeal('ally',revived.i);Battle2D.showDamage('ally',revived.i,Math.floor(revived.a.currentHp),true);}
             logMsg='📜 '+revived.a.name+' 被复活！HP '+Math.floor(revived.a.currentHp);
             break;
     }
@@ -920,9 +1008,9 @@ async function enemyTurn(){
 
         if(eSkill){
             var eEl=(eSkill.element)?eSkill.element:enemy.element;
-            if(Battle3D.ready) await Battle3D.playSkillEffect(eEl,'enemy',idx,'ally',ti);
+            if(Battle2D.ready) await Battle2D.playSkillEffect(eEl,'enemy',idx,'ally',ti);
         }else{
-            if(Battle3D.ready) await Battle3D.playAttack('enemy',idx,'ally',ti);
+            if(Battle2D.ready) await Battle2D.playAttack('enemy',idx,'ally',ti);
         }
         var r=calculateDamage(enemy,tgt,eSkill);
         tgt.currentHp-=r.damage;
@@ -932,10 +1020,10 @@ async function enemyTurn(){
         if(r.elementText) msg+=' '+r.elementText;
         addLog(msg);
         updateHpDisplay('ally',ti);
-        if(Battle3D.ready){Battle3D.playHit('ally',ti);Battle3D.showDamage('ally',ti,r.damage,false,r.isCrit);}
-        if(Battle3D.ready) Battle3D.cameraShake(r.isCrit?0.12:0.05);
+        if(Battle2D.ready){Battle2D.playHit('ally',ti);Battle2D.showDamage('ally',ti,r.damage,false,r.isCrit);}
+        if(Battle2D.ready) Battle2D.cameraShake(r.isCrit?0.12:0.05);
         if(window.AudioManager) window.AudioManager.playSfx('hit');
-        if(tgt.currentHp<=0){addLog('💔 '+tgt.name+' 被击败！');if(Battle3D.ready)Battle3D.playDeath('ally',ti);}
+        if(tgt.currentHp<=0){addLog('💔 '+tgt.name+' 被击败！');if(Battle2D.ready)Battle2D.playDeath('ally',ti);}
         await new Promise(function(res){setTimeout(res,getDelay(350));});
     }
 
