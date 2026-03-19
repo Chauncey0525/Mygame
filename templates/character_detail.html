@@ -274,7 +274,77 @@ const allSkills = {{ character.all_skills | tojson }};
 const skillUnlockPreview = {{ skill_unlock_preview | tojson }};
 const awakeningSkill = {{ character.awakening_skill | tojson if character.awakening_skill else 'null' }};
 let equippedIds = {{ character.equipped_skill_ids | tojson if character.equipped_skill_ids else '[]' }};
+const characterId = '{{ character.character_id }}';
 const MAX_EQUIP = 4;
+
+// 技能图标映射
+const SKILL_ELEMENT_ICONS = {
+    'fire': '/static/images/skills/elements/fire.png',
+    'water': '/static/images/skills/elements/water.png',
+    'wind': '/static/images/skills/elements/wind.png',
+    'flying': '/static/images/skills/elements/wind.png',
+    'earth': '/static/images/skills/elements/earth.png',
+    'light': '/static/images/skills/elements/light.png',
+    'dark': '/static/images/skills/elements/dark.png',
+    'electric': '/static/images/skills/elements/electric.png',
+    'fighting': '/static/images/skills/elements/fighting.png',
+    'ground': '/static/images/skills/elements/ground.png',
+};
+
+const SKILL_TYPE_ICONS = {
+    'physical': '/static/images/skills/elements/physical.png',
+    'magic': '/static/images/skills/elements/magic.png',
+    'heal': '/static/images/skills/elements/heal.png',
+    'buff': '/static/images/skills/elements/buff.png',
+    'debuff': '/static/images/skills/elements/debuff.png',
+    'passive': '/static/images/skills/elements/passive.png',
+};
+
+const CHARACTER_SKILL_ICONS = {
+    'miyamoto': '/static/images/skills/exclusive/miyamoto.png',
+    'viking-ragnar': '/static/images/skills/exclusive/ragnar.png',
+    'robin-hood': '/static/images/skills/exclusive/robinhood.png',
+    'guan-yu': '/static/images/skills/exclusive/guanyu.png',
+    'hua-mulan': '/static/images/skills/exclusive/mulan.png',
+    'arthur': '/static/images/skills/exclusive/arthur.png',
+    'cao-cao': '/static/images/skills/exclusive/caocao.png',
+    'cleopatra': '/static/images/skills/exclusive/cleopatra.png',
+    'zhuge-liang': '/static/images/skills/exclusive/zhugeliang.png',
+    'joan-of-arc': '/static/images/skills/exclusive/joan.png',
+    'genghis-khan': '/static/images/skills/exclusive/khan.png',
+};
+
+const AWAKENING_SKILL_ICON = '/static/images/skills/exclusive/awakening.png';
+
+function getSkillIcon(skill) {
+    // 1. 觉醒技能
+    if (skill.is_awakening) return AWAKENING_SKILL_ICON;
+    
+    // 2. 专属技能
+    if (skill.is_exclusive && characterId && CHARACTER_SKILL_ICONS[characterId]) {
+        return CHARACTER_SKILL_ICONS[characterId];
+    }
+    
+    // 3. 被动技能
+    if (skill.is_passive || skill.type === 'passive') {
+        return SKILL_TYPE_ICONS['passive'];
+    }
+    
+    // 4. 根据元素获取图标
+    var element = skill.element;
+    if (element && SKILL_ELEMENT_ICONS[element]) {
+        return SKILL_ELEMENT_ICONS[element];
+    }
+    
+    // 5. 根据技能类型获取图标
+    var type = skill.type || 'physical';
+    if (SKILL_TYPE_ICONS[type]) {
+        return SKILL_TYPE_ICONS[type];
+    }
+    
+    // 6. 默认返回物理攻击图标
+    return SKILL_TYPE_ICONS['physical'];
+}
 
 const TYPE_LABELS = {
     physical: {text:'物理', cls:'t-phys'}, magic: {text:'魔法', cls:'t-magic'},
@@ -284,13 +354,20 @@ const TYPE_LABELS = {
 
 function getTypeTag(skill) {
     var tags = '';
-    if (skill.is_passive || skill.type === 'passive') tags += '<span class="sk-tag t-passive">被动</span>';
-    else {
-        var t = TYPE_LABELS[skill.type] || TYPE_LABELS.physical;
-        tags += '<span class="sk-tag ' + t.cls + '">' + t.text + '</span>';
+    // 技能类型图标
+    var typeIcon = getSkillIcon(skill);
+    tags += '<img src="' + typeIcon + '" alt="" class="sk-type-icon" style="width:20px;height:20px;border-radius:4px;object-fit:cover;vertical-align:middle;margin-right:2px;">';
+    
+    // 元素标签（如果有）
+    if (skill.element && SKILL_ELEMENT_ICONS[skill.element]) {
+        var elemIcon = SKILL_ELEMENT_ICONS[skill.element];
+        tags += '<img src="' + elemIcon + '" alt="" class="sk-elem-icon" style="width:20px;height:20px;border-radius:4px;object-fit:cover;vertical-align:middle;margin-right:2px;">';
     }
-    if (skill.is_exclusive) tags += '<span class="sk-tag t-excl">专属</span>';
-    if (skill.is_awakening) tags += '<span class="sk-tag t-awaken">觉醒</span>';
+    
+    // 专属/觉醒标签
+    if (skill.is_exclusive) tags += '<span class="sk-tag t-excl" style="font-size:.6rem;padding:1px 4px;">专属</span>';
+    if (skill.is_awakening) tags += '<span class="sk-tag t-awaken" style="font-size:.6rem;padding:1px 4px;">觉醒</span>';
+    if (skill.is_passive || skill.type === 'passive') tags += '<span class="sk-tag t-passive" style="font-size:.6rem;padding:1px 4px;">被动</span>';
     return tags;
 }
 
@@ -386,13 +463,23 @@ function renderEquippedSlots() {
         if (i < equippedIds.length) {
             var sk = allSkills.find(function(s){ return s.id === equippedIds[i]; });
             if (sk) {
+                var icon = getSkillIcon(sk);
                 html += '<div class="sk-slot filled" onclick="unequipSkill(\'' + sk.id + '\')">';
-                html += '<div>' + getTypeTag(sk) + '</div>';
-                html += '<div style="flex:1"><span style="color:#fbbf24;font-weight:bold;font-size:.85rem;">' +
-                    '<a href="/skill-preview/' + encodeURIComponent(sk.id) + '" onclick="event.stopPropagation();" style="color:inherit;text-decoration:none;">' + escHtml(sk.name || '') + '</a>' +
-                    '</span></div>';
-                html += '<div>' + getPowerText(sk) + '</div>';
-                html += '<span class="sk-remove" style="display:block">✕</span>';
+                html += '<div style="position:relative;flex-shrink:0;">';
+                html += '<img src="' + icon + '" alt="" class="sk-icon" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:2px solid #fbbf24;">';
+                if (sk.element && SKILL_ELEMENT_ICONS[sk.element]) {
+                    html += '<img src="' + SKILL_ELEMENT_ICONS[sk.element] + '" alt="" style="position:absolute;bottom:-3px;right:-3px;width:16px;height:16px;border-radius:4px;border:1px solid #1e293b;">';
+                }
+                html += '</div>';
+                html += '<div style="flex:1;min-width:0;">';
+                html += '<a href="/skill-preview/' + encodeURIComponent(sk.id) + '" onclick="event.stopPropagation();" style="color:#fbbf24;font-weight:bold;font-size:.9rem;text-decoration:none;">' + sk.name + '</a>';
+                html += '<div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.1rem;">';
+                if (sk.is_exclusive) html += '<span style="font-size:.6rem;color:#f59e0b;background:#f59e0b30;padding:1px 4px;border-radius:3px;">专属</span>';
+                if (sk.cooldown > 0) html += '<span style="font-size:.6rem;color:#94a3b8;background:#475569;padding:1px 4px;border-radius:3px;">CD:' + sk.cooldown + '</span>';
+                html += getPowerText(sk);
+                html += '</div>';
+                html += '</div>';
+                html += '<span class="sk-remove" style="display:block;font-size:.9rem;color:#ef4444;">✕</span>';
                 html += '</div>';
             } else {
                 html += '<div class="sk-slot"><span style="color:#475569;font-size:.8rem;">空槽位</span></div>';
@@ -410,17 +497,29 @@ function renderAwakeningPanel() {
     if (!awakeningSkill) { panel.style.display = 'none'; return; }
     panel.style.display = '';
     var sk = awakeningSkill;
+    var icon = getSkillIcon(sk);
     var html = '<div class="awaken-card">';
-    html += '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">';
-    html += '<span class="sk-tag t-awaken">觉醒</span>';
-    var t = TYPE_LABELS[sk.type] || TYPE_LABELS.physical;
-    html += '<span class="sk-tag ' + t.cls + '">' + t.text + '</span>';
-    html += '<span style="color:#fca5a5;font-weight:bold;font-size:1rem;">' + sk.name + '</span>';
-    html += getPowerText(sk);
+    html += '<div style="display:flex;align-items:flex-start;gap:.6rem;">';
+    html += '<div style="position:relative;flex-shrink:0;">';
+    html += '<img src="' + icon + '" alt="" class="sk-icon" style="width:52px;height:52px;border-radius:10px;object-fit:cover;border:3px solid #ef4444;">';
+    if (sk.element && SKILL_ELEMENT_ICONS[sk.element]) {
+        html += '<img src="' + SKILL_ELEMENT_ICONS[sk.element] + '" alt="" style="position:absolute;bottom:-4px;right:-4px;width:20px;height:20px;border-radius:5px;border:2px solid #1e293b;">';
+    }
+    html += '</div>';
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-bottom:.15rem;">';
+    html += '<span style="color:#fca5a5;font-weight:bold;font-size:1.05rem;">' + sk.name + '</span>';
+    html += '<span style="font-size:.6rem;color:#ef4444;background:#ef444430;padding:1px 5px;border-radius:3px;">觉醒</span>';
+    if (sk.is_exclusive) html += '<span style="font-size:.6rem;color:#f59e0b;background:#f59e0b30;padding:1px 5px;border-radius:3px;">专属</span>';
     html += '</div>';
     html += '<p style="font-size:.8rem;color:#fca5a5;margin:0 0 .3rem 0;">' + (sk.description || '') + '</p>';
-    if (sk.cooldown > 0) html += '<span style="font-size:.7rem;color:#ef4444;">CD: ' + sk.cooldown + ' 回合</span> ';
-    html += '<span style="font-size:.7rem;color:#f87171;background:#ef444420;padding:1px 6px;border-radius:3px;">战斗中自动携带·每场限用1次</span>';
+    html += '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">';
+    if (sk.cooldown > 0) html += '<span style="font-size:.65rem;color:#f87171;background:#ef444420;padding:1px 5px;border-radius:3px;">CD:' + sk.cooldown + '</span>';
+    html += getPowerText(sk);
+    html += '<span style="font-size:.65rem;color:#f87171;background:#ef444420;padding:1px 5px;border-radius:3px;">每场限用1次</span>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
     html += '</div>';
     document.getElementById('awakening-content').innerHTML = html;
 }
@@ -434,18 +533,32 @@ function renderAllSkills() {
         var cls = 'sk-card' + (equipped ? ' equipped' : '') + (passive ? ' passive-card' : '');
         var bg = equipped ? '#1e3a5f' : '#334155';
         var onclick = passive ? '' : 'onclick="toggleSkill(\'' + sk.id + '\')"';
+        var icon = getSkillIcon(sk);
         html += '<div class="' + cls + '" style="background:' + bg + ';" ' + onclick + '>';
-        html += '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem;">';
-        html += getTypeTag(sk);
-        html += '<span style="color:' + (equipped ? '#fbbf24' : '#e2e8f0') + ';font-weight:bold;font-size:.9rem;">' +
-            '<a href="/skill-preview/' + encodeURIComponent(sk.id) + '" onclick="event.stopPropagation();" style="color:inherit;text-decoration:none;">' + escHtml(sk.name || '') + '</a>' +
-            '</span>';
-        html += getPowerText(sk);
-        if (equipped) html += '<span style="margin-left:auto;font-size:.65rem;color:#fbbf24;background:#fbbf2420;padding:1px 6px;border-radius:3px;">已装备</span>';
-        if (passive) html += '<span style="margin-left:auto;font-size:.65rem;color:#94a3b8;">自动生效</span>';
+        html += '<div style="display:flex;align-items:flex-start;gap:.6rem;">';
+        // 主图标 - 更大更突出
+        html += '<div style="position:relative;flex-shrink:0;">';
+        html += '<img src="' + icon + '" alt="" class="sk-icon" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:2px solid ' + (equipped ? '#fbbf24' : '#475569') + ';">';
+        if (sk.element && SKILL_ELEMENT_ICONS[sk.element]) {
+            html += '<img src="' + SKILL_ELEMENT_ICONS[sk.element] + '" alt="" style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:4px;border:1px solid #1e293b;">';
+        }
         html += '</div>';
-        html += '<p style="font-size:.75rem;color:#94a3b8;margin:0;">' + (sk.description || '') + '</p>';
-        if (sk.cooldown > 0 && !passive) html += '<span style="font-size:.65rem;color:#64748b;">CD: ' + sk.cooldown + ' 回合</span>';
+        // 右侧信息
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-bottom:.15rem;">';
+        html += '<a href="/skill-preview/' + encodeURIComponent(sk.id) + '" onclick="event.stopPropagation();" style="color:' + (equipped ? '#fbbf24' : '#e2e8f0') + ';font-weight:bold;font-size:.95rem;text-decoration:none;">' + sk.name + '</a>';
+        if (equipped) html += '<span style="font-size:.6rem;color:#fbbf24;background:#fbbf2430;padding:1px 5px;border-radius:3px;">已装备</span>';
+        if (passive) html += '<span style="font-size:.6rem;color:#94a3b8;background:#475569;padding:1px 5px;border-radius:3px;">被动</span>';
+        if (sk.is_exclusive) html += '<span style="font-size:.6rem;color:#f59e0b;background:#f59e0b20;padding:1px 5px;border-radius:3px;">专属</span>';
+        if (sk.is_awakening) html += '<span style="font-size:.6rem;color:#ef4444;background:#ef444420;padding:1px 5px;border-radius:3px;">觉醒</span>';
+        html += '</div>';
+        html += '<p style="font-size:.75rem;color:#94a3b8;margin:0 0 .2rem 0;">' + (sk.description || '') + '</p>';
+        html += '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">';
+        if (sk.cooldown > 0 && !passive) html += '<span style="font-size:.65rem;color:#64748b;background:#1e293b80;padding:1px 5px;border-radius:3px;">CD:' + sk.cooldown + '</span>';
+        html += getPowerText(sk);
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
         html += '</div>';
     });
     document.getElementById('all-skills-panel').innerHTML = html;
@@ -522,17 +635,29 @@ function showSkillUnlockModal() {
     var html = '';
 
     _pendingSwapNewSkills.forEach(function(sk) {
-        var t = TYPE_LABELS[sk.type] || TYPE_LABELS.physical;
+        var icon = getSkillIcon(sk);
         html += '<div class="unlock-new">';
         html += '<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem;">';
-        html += '<span class="sk-tag ' + t.cls + '">' + t.text + '</span>';
+        // 技能图标
+        html += '<div style="position:relative;flex-shrink:0;">';
+        html += '<img src="' + icon + '" alt="" style="width:42px;height:42px;border-radius:8px;object-fit:cover;border:2px solid #fbbf24;">';
+        if (sk.element && SKILL_ELEMENT_ICONS[sk.element]) {
+            html += '<img src="' + SKILL_ELEMENT_ICONS[sk.element] + '" alt="" style="position:absolute;bottom:-3px;right:-3px;width:16px;height:16px;border-radius:4px;border:1px solid #1e293b;">';
+        }
+        html += '</div>';
+        // 技能信息
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-bottom:.15rem;">';
+        html += '<span class="sk-name">' + sk.name + '</span>';
         if (sk.is_exclusive) html += '<span class="sk-tag t-excl">专属</span>';
         if (sk.is_awakening) html += '<span class="sk-tag t-awaken">觉醒</span>';
-        html += '<span class="sk-name">' + sk.name + '</span>';
+        if (sk.is_passive || sk.type === 'passive') html += '<span class="sk-tag t-passive">被动</span>';
         html += getPowerText(sk);
         html += '</div>';
-        html += '<p style="font-size:.78rem;color:#94a3b8;margin:0;">' + (sk.description || '') + '</p>';
+        html += '<p style="font-size:.75rem;color:#94a3b8;margin:0;">' + (sk.description || '') + '</p>';
         if (sk.cooldown > 0) html += '<span style="font-size:.65rem;color:#64748b;">CD: ' + sk.cooldown + ' 回合</span>';
+        html += '</div>';
+        html += '</div>';
 
         if (!sk.is_awakening) {
             html += '<div class="swap-section">';
@@ -541,10 +666,12 @@ function showSkillUnlockModal() {
             _pendingSwapEquippedIds.forEach(function(eid, slot) {
                 var eq = _pendingSwapAllSkills.find(function(s){ return s.id === eid; });
                 if (!eq) return;
-                var et = TYPE_LABELS[eq.type] || TYPE_LABELS.physical;
+                var eqIcon = getSkillIcon(eq);
                 html += '<div class="swap-row" data-new-id="' + sk.id + '" data-slot="' + slot + '" onclick="selectSwapSlot(this, \'' + sk.id + '\', ' + slot + ')">';
-                html += '<div><span class="sk-tag ' + et.cls + '">' + et.text + '</span>';
-                html += '<span class="sw-name">' + eq.name + '</span></div>';
+                html += '<div style="display:flex;align-items:center;gap:.4rem;">';
+                html += '<img src="' + eqIcon + '" alt="" style="width:24px;height:24px;border-radius:4px;object-fit:cover;">';
+                html += '<span class="sw-name">' + eq.name + '</span>';
+                html += '</div>';
                 html += '<div class="sw-power">' + (eq.power > 0 ? '威力:' + eq.power : '') + '</div>';
                 html += '</div>';
             });

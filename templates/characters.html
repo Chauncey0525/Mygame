@@ -13,8 +13,10 @@
     {% if characters %}
     <div class="grid grid-4" style="gap: 1rem;">
         {% for char in characters %}
-        <div class="card character-card" onclick="location.href='{{ url_for('character_detail', instance_id=char.instance_id) }}'"
-             style="{% if char.instance_id in team_ids %}border-color: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);{% endif %}">
+        <div class="card character-card character-card-hover" 
+             data-instance-id="{{ char.instance_id }}"
+             onclick="location.href='{{ url_for('character_detail', instance_id=char.instance_id) }}'"
+             style="{% if char.instance_id in team_ids %}border-color: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);{% endif %}cursor:pointer;position:relative;padding-bottom:0;">
             <img src="{{ char.avatar }}" alt="{{ char.name }}">
             
             <!-- 稀有度标签 -->
@@ -26,12 +28,10 @@
             <div style="position: absolute; top: 0.5rem; right: 0.5rem;">
                 <span class="badge" style="background: rgba(0,0,0,0.7);">Lv.{{ char.level }}</span>
             </div>
-
-            <!-- 常用角色：在左上角头像弹窗中设置（5槽位） -->
             
             <!-- 出战标签 -->
             {% if char.instance_id in team_ids %}
-            <div style="position: absolute; bottom: 0.5rem; right: 0.5rem;">
+            <div style="position: absolute; bottom: 3.8rem; right: 0.5rem; z-index:10;">
                 <span class="badge" style="background: #fbbf24; color: #1e293b;">出战</span>
             </div>
             {% endif %}
@@ -54,6 +54,58 @@
                     {% for i in range(char.stars) %}★{% endfor %}
                 </div>
             </div>
+            
+            <!-- 技能图标栏 - 直接显示在卡片上 -->
+            <div class="skill-icons-bar">
+                {% for skill in char.skills[:4] %}
+                <div class="skill-icon-wrapper" title="{{ skill.name }} - {{ skill.type_name }}">
+                    <img src="{{ skill.icon }}" alt="{{ skill.name }}" class="skill-mini-icon"
+                         onerror="this.src='/static/images/skills/elements/physical.png'">
+                    {% if skill.element %}
+                    <img src="{{ skill.element_icon }}" alt="" class="skill-element-badge"
+                         onerror="this.style.display='none'">
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% if char.skills|length > 4 %}
+                <span class="skill-more">+{{ char.skills|length - 4 }}</span>
+                {% endif %}
+            </div>
+            
+            <!-- 技能预览悬浮层 -->
+            <div class="skill-preview-popup" id="skill-popup-{{ char.instance_id }}">
+                <div class="skill-popup-header">
+                    <span style="color:#fbbf24;font-weight:bold;">{{ char.name }}</span>
+                    <span style="color:#94a3b8;font-size:.75rem;">技能预览</span>
+                </div>
+                <div class="skill-popup-content">
+                    {% for skill in char.skills[:4] %}
+                    <div class="skill-preview-item">
+                        <div style="position:relative;flex-shrink:0;">
+                            <img src="{{ skill.icon }}" alt="" class="skill-preview-icon"
+                                 onerror="this.src='/static/images/skills/elements/physical.png'">
+                            {% if skill.element %}
+                            <img src="{{ skill.element_icon }}" alt="" class="skill-preview-element"
+                                 onerror="this.style.display='none'">
+                            {% endif %}
+                        </div>
+                        <div class="skill-preview-info">
+                            <span class="skill-preview-name">{{ skill.name }}</span>
+                            <div style="display:flex;align-items:center;gap:.2rem;">
+                                <img src="{{ skill.icon }}" alt="" style="width:14px;height:14px;border-radius:2px;"
+                                     onerror="this.style.display='none'">
+                                <span class="skill-preview-type">{{ skill.type_name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% if char.skills|length > 4 %}
+                    <div style="text-align:center;color:#64748b;font-size:.7rem;padding-top:.3rem;">
+                        还有 {{ char.skills|length - 4 }} 个技能
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -66,5 +118,165 @@
     </div>
     {% endif %}
 </div>
+
+<style>
+/* 技能图标栏 - 显示在卡片底部 */
+.skill-icons-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border-top: 1px solid #334155;
+    margin-top: 0.25rem;
+}
+
+.skill-icon-wrapper {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.skill-mini-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid #475569;
+    transition: all 0.15s;
+}
+
+.skill-icon-wrapper:hover .skill-mini-icon {
+    border-color: #fbbf24;
+    transform: scale(1.1);
+    z-index: 5;
+}
+
+.skill-element-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    border: 1px solid #1e293b;
+    object-fit: cover;
+}
+
+.skill-more {
+    color: #94a3b8;
+    font-size: 0.65rem;
+    margin-left: auto;
+    padding: 2px 4px;
+    background: #334155;
+    border-radius: 3px;
+}
+
+/* 悬浮预览 */
+.character-card-hover:hover .skill-preview-popup {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.skill-preview-popup {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    width: 240px;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 0.75rem;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.skill-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #334155;
+}
+
+.skill-popup-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.skill-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem;
+    background: #33415540;
+    border-radius: 6px;
+}
+
+.skill-preview-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid #475569;
+}
+
+.skill-preview-element {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #1e293b;
+}
+
+.skill-preview-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.skill-preview-name {
+    color: #e2e8f0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.skill-preview-type {
+    color: #94a3b8;
+    font-size: 0.65rem;
+}
+
+/* 移动端悬浮预览 */
+@media (max-width: 768px) {
+    .skill-preview-popup {
+        display: none;
+    }
+    .skill-icons-bar {
+        padding: 0.4rem;
+    }
+    .skill-mini-icon {
+        width: 24px;
+        height: 24px;
+    }
+    .skill-element-badge {
+        width: 8px;
+        height: 8px;
+    }
+}
+</style>
 
 {% endblock %}

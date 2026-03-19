@@ -313,6 +313,95 @@ STAT_COLORS = {
     'speed': '#fbbf24'
 }
 
+# ==================== 技能图标映射 ====================
+
+# 元素到图标路径的映射
+SKILL_ELEMENT_ICONS = {
+    'fire': '/static/images/skills/elements/fire.png',
+    'water': '/static/images/skills/elements/water.png',
+    'wind': '/static/images/skills/elements/wind.png',
+    'flying': '/static/images/skills/elements/wind.png',
+    'earth': '/static/images/skills/elements/earth.png',
+    'light': '/static/images/skills/elements/light.png',
+    'dark': '/static/images/skills/elements/dark.png',
+    'electric': '/static/images/skills/elements/electric.png',
+    'fighting': '/static/images/skills/elements/fighting.png',
+    'ground': '/static/images/skills/elements/ground.png',
+    'physical': '/static/images/skills/elements/physical.png',
+    'magic': '/static/images/skills/elements/magic.png',
+}
+
+# 技能类型到图标路径的映射
+SKILL_TYPE_ICONS = {
+    'physical': '/static/images/skills/elements/physical.png',
+    'magic': '/static/images/skills/elements/magic.png',
+    'heal': '/static/images/skills/elements/heal.png',
+    'buff': '/static/images/skills/elements/buff.png',
+    'debuff': '/static/images/skills/elements/debuff.png',
+    'passive': '/static/images/skills/elements/passive.png',
+}
+
+# 角色专属技能图标映射
+CHARACTER_SKILL_ICONS = {
+    'miyamoto': '/static/images/skills/exclusive/miyamoto.png',
+    'viking-ragnar': '/static/images/skills/exclusive/ragnar.png',
+    'robin-hood': '/static/images/skills/exclusive/robinhood.png',
+    'guan-yu': '/static/images/skills/exclusive/guanyu.png',
+    'hua-mulan': '/static/images/skills/exclusive/mulan.png',
+    'arthur': '/static/images/skills/exclusive/arthur.png',
+    'cao-cao': '/static/images/skills/exclusive/caocao.png',
+    'cleopatra': '/static/images/skills/exclusive/cleopatra.png',
+    'zhuge-liang': '/static/images/skills/exclusive/zhugeliang.png',
+    'joan-of-arc': '/static/images/skills/exclusive/joan.png',
+    'genghis-khan': '/static/images/skills/exclusive/khan.png',
+}
+
+# 觉醒技能图标
+AWAKENING_SKILL_ICON = '/static/images/skills/exclusive/awakening.png'
+
+
+def get_skill_icon(skill, character_id=None):
+    """
+    获取技能图标路径
+    
+    Args:
+        skill: 技能字典，包含 element, type, is_exclusive, is_awakening, is_passive 等字段
+        character_id: 角色ID，用于获取专属技能图标
+        
+    Returns:
+        图标路径字符串
+    """
+    # 1. 觉醒技能
+    if skill.get('is_awakening'):
+        return AWAKENING_SKILL_ICON
+    
+    # 2. 专属技能 - 使用角色专属图标
+    if skill.get('is_exclusive') and character_id:
+        if character_id in CHARACTER_SKILL_ICONS:
+            return CHARACTER_SKILL_ICONS[character_id]
+    
+    # 3. 被动技能
+    if skill.get('is_passive') or skill.get('type') == 'passive':
+        return SKILL_TYPE_ICONS['passive']
+    
+    # 4. 根据技能类型获取图标
+    skill_type = skill.get('type', 'physical')
+    if skill_type in SKILL_TYPE_ICONS:
+        # 优先使用元素图标
+        element = skill.get('element')
+        if element and element in SKILL_ELEMENT_ICONS:
+            return SKILL_ELEMENT_ICONS[element]
+        return SKILL_TYPE_ICONS[skill_type]
+    
+    # 5. 根据元素获取图标
+    element = skill.get('element')
+    if element and element in SKILL_ELEMENT_ICONS:
+        return SKILL_ELEMENT_ICONS[element]
+    
+    # 6. 默认返回物理攻击图标
+    return SKILL_TYPE_ICONS['physical']
+
+
 # 所有角色模板数据
 ALL_CHARACTERS = [
     # ========== 普通角色（初始角色） ==========

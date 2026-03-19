@@ -48,6 +48,7 @@ from game_data import (
     BATTLE_MODES, BATTLE_ITEMS, DAILY_DUNGEONS, HERO_TRIALS, HARD_DUNGEONS,
     get_skills_for_character,
     get_skill_unlock_preview,
+    get_skill_icon, SKILL_TYPE_ICONS,
 )
 
 # ==================== 账号工具 ====================
@@ -1327,6 +1328,25 @@ def characters():
     """角色页面"""
     player = current_user
     
+    # 技能类型名称映射
+    type_names = {
+        'physical': '物理', 'magic': '魔法', 'heal': '治疗',
+        'buff': '增益', 'debuff': '减益', 'passive': '被动'
+    }
+    
+    # 元素图标映射
+    element_icons = {
+        'fire': '/static/images/skills/elements/fire.png',
+        'water': '/static/images/skills/elements/water.png',
+        'wind': '/static/images/skills/elements/wind.png',
+        'earth': '/static/images/skills/elements/earth.png',
+        'light': '/static/images/skills/elements/light.png',
+        'dark': '/static/images/skills/elements/dark.png',
+        'electric': '/static/images/skills/elements/electric.png',
+        'fighting': '/static/images/skills/elements/fighting.png',
+        'ground': '/static/images/skills/elements/ground.png',
+    }
+    
     # 获取所有角色
     all_chars = []
     for char in player.characters:
@@ -1334,6 +1354,17 @@ def characters():
         if battle_char:
             battle_char['instance_id'] = char.id
             battle_char['breakthrough'] = char.breakthrough
+            
+            # 为技能添加图标信息
+            if 'skills' in battle_char:
+                for skill in battle_char['skills']:
+                    skill['icon'] = get_skill_icon(skill, battle_char.get('character_id'))
+                    skill['type_name'] = type_names.get(skill.get('type', 'physical'), '物理')
+                    # 添加元素图标
+                    element = skill.get('element')
+                    if element and element in element_icons:
+                        skill['element_icon'] = element_icons[element]
+            
             all_chars.append(battle_char)
     
     # 按稀有度排序
@@ -1348,6 +1379,56 @@ def characters():
         characters=all_chars,
         team_ids=[t.character_instance_id for t in player.team],
         favorite_ids=favorite_ids,
+        rarity_names=RARITY_NAMES,
+        rarity_colors=RARITY_COLORS,
+        element_names=ELEMENT_NAMES,
+        element_colors=ELEMENT_COLORS,
+        role_names=ROLE_NAMES
+    )
+
+
+@app.route('/character/preview/<character_id>')
+@login_required
+def character_preview(character_id):
+    """角色预览页面 - 根据角色模板ID预览"""
+    from game_data import ALL_CHARACTERS, get_skill_icon, SKILL_ELEMENT_ICONS
+    
+    # 查找角色模板
+    char_template = None
+    for char in ALL_CHARACTERS:
+        if char['id'] == character_id:
+            char_template = char.copy()
+            break
+    
+    if not char_template:
+        flash('角色不存在', 'error')
+        return redirect(url_for('characters'))
+    
+    player = current_user
+    
+    # 检查是否已拥有该角色
+    owned_char = PlayerCharacter.query.filter_by(
+        player_id=player.id,
+        character_id=character_id
+    ).first()
+    
+    if owned_char:
+        # 如果已拥有，跳转到角色详情
+        return redirect(url_for('character_detail', instance_id=owned_char.id))
+    
+    # 为技能添加图标
+    if 'skills' in char_template:
+        skills_with_icons = []
+        for skill in char_template['skills']:
+            skill_copy = skill.copy()
+            skill_copy['icon'] = get_skill_icon(skill, character_id)
+            skills_with_icons.append(skill_copy)
+        char_template['skills'] = skills_with_icons
+    
+    # 返回预览模板
+    return render_template('character_preview.html',
+        player=player,
+        character=char_template,
         rarity_names=RARITY_NAMES,
         rarity_colors=RARITY_COLORS,
         element_names=ELEMENT_NAMES,
