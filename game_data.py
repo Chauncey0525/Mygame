@@ -671,7 +671,7 @@ ALL_CHARACTERS = [
         'role_type': 'tank',
         'description': '经验丰富的步兵，手持长矛与盾牌，是战场上最可靠的防线。',
         'avatar': '/static/images/characters/soldier.jpg',
-        'illustration': '/static/images/characters/soldier.jpg',
+        'illustration': '/static/images/characters/soldier-full.png',
         'rarity': 'common',
         'stats': {'hp': 1200, 'attack': 70, 'defense': 90, 'magic_attack': 20, 'magic_defense': 60, 'speed': 55},
         'skills': [
@@ -692,7 +692,7 @@ ALL_CHARACTERS = [
         'role_type': 'assassin',
         'description': '精通弓术的远程射手，擅长在远处精准狙击敌方要害。',
         'avatar': '/static/images/characters/archer.jpg',
-        'illustration': '/static/images/characters/archer.jpg',
+        'illustration': '/static/images/characters/archer-full.png',
         'rarity': 'common',
         'stats': {'hp': 700, 'attack': 110, 'defense': 40, 'magic_attack': 30, 'magic_defense': 40, 'speed': 100},
         'skills': [
@@ -713,7 +713,7 @@ ALL_CHARACTERS = [
         'role_type': 'mage',
         'description': '刚从法师学院毕业的年轻法师，虽然经验不足但天赋极高。',
         'avatar': '/static/images/characters/mage-apprentice.jpg',
-        'illustration': '/static/images/characters/mage-apprentice.jpg',
+        'illustration': '/static/images/characters/mage-apprentice-full.png',
         'rarity': 'common',
         'stats': {'hp': 650, 'attack': 40, 'defense': 35, 'magic_attack': 120, 'magic_defense': 70, 'speed': 80},
         'skills': [
@@ -734,7 +734,7 @@ ALL_CHARACTERS = [
         'role_type': 'support',
         'description': '古埃及最后的法老，以智慧和美貌闻名于世，精通治愈之术。',
         'avatar': '/static/images/characters/cleopatra.jpg',
-        'illustration': '/static/images/characters/cleopatra.jpg',
+        'illustration': '/static/images/characters/cleopatra-full.png',
         'rarity': 'epic',
         'stats': {'hp': 900, 'attack': 50, 'defense': 60, 'magic_attack': 140, 'magic_defense': 110, 'speed': 88},
         'skills': [
@@ -757,7 +757,7 @@ ALL_CHARACTERS = [
         'role_type': 'warrior',
         'description': '传说中的维京国王，率领龙头战船征服四方海域。',
         'avatar': '/static/images/characters/viking-ragnar.jpg',
-        'illustration': '/static/images/characters/viking-ragnar.jpg',
+        'illustration': '/static/images/characters/viking-ragnar-full.png',
         'rarity': 'rare',
         'stats': {'hp': 1100, 'attack': 140, 'defense': 70, 'magic_attack': 30, 'magic_defense': 50, 'speed': 85},
         'skills': [
@@ -778,7 +778,7 @@ ALL_CHARACTERS = [
         'role_type': 'assassin',
         'description': '劫富济贫的传奇侠盗，箭无虚发，行踪如风。',
         'avatar': '/static/images/characters/robin-hood.jpg',
-        'illustration': '/static/images/characters/robin-hood.jpg',
+        'illustration': '/static/images/characters/robin-hood-full.png',
         'rarity': 'rare',
         'stats': {'hp': 800, 'attack': 155, 'defense': 45, 'magic_attack': 40, 'magic_defense': 50, 'speed': 125},
         'skills': [
@@ -801,7 +801,7 @@ ALL_CHARACTERS = [
         'role_type': 'support',
         'description': '法兰西的救世圣女，以不屈的信念引领军队走向胜利。',
         'avatar': '/static/images/characters/joan-of-arc.jpg',
-        'illustration': '/static/images/characters/joan-of-arc.jpg',
+        'illustration': '/static/images/characters/joan-of-arc-full.png',
         'rarity': 'legendary',
         'stats': {'hp': 1000, 'attack': 80, 'defense': 90, 'magic_attack': 160, 'magic_defense': 120, 'speed': 85},
         'skills': [
@@ -824,7 +824,7 @@ ALL_CHARACTERS = [
         'role_type': 'warrior',
         'description': '蒙古帝国的缔造者，征服了横跨欧亚的辽阔疆域。',
         'avatar': '/static/images/characters/genghis-khan.jpg',
-        'illustration': '/static/images/characters/genghis-khan.jpg',
+        'illustration': '/static/images/characters/genghis-khan-full.png',
         'rarity': 'legendary',
         'stats': {'hp': 1100, 'attack': 170, 'defense': 80, 'magic_attack': 60, 'magic_defense': 70, 'speed': 100},
         'skills': [
